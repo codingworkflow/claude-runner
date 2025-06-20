@@ -1,4 +1,4 @@
-import { readFile } from "fs/promises";
+import { readFile, writeFile, mkdir, stat } from "fs/promises";
 import { homedir } from "os";
 import path from "path";
 import { glob } from "glob";
@@ -47,6 +47,20 @@ export interface PeriodUsageReport {
   totals: Omit<UsageReport, "date" | "models"> & { models: string[] };
 }
 
+interface HourlyUsage {
+  hour: string; // "2025-06-19T14:00:00.000Z"
+  models: Record<
+    string,
+    {
+      input: number;
+      output: number;
+      cacheCreate: number;
+      cacheRead: number;
+      cost: number;
+    }
+  >;
+}
+
 const LITELLM_PRICING_URL =
   "https://raw.githubusercontent.com/BerriAI/litellm/main/model_prices_and_context_window.json";
 
@@ -56,6 +70,74 @@ export class UsageReportService {
   private readonly CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours
 
   constructor() {}
+
+  // ----------  cache paths ----------
+  private getUsageDir(): string {
+    return path.join(homedir(), ".claude", "usage");
+  }
+
+  private getHourlyDir(): string {
+    return path.join(this.getUsageDir(), "hourly");
+  }
+
+  private getMetaPath(): string {
+    return path.join(this.getUsageDir(), "meta.json");
+  }
+
+  // ----------  meta helpers ----------
+  private async readMeta(): Promise<{ last?: string }> {
+    try {
+      return JSON.parse(await readFile(this.getMetaPath(), "utf8"));
+    } catch {
+      return {};
+    }
+  }
+
+  private async writeMeta(last: string): Promise<void> {
+    await mkdir(this.getUsageDir(), { recursive: true });
+    await writeFile(this.getMetaPath(), JSON.stringify({ last }));
+  }
+
+  // ----------  hourly I/O ----------
+  private hourlyFilename(dt: Date): string {
+    return path.join(
+      this.getHourlyDir(),
+      `${dt.toISOString().slice(0, 13)}.json`,
+    ); // YYYY-MM-DDTHH
+  }
+
+  private async appendToHourly(
+    hour: string,
+    delta: HourlyUsage,
+  ): Promise<void> {
+    const fp = this.hourlyFilename(new Date(hour));
+    await mkdir(this.getHourlyDir(), { recursive: true });
+
+    let current: HourlyUsage;
+    try {
+      const content = await readFile(fp, "utf8");
+      current = content.trim() ? JSON.parse(content) : { hour, models: {} };
+    } catch {
+      current = { hour, models: {} };
+    }
+
+    // merge per-model numbers
+    for (const [model, m] of Object.entries(delta.models)) {
+      const tgt = (current.models[model] ||= {
+        input: 0,
+        output: 0,
+        cacheCreate: 0,
+        cacheRead: 0,
+        cost: 0,
+      });
+      tgt.input += m.input;
+      tgt.output += m.output;
+      tgt.cacheCreate += m.cacheCreate;
+      tgt.cacheRead += m.cacheRead;
+      tgt.cost += m.cost;
+    }
+    await writeFile(fp, JSON.stringify(current));
+  }
 
   private async fetchPricing(): Promise<Map<string, ModelPricing>> {
     const now = Date.now();
@@ -218,7 +300,7 @@ export class UsageReportService {
     return `${messageId}:${requestId}`;
   }
 
-  private async loadUsageData(): Promise<UsageData[]> {
+  private async readNewLines(since: Date): Promise<UsageData[]> {
     const claudePath = this.getDefaultClaudePath();
     const claudeDir = path.join(claudePath, "projects");
 
@@ -233,10 +315,16 @@ export class UsageReportService {
       }
 
       const processedHashes = new Set<string>();
-      const allEntries: UsageData[] = [];
+      const newEntries: UsageData[] = [];
 
       for (const file of files) {
         try {
+          // 🚀 FAST EXIT – file hasn't changed since we last saw it
+          const { mtime } = await stat(file);
+          if (mtime <= since) {
+            continue;
+          }
+
           const content = await readFile(file, "utf-8");
           const lines = content
             .trim()
@@ -252,6 +340,12 @@ export class UsageReportService {
                 continue;
               }
 
+              // Skip entries older than since
+              const entryDate = new Date(data.timestamp);
+              if (entryDate <= since) {
+                continue;
+              }
+
               // Check for duplicates
               const uniqueHash = this.createUniqueHash(data);
               if (uniqueHash && processedHashes.has(uniqueHash)) {
@@ -262,7 +356,7 @@ export class UsageReportService {
                 processedHashes.add(uniqueHash);
               }
 
-              allEntries.push(data);
+              newEntries.push(data);
             } catch {
               // Skip invalid JSON lines
             }
@@ -272,17 +366,74 @@ export class UsageReportService {
         }
       }
 
-      return allEntries;
+      return newEntries;
     } catch (error) {
-      console.error("Failed to load usage data:", error);
+      console.error("Failed to read new usage data:", error);
       return [];
     }
+  }
+
+  private async loadUsageData(): Promise<UsageData[]> {
+    const meta = await this.readMeta();
+    const since = meta.last ? new Date(meta.last) : new Date(0);
+
+    const rawLines = await this.readNewLines(since);
+    if (rawLines.length === 0) {
+      return [];
+    }
+
+    const byHour: Record<string, HourlyUsage> = {};
+    let newest = since;
+
+    for (const entry of rawLines) {
+      const ts = new Date(entry.timestamp);
+      if (ts > newest) {
+        newest = ts;
+      }
+      const hourIso = ts.toISOString().slice(0, 13) + ":00:00.000Z";
+
+      const m = entry.message.model ?? "unknown";
+      byHour[hourIso] ??= { hour: hourIso, models: {} };
+      const agg = (byHour[hourIso].models[m] ||= {
+        input: 0,
+        output: 0,
+        cacheCreate: 0,
+        cacheRead: 0,
+        cost: 0,
+      });
+
+      agg.input += entry.message.usage.input_tokens;
+      agg.output += entry.message.usage.output_tokens;
+      agg.cacheCreate += entry.message.usage.cache_creation_input_tokens ?? 0;
+      agg.cacheRead += entry.message.usage.cache_read_input_tokens ?? 0;
+      agg.cost +=
+        entry.costUSD ?? (await this.calculateCost(entry.message.usage, m));
+    }
+
+    // persist each hour block
+    for (const h of Object.values(byHour)) {
+      await this.appendToHourly(h.hour, h);
+    }
+
+    await this.writeMeta(newest.toISOString());
+    return [];
+  }
+
+  /**
+   * Make sure the on-disk hourly cache is current.
+   * `loadUsageData()` already performs a meta-timestamp check internally,
+   * so calling it once is enough – if there is nothing new it returns almost
+   * immediately, otherwise it processes the fresh lines and updates meta.
+   */
+  private async ensureCache(): Promise<void> {
+    await this.loadUsageData(); // single scan, single write
   }
 
   public async generateReport(
     period: "today" | "week" | "month",
   ): Promise<PeriodUsageReport> {
-    const usageData = await this.loadUsageData();
+    // Bring the hourly cache up to date (cheap no-op when unchanged)
+    await this.ensureCache();
 
     const now = new Date();
     let startDate: Date;
@@ -306,27 +457,40 @@ export class UsageReportService {
         break;
     }
 
-    // Filter data by date range
-    const filteredData = usageData.filter((entry) => {
-      const entryDate = new Date(entry.timestamp);
-      return entryDate >= startDate && entryDate <= endDate;
-    });
+    // locate which hour files fall in [startDate, endDate]
+    const hours: string[] = [];
+    for (
+      let d = new Date(startDate);
+      d <= endDate;
+      d.setHours(d.getHours() + 1)
+    ) {
+      hours.push(this.hourlyFilename(d));
+    }
 
-    // Group by date
-    const dailyData = new Map<string, UsageData[]>();
-    for (const entry of filteredData) {
-      const date = this.formatDate(entry.timestamp);
+    const hourlyData: HourlyUsage[] = [];
+    for (const fp of hours) {
+      try {
+        hourlyData.push(JSON.parse(await readFile(fp, "utf8")));
+      } catch {
+        /* missing hour – user idle, safe to ignore */
+      }
+    }
+
+    // Group hourly data by date
+    const dailyData = new Map<string, HourlyUsage[]>();
+    for (const hourData of hourlyData) {
+      const date = this.formatDate(hourData.hour);
       if (!dailyData.has(date)) {
         dailyData.set(date, []);
       }
-      dailyData.get(date)?.push(entry);
+      dailyData.get(date)?.push(hourData);
     }
 
     // Generate daily reports
     const dailyReports: UsageReport[] = [];
     const allModels = new Set<string>();
 
-    for (const [date, entries] of dailyData) {
+    for (const [date, hours] of dailyData) {
       const modelStats = new Map<
         string,
         {
@@ -338,38 +502,28 @@ export class UsageReportService {
         }
       >();
 
-      for (const entry of entries) {
-        const model = entry.message.model ?? "unknown";
-        if (model !== "<synthetic>") {
-          allModels.add(model);
+      for (const hourData of hours) {
+        for (const [model, stats] of Object.entries(hourData.models)) {
+          if (model !== "<synthetic>") {
+            allModels.add(model);
+          }
+
+          const existing = modelStats.get(model) ?? {
+            inputTokens: 0,
+            outputTokens: 0,
+            cacheCreateTokens: 0,
+            cacheReadTokens: 0,
+            cost: 0,
+          };
+
+          modelStats.set(model, {
+            inputTokens: existing.inputTokens + stats.input,
+            outputTokens: existing.outputTokens + stats.output,
+            cacheCreateTokens: existing.cacheCreateTokens + stats.cacheCreate,
+            cacheReadTokens: existing.cacheReadTokens + stats.cacheRead,
+            cost: existing.cost + stats.cost,
+          });
         }
-
-        const existing = modelStats.get(model) ?? {
-          inputTokens: 0,
-          outputTokens: 0,
-          cacheCreateTokens: 0,
-          cacheReadTokens: 0,
-          cost: 0,
-        };
-
-        const usage = entry.message.usage;
-        let cost = entry.costUSD ?? 0;
-
-        // If no pre-calculated cost, calculate it
-        if (!cost && model && model !== "unknown") {
-          cost = await this.calculateCost(usage, model);
-        }
-
-        modelStats.set(model, {
-          inputTokens: existing.inputTokens + usage.input_tokens,
-          outputTokens: existing.outputTokens + usage.output_tokens,
-          cacheCreateTokens:
-            existing.cacheCreateTokens +
-            (usage.cache_creation_input_tokens ?? 0),
-          cacheReadTokens:
-            existing.cacheReadTokens + (usage.cache_read_input_tokens ?? 0),
-          cost: existing.cost + cost,
-        });
       }
 
       // Aggregate totals for the day

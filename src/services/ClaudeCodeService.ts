@@ -2,7 +2,6 @@ import { spawn } from "child_process";
 import { ConfigurationService } from "./ConfigurationService";
 import { WorkflowService } from "./WorkflowService";
 import { WorkflowExecution, StepOutput } from "../types/WorkflowTypes";
-import { ShellDetection } from "../utils/ShellDetection";
 import { ClaudeDetectionService } from "./ClaudeDetectionService";
 
 export interface TaskOptions {
@@ -60,8 +59,8 @@ export class ClaudeCodeService {
   constructor(private readonly configService: ConfigurationService) {}
 
   async checkInstallation(): Promise<void> {
-    const isInstalled = await ShellDetection.checkClaudeInstallation("auto");
-    if (!isInstalled) {
+    const result = await ClaudeDetectionService.detectClaude("auto");
+    if (!result.isInstalled) {
       throw new Error(
         "Claude Code CLI not found in PATH. Please install Claude Code.",
       );
@@ -405,7 +404,7 @@ export class ClaudeCodeService {
         } else {
           let errorMsg = stderr || `Command failed with exit code ${exitCode}`;
           if (exitCode === 127) {
-            errorMsg = `Command not found: ${args[0]}. Ensure claude CLI is installed via npm.`;
+            errorMsg = `Claude CLI not found in this terminal PATH. The installation itself is still registered – re-open VS Code or fix your PATH if you need it here.`;
           }
           resolve({
             success: false,

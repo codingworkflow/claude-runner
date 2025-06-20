@@ -196,7 +196,9 @@ const App: React.FC<AppProps> = ({
         >
           Pipeline
         </button>
-        {showAdvancedTabs && (
+        {(showAdvancedTabs ||
+          activeTab === "usage" ||
+          activeTab === "logs") && (
           <>
             <button
               className={`tab-button ${activeTab === "usage" ? "active" : ""}`}
@@ -236,6 +238,7 @@ const App: React.FC<AppProps> = ({
             onUpdateChatPrompt={updateChatPrompt}
             onUpdateShowChatPrompt={updateShowChatPrompt}
             onUpdateParallelTasksCount={updateParallelTasksCount}
+            onShowUsageAndLogs={() => updateActiveTab("usage")}
             disabled={status === "starting" || status === "stopping"}
           />
         )}

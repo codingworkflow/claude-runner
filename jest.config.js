@@ -7,7 +7,15 @@ module.exports = {
     "**/?(*.)+(spec|test).+(ts|tsx|js)",
   ],
   transform: {
-    "^.+\\.(ts|tsx)$": "ts-jest",
+    "^.+\\.(ts|tsx)$": [
+      "ts-jest",
+      {
+        useESM: false,
+        tsconfig: {
+          types: ["jest", "node"],
+        },
+      },
+    ],
   },
   moduleNameMapper: {
     "\\.(css|less|scss|sass)$": "identity-obj-proxy",
@@ -15,12 +23,4 @@ module.exports = {
   },
   setupFilesAfterEnv: ["<rootDir>/src/test/setup.ts"],
   collectCoverageFrom: ["src/**/*.{ts,tsx}", "!src/**/*.d.ts", "!src/test/**"],
-  globals: {
-    "ts-jest": {
-      useESM: false,
-      tsconfig: {
-        types: ["jest", "node"],
-      },
-    },
-  },
 };

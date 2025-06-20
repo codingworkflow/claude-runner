@@ -965,7 +965,10 @@ export class ClaudeRunnerPanel implements vscode.WebviewViewProvider {
         await ClaudeDetectionService.detectClaude(preferredShell);
 
       // Update ALL Claude-related state consistently
-      this._uiState.claudeInstalled = detectionResult.isInstalled;
+      // Only upgrade, never downgrade the installation status
+      if (detectionResult.isInstalled || !this._uiState.claudeInstalled) {
+        this._uiState.claudeInstalled = detectionResult.isInstalled;
+      }
       this._uiState.claudeVersion = detectionResult.version ?? "Not Available";
       this._uiState.claudeVersionAvailable = detectionResult.isInstalled;
       this._uiState.claudeVersionError = detectionResult.error;
@@ -980,7 +983,10 @@ export class ClaudeRunnerPanel implements vscode.WebviewViewProvider {
         "ClaudeRunnerPanel: Claude installation recheck failed:",
         error,
       );
-      this._uiState.claudeInstalled = false;
+      // Only downgrade if we never had a successful detection
+      if (!this._uiState.claudeInstalled) {
+        this._uiState.claudeInstalled = false;
+      }
       this._uiState.claudeVersionAvailable = false;
       this._uiState.claudeVersionError =
         error instanceof Error ? error.message : "Recheck failed";
