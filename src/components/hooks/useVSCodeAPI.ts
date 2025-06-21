@@ -154,8 +154,12 @@ export const useVSCodeAPI = () => {
   );
 
   const requestUsageReport = useCallback(
-    (period: "today" | "week" | "month") => {
-      sendMessage("requestUsageReport", { period });
+    (
+      period: "today" | "week" | "month" | "hourly",
+      hours?: number,
+      startHour?: number,
+    ) => {
+      sendMessage("requestUsageReport", { period, hours, startHour });
     },
     [sendMessage],
   );

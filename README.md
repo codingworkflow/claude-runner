@@ -2,6 +2,8 @@
 
 A Visual Studio Code extension that provides a seamless interface for executing Claude Code commands directly from your development environment.
 
+[Visual Studio Market place](https://marketplace.visualstudio.com/items?itemName=Codingworkflow.claude-runner)
+
 ## Features
 
 - **Model Selection**: Choose from all available Claude models (Opus 4, Sonnet 4, Sonnet 3.7, Haiku 3.5)

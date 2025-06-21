@@ -1,8 +1,8 @@
 // Claude Runner Webview Entry Point
 import * as React from "react";
 import * as ReactDOM from "react-dom/client";
-import App, { initialState } from "./components/App";
-import "./components/styles.css";
+import App, { initialState } from "../App";
+import "../styles.css";
 
 // Setup global VS Code API
 declare global {

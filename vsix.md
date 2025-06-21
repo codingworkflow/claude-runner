@@ -51,8 +51,11 @@ Monitor your Claude usage with detailed analytics:
 - Token consumption tracking
 - Cost estimation per model
 - Daily/weekly/monthly breakdowns
+- Estimate user per 5 hours, set start window, max output
 
 ![Usage Tracking](./assets/marketplace/usage.png)
+
+![alt text](assets/marketplace/currentuse.png)
 
 ### **Access session logs**
 

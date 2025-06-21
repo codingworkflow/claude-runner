@@ -110,11 +110,8 @@ test-watch:
 
 # Run linting and fix issues
 lint:
-	@echo "🔍 Running ESLint..."
-	@npm run lint -- --fix || true
-	@echo ""
-	@echo "📋 Checking for remaining issues..."
-	@npm run lint
+	@echo "🔍 Running ESLint with auto-fix..."
+	@npm run lint -- --fix
 	@echo "✅ Linting complete"
 
 # Run all validation

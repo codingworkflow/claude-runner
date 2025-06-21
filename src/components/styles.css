@@ -64,6 +64,13 @@ p {
   gap: 8px;
 }
 
+.hourly-options {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
 /* Unified Dropdown Styles */
 .dropdown {
   background-color: var(--vscode-dropdown-background);
