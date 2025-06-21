@@ -101,6 +101,27 @@ export class UsageReportService {
     await writeFile(this.getMetaPath(), JSON.stringify({ last }));
   }
 
+  private async validateFolderStructure(): Promise<void> {
+    // Check if YYYY/MM/DD structure exists, if not delete meta.json and create folders
+    const now = new Date();
+    const dateDir = this.getDateDir(now);
+
+    try {
+      await stat(dateDir);
+    } catch {
+      // Folder doesn't exist, delete meta.json to force reprocessing
+      try {
+        await readFile(this.getMetaPath(), "utf8");
+        await writeFile(this.getMetaPath().replace(".json", ".json.bak"), "{}"); // backup
+        await writeFile(this.getMetaPath(), "{}"); // reset meta
+      } catch {
+        // meta.json doesn't exist, that's fine
+      }
+      // Create the folder structure
+      await mkdir(dateDir, { recursive: true });
+    }
+  }
+
   // ----------  cache file naming ----------
   private hourlyFilename(dt: Date): string {
     const hour = String(dt.getUTCHours()).padStart(2, "0");
@@ -504,6 +525,7 @@ export class UsageReportService {
    * immediately, otherwise it processes the fresh lines and updates meta.
    */
   private async ensureCache(): Promise<void> {
+    await this.validateFolderStructure(); // Check folders first
     await this.loadUsageData(); // single scan, single write
   }
 

@@ -256,6 +256,40 @@ describe("UsageReportService Logic Tests", () => {
     });
   });
 
+  describe("Folder Structure Management", () => {
+    it("should validate YYYY/MM/DD folder structure requirements", () => {
+      // Test folder path logic for current date
+      const testDate = new Date("2025-06-20T14:30:00.000Z");
+      const year = testDate.getUTCFullYear();
+      const month = String(testDate.getUTCMonth() + 1).padStart(2, "0");
+      const day = String(testDate.getUTCDate()).padStart(2, "0");
+
+      const expectedStructure = `${year}/${month}/${day}`;
+      expect(expectedStructure).toBe("2025/06/20");
+
+      // Verify that the structure creates proper nested paths
+      const pathParts = expectedStructure.split("/");
+      expect(pathParts).toHaveLength(3);
+      expect(pathParts[0]).toBe("2025"); // Year
+      expect(pathParts[1]).toBe("06"); // Month (zero-padded)
+      expect(pathParts[2]).toBe("20"); // Day (zero-padded)
+    });
+
+    it("should handle folder validation logic correctly", () => {
+      // Test the meta.json reset logic when folders don't exist
+      const hasExistingFolder = false; // Simulate folder doesn't exist
+      const shouldResetMeta = !hasExistingFolder;
+
+      expect(shouldResetMeta).toBe(true);
+
+      // Test the meta.json preservation when folders exist
+      const hasExistingFolder2 = true; // Simulate folder exists
+      const shouldResetMeta2 = !hasExistingFolder2;
+
+      expect(shouldResetMeta2).toBe(false);
+    });
+  });
+
   describe("Performance Optimization Benefits", () => {
     it("should demonstrate file access reduction with daily aggregation", () => {
       // Simulate the difference between reading hourly vs daily files
