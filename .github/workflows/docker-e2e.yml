@@ -4,10 +4,14 @@ on:
   workflow_dispatch:
   schedule:
     - cron: '0 2 * * 0'  # Weekly on Sunday at 2 AM
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
 
 jobs:
   docker-e2e-tests:
-    name: "Docker-based E2E Tests"
+    name: "Docker E2E Tests"
     runs-on: ubuntu-latest
     
     strategy:
@@ -27,97 +31,6 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Create Dockerfile for testing
-        run: |
-          cat > Dockerfile.test << 'EOF'
-          FROM mcr.microsoft.com/vscode/devcontainers/typescript-node:latest
-
-          # Install system dependencies including make
-          RUN apt-get update && apt-get install -y \
-              xvfb \
-              libnss3 \
-              libatk-bridge2.0-0 \
-              libdrm2 \
-              libxcomposite1 \
-              libxdamage1 \
-              libxrandr2 \
-              libgbm1 \
-              libxss1 \
-              libasound2 \
-              make \
-              && rm -rf /var/lib/apt/lists/*
-
-          # Set working directory
-          WORKDIR /workspace
-
-          # Copy source code
-          COPY . .
-
-          # Setup project using Makefile
-          RUN make setup
-
-          # Build extension using Makefile
-          RUN make build-vsix
-
-          # Create test runner script
-          RUN cat > /usr/local/bin/run-tests.sh << 'SCRIPT'
-          #!/bin/bash
-          set -e
-
-          echo "🐳 Starting Docker E2E tests..."
-          echo "Phase: $TEST_PHASE"
-          echo "Install Claude: $INSTALL_CLAUDE"
-
-          # Setup virtual display
-          export DISPLAY=:99
-          Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
-          sleep 2
-
-          if [ "$INSTALL_CLAUDE" = "true" ]; then
-            echo "📦 Installing Claude CLI..."
-            npm install -g @anthropic-ai/claude-code
-            
-            # Verify installation
-            if command -v claude-code &> /dev/null; then
-              echo "✅ Claude CLI installed: $(claude-code --version)"
-            else
-              echo "❌ Claude CLI installation failed"
-              exit 1
-            fi
-            
-            # Setup minimal config
-            mkdir -p ~/.claude
-            echo '{"api_key": "test-key", "default_model": "claude-sonnet-4-20250514"}' > ~/.claude/config.json
-          else
-            echo "🚫 Skipping Claude CLI installation for detection tests"
-            
-            # Verify Claude is NOT installed
-            if command -v claude-code &> /dev/null; then
-              echo "❌ Claude CLI found but should not be installed"
-              exit 1
-            else
-              echo "✅ Claude CLI not found - perfect for detection tests"
-            fi
-          fi
-
-          echo "🧪 Running tests..."
-          
-          if [ "$INSTALL_CLAUDE" = "true" ]; then
-            echo "🔗 Running Phase 2 tests with Claude CLI..."
-            make test-ci-phase2 || echo "⚠️  Some E2E tests failed (expected without real API key)"
-          else
-            echo "🔍 Running Phase 1 tests without Claude CLI..."
-            make test-ci-phase1
-          fi
-
-          echo "✅ Docker E2E tests completed successfully"
-          SCRIPT
-
-          RUN chmod +x /usr/local/bin/run-tests.sh
-
-          CMD ["/usr/local/bin/run-tests.sh"]
-          EOF
-
       - name: Build test Docker image
         run: |
           docker build -f Dockerfile.test -t claude-runner-test:${{ matrix.test-phase.name }} .
@@ -133,21 +46,16 @@ jobs:
       - name: Extract test artifacts
         if: always()
         run: |
-          # Create output directory
           mkdir -p test-results/${{ matrix.test-phase.name }}
-          
-          # Extract VSIX file from container
           docker create --name extract claude-runner-test:${{ matrix.test-phase.name }}
           docker cp extract:/workspace/dist/ test-results/${{ matrix.test-phase.name }}/
           docker rm extract
-          
-          echo "📁 Test artifacts saved to test-results/${{ matrix.test-phase.name }}/"
 
       - name: Upload test artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: docker-test-results-${{ matrix.test-phase.name }}
+          name: docker-test-${{ matrix.test-phase.name }}
           path: test-results/
           retention-days: 7
 
@@ -160,22 +68,23 @@ jobs:
     steps:
       - name: Generate Docker Test Report
         run: |
-          echo "# Docker E2E Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "Docker E2E Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "=======================" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "## Test Phases" >> $GITHUB_STEP_SUMMARY
+          echo "Test Phases:" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Phase 1: Without Claude CLI" >> $GITHUB_STEP_SUMMARY
-          echo "- 🔍 Tests extension detection of missing Claude CLI" >> $GITHUB_STEP_SUMMARY
-          echo "- 🛡️  Verifies graceful handling of missing dependencies" >> $GITHUB_STEP_SUMMARY
-          echo "- 🧪 Runs core unit and main window tests" >> $GITHUB_STEP_SUMMARY
+          echo "Phase 1: Without Claude CLI" >> $GITHUB_STEP_SUMMARY
+          echo "- Tests extension detection of missing Claude CLI" >> $GITHUB_STEP_SUMMARY
+          echo "- Verifies graceful handling of missing dependencies" >> $GITHUB_STEP_SUMMARY
+          echo "- Runs core unit and main window tests" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Phase 2: With Claude CLI" >> $GITHUB_STEP_SUMMARY
-          echo "- 📦 Installs Claude CLI via npm" >> $GITHUB_STEP_SUMMARY
-          echo "- 🔗 Tests full integration capabilities" >> $GITHUB_STEP_SUMMARY
-          echo "- 🧪 Runs comprehensive E2E test suite" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ Validates CLI detection and functionality" >> $GITHUB_STEP_SUMMARY
+          echo "Phase 2: With Claude CLI" >> $GITHUB_STEP_SUMMARY
+          echo "- Installs Claude CLI via npm" >> $GITHUB_STEP_SUMMARY
+          echo "- Tests full integration capabilities" >> $GITHUB_STEP_SUMMARY
+          echo "- Runs comprehensive E2E test suite" >> $GITHUB_STEP_SUMMARY
+          echo "- Validates CLI detection and functionality" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "## Environment" >> $GITHUB_STEP_SUMMARY
-          echo "- 🐳 Docker containers for isolation" >> $GITHUB_STEP_SUMMARY
-          echo "- 🖥️  Xvfb for headless VS Code testing" >> $GITHUB_STEP_SUMMARY
-          echo "- 📦 VSIX package building and installation" >> $GITHUB_STEP_SUMMARY
+          echo "Environment:" >> $GITHUB_STEP_SUMMARY
+          echo "- Docker containers for isolation" >> $GITHUB_STEP_SUMMARY
+          echo "- Xvfb for headless VS Code testing" >> $GITHUB_STEP_SUMMARY
+          echo "- VSIX package building and installation" >> $GITHUB_STEP_SUMMARY
