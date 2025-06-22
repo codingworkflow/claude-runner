@@ -153,6 +153,28 @@ test-ci-phase2:
 	@echo "🧪 Running CI Phase 2 tests (with Claude CLI)..."
 	@npm run test:ci:phase2
 
+# Install system dependencies for CI
+setup-ci:
+	@echo "Installing CI system dependencies..."
+	@sudo apt-get update
+	@sudo apt-get install -y xvfb make
+
+# Setup test environment for CI
+setup-test-env:
+	@echo "Setting up test environment..."
+	@export DISPLAY=:99; Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 & sleep 2
+
+# Install Claude CLI for testing
+install-claude-cli:
+	@echo "Installing Claude CLI..."
+	@npm install -g @anthropic-ai/claude-code
+
+# Setup Claude CLI configuration for testing
+setup-claude-config:
+	@echo "Setting up Claude CLI configuration..."
+	@mkdir -p ~/.claude
+	@echo '{"api_key": "test-key-for-ci", "default_model": "claude-sonnet-4-20250514"}' > ~/.claude/config.json
+
 # Run tests in watch mode
 test-watch:
 	@echo "🧪 Running tests in watch mode..."

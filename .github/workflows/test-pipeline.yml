@@ -8,7 +8,6 @@ on:
   workflow_dispatch:
 
 jobs:
-  # Phase 1: Test without Claude CLI (Detection Tests)
   test-without-claude:
     name: "Phase 1: Test Extension without Claude CLI"
     runs-on: ubuntu-latest
@@ -23,55 +22,29 @@ jobs:
           node-version: '20'
 
       - name: Install system dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y xvfb make
+        run: make setup-ci
 
       - name: Setup project
         run: make setup
 
-      - name: Debug webpack and dependencies
-        run: |
-          echo "Node version: $(node --version)"
-          echo "NPM version: $(npm --version)"
-          echo "Checking ts-loader installation:"
-          npm ls ts-loader || echo "ts-loader not found"
-          echo "Checking TypeScript:"
-          npm ls typescript || echo "typescript not found"
-          echo "Webpack config exists:"
-          ls -la webpack.config.js
-          echo "TypeScript config exists:"
-          ls -la tsconfig.json
-
-
       - name: Build and validate extension
         run: |
           make lint
-          echo "Trying simple TypeScript compilation..."
-          npx tsc --version
-          npx tsc --project tsconfig.json --noEmit
-          echo "TypeScript compilation check passed"
-          echo "Testing simple webpack config..."
-          npm run compile-simple
-          echo "Simple compilation passed, trying full build..."
           make build-vsix
 
-      - name: Run Phase 1 tests (without Claude CLI)
+      - name: Run Phase 1 tests
         run: |
-          export DISPLAY=:99
-          Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
-          sleep 2
+          make setup-test-env
           make test-ci-phase1
         timeout-minutes: 15
 
-      - name: Upload VSIX artifact for Phase 2
+      - name: Upload VSIX artifact
         uses: actions/upload-artifact@v4
         with:
-          name: claude-runner-vsix-phase1
+          name: claude-runner.vsix
           path: dist/*.vsix
           retention-days: 1
 
-  # Phase 2: Test with Claude CLI (Full E2E Tests)
   test-with-claude:
     name: "Phase 2: Test Extension with Claude CLI"
     runs-on: ubuntu-latest
@@ -87,49 +60,31 @@ jobs:
           node-version: '20'
 
       - name: Install system dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y xvfb make
+        run: make setup-ci
 
       - name: Setup project
         run: make setup
 
-      - name: Download VSIX from Phase 1
+      - name: Download VSIX artifact
         uses: actions/download-artifact@v4
         with:
-          name: claude-runner-vsix-phase1
+          name: claude-runner.vsix
           path: dist/
 
       - name: Build extension for testing
         run: make build
 
-      - name: Install Claude CLI
+      - name: Install and configure Claude CLI
         run: |
-          echo "📦 Installing Claude CLI..."
-          npm install -g @anthropic-ai/claude-code
-          echo "✅ Claude CLI installed successfully"
+          make install-claude-cli
+          make setup-claude-config
 
-      - name: Setup Claude CLI configuration
+      - name: Run Phase 2 tests
         run: |
-          # Create a minimal Claude configuration for testing
-          mkdir -p ~/.claude
-          cat > ~/.claude/config.json << 'EOF'
-          {
-            "api_key": "test-key-for-ci",
-            "default_model": "claude-sonnet-4-20250514"
-          }
-          EOF
-          echo "✅ Claude CLI configuration created"
-
-      - name: Run Phase 2 tests (with Claude CLI)
-        run: |
-          export DISPLAY=:99
-          Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
-          sleep 2
+          make setup-test-env
           make test-ci-phase2
         timeout-minutes: 20
 
-  # Phase 3: Generate test report
   test-report:
     name: "Generate Test Report"
     runs-on: ubuntu-latest
@@ -139,31 +94,26 @@ jobs:
     steps:
       - name: Generate Test Summary
         run: |
-          echo "# Claude Runner Extension Test Results" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "## Test Phases Completed" >> $GITHUB_STEP_SUMMARY
+          echo "Claude Runner Extension Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "=====================================" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           
           if [ "${{ needs.test-without-claude.result }}" == "success" ]; then
-            echo "✅ **Phase 1**: Extension tests without Claude CLI - **PASSED**" >> $GITHUB_STEP_SUMMARY
+            echo "Phase 1: Extension tests without Claude CLI - PASSED" >> $GITHUB_STEP_SUMMARY
           else
-            echo "❌ **Phase 1**: Extension tests without Claude CLI - **FAILED**" >> $GITHUB_STEP_SUMMARY
+            echo "Phase 1: Extension tests without Claude CLI - FAILED" >> $GITHUB_STEP_SUMMARY
           fi
           
           if [ "${{ needs.test-with-claude.result }}" == "success" ]; then
-            echo "✅ **Phase 2**: Extension tests with Claude CLI - **PASSED**" >> $GITHUB_STEP_SUMMARY
+            echo "Phase 2: Extension tests with Claude CLI - PASSED" >> $GITHUB_STEP_SUMMARY
           else
-            echo "❌ **Phase 2**: Extension tests with Claude CLI - **FAILED**" >> $GITHUB_STEP_SUMMARY
+            echo "Phase 2: Extension tests with Claude CLI - FAILED" >> $GITHUB_STEP_SUMMARY
           fi
           
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "## Test Coverage" >> $GITHUB_STEP_SUMMARY
-          echo "- 🧪 Unit Tests" >> $GITHUB_STEP_SUMMARY
-          echo "- 🖥️  Main Window Loading Tests" >> $GITHUB_STEP_SUMMARY
-          echo "- 🔍 Claude CLI Detection Tests" >> $GITHUB_STEP_SUMMARY
-          echo "- 🔗 Claude CLI Integration Tests" >> $GITHUB_STEP_SUMMARY
-          echo "- 📊 End-to-End Workflow Tests" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "## Build Artifacts" >> $GITHUB_STEP_SUMMARY
-          echo "- Extension VSIX package built and tested" >> $GITHUB_STEP_SUMMARY
-          echo "- All tests executed in isolated Docker containers" >> $GITHUB_STEP_SUMMARY
+          echo "Test Coverage:" >> $GITHUB_STEP_SUMMARY
+          echo "- Unit Tests" >> $GITHUB_STEP_SUMMARY
+          echo "- Main Window Loading Tests" >> $GITHUB_STEP_SUMMARY
+          echo "- Claude CLI Detection Tests" >> $GITHUB_STEP_SUMMARY
+          echo "- Claude CLI Integration Tests" >> $GITHUB_STEP_SUMMARY
+          echo "- End-to-End Workflow Tests" >> $GITHUB_STEP_SUMMARY
