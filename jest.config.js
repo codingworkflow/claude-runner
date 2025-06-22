@@ -11,9 +11,7 @@ module.exports = {
       "ts-jest",
       {
         useESM: false,
-        tsconfig: {
-          types: ["jest", "node"],
-        },
+        tsconfig: "tsconfig.jest.json",
       },
     ],
   },
@@ -22,5 +20,16 @@ module.exports = {
     "^vscode$": "<rootDir>/src/test/__mocks__/vscode.js",
   },
   setupFilesAfterEnv: ["<rootDir>/src/test/setup.ts"],
-  collectCoverageFrom: ["src/**/*.{ts,tsx}", "!src/**/*.d.ts", "!src/test/**"],
+  collectCoverageFrom: [
+    "src/**/*.{ts,tsx}",
+    "!src/**/*.d.ts",
+    "!src/test/suite/**",
+    "!src/test/runTest.ts",
+    "!src/test/runMainWindowTest.ts",
+  ],
+  testPathIgnorePatterns: [
+    "<rootDir>/node_modules/",
+    "<rootDir>/src/test/suite/",
+    "<rootDir>/out/",
+  ],
 };

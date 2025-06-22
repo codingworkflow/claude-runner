@@ -1,0 +1,26 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "commonjs",
+    "lib": ["ES2020", "DOM"],
+    "types": ["jest", "node", "@testing-library/jest-dom"],
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "declaration": false,
+    "declarationMap": false,
+    "sourceMap": true,
+    "strict": false,
+    "noImplicitAny": false
+  },
+  "include": ["src/**/*", "tests/**/*", "src/test/__mocks__/**/*"],
+  "exclude": [
+    "node_modules",
+    ".vscode-test",
+    "dist",
+    "out",
+    "src/test/suite/**/*"
+  ]
+}

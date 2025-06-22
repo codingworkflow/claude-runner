@@ -11,6 +11,14 @@ help:
 	@echo "  make dev           - Start development mode (alias for watch)"
 	@echo "  make clean         - Remove build artifacts"
 	@echo "  make test          - Run tests"
+	@echo "  make test-main-window - Run main window load test only"
+	@echo "  make test-unit     - Run unit tests only"
+	@echo "  make test-e2e      - Run end-to-end tests only"
+	@echo "  make test-integration - Run integration tests only"
+	@echo "  make test-all-coverage - Run all tests with coverage"
+	@echo "  make test-claude-detection - Run Claude CLI detection test"
+	@echo "  make test-ci-phase1 - Run CI Phase 1 tests (without Claude CLI)"
+	@echo "  make test-ci-phase2 - Run CI Phase 2 tests (with Claude CLI)"
 	@echo "  make test-watch    - Run tests in watch mode"
 	@echo "  make lint          - Run ESLint and fix issues"
 	@echo "  make validate      - Run tests and linting"
@@ -102,6 +110,46 @@ clean:
 test:
 	@echo "🧪 Running tests..."
 	@npm run test
+
+# Run main window load test only
+test-main-window:
+	@echo "🧪 Running main window load test..."
+	@npm run test:main-window
+
+# Run unit tests only
+test-unit:
+	@echo "🧪 Running unit tests..."
+	@npm run test:unit
+
+# Run end-to-end tests only
+test-e2e:
+	@echo "🧪 Running end-to-end tests..."
+	@npm run test:e2e
+
+# Run integration tests only
+test-integration:
+	@echo "🧪 Running integration tests..."
+	@npm run test:integration
+
+# Run all Jest tests with coverage
+test-all-coverage:
+	@echo "🧪 Running all tests with coverage..."
+	@npm run test:all:coverage
+
+# Run Claude CLI detection test
+test-claude-detection:
+	@echo "🔍 Running Claude CLI detection test..."
+	@npm run test:claude-detection
+
+# Run CI Phase 1 tests (without Claude CLI)
+test-ci-phase1:
+	@echo "🧪 Running CI Phase 1 tests (without Claude CLI)..."
+	@npm run test:ci:phase1
+
+# Run CI Phase 2 tests (with Claude CLI)
+test-ci-phase2:
+	@echo "🧪 Running CI Phase 2 tests (with Claude CLI)..."
+	@npm run test:ci:phase2
 
 # Run tests in watch mode
 test-watch:
