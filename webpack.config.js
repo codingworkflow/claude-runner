@@ -3,6 +3,11 @@
 
 const path = require("path");
 
+// Debug: Log webpack config loading
+console.log("📦 Loading webpack config...");
+console.log("Current working directory:", process.cwd());
+console.log("Config file path:", __filename);
+
 /** @type {import('webpack').Configuration} */
 const extensionConfig = {
   target: "node",
