@@ -28,7 +28,8 @@ const extensionConfig = {
           {
             loader: "ts-loader",
             options: {
-              configFile: "tsconfig.json",
+              configFile: path.resolve(__dirname, "tsconfig.json"),
+              transpileOnly: false,
             },
           },
         ],
@@ -59,7 +60,8 @@ const webviewConfig = {
           {
             loader: "ts-loader",
             options: {
-              configFile: "tsconfig.json",
+              configFile: path.resolve(__dirname, "tsconfig.json"),
+              transpileOnly: false,
             },
           },
         ],
