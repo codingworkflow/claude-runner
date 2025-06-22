@@ -125,7 +125,6 @@ jobs:
           sleep 2
           make test-ci-phase2
         timeout-minutes: 20
-        continue-on-error: true # Some E2E tests might fail without real API keys
 
   # Phase 3: Generate test report
   test-report:

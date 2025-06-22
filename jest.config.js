@@ -38,9 +38,9 @@ module.exports = {
     "<rootDir>/tests/integration/UsageReportFlow.fixed.test.ts",
     "<rootDir>/tests/integration/UsageReportFlow.test.ts",
     "<rootDir>/tests/services/UsageReportService.test.ts",
+    "<rootDir>/src/test/services/UsageReportService.aggregation.test.ts",
     "<rootDir>/tests/e2e/logs-processing.test.ts",
     "<rootDir>/tests/e2e/conversation-flows.test.ts",
-    "<rootDir>/src/test/services/UsageReportService.aggregation.test.ts",
     "<rootDir>/tests/e2e/simple-logs.test.ts",
   ],
 };

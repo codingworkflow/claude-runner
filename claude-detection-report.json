@@ -1,74 +1,74 @@
 {
-  "timestamp": "2025-06-22T08:36:26.999Z",
+  "timestamp": "2025-06-22T09:25:55.691Z",
   "claudeInstalled": false,
   "testResults": [
     {
-      "timestamp": "2025-06-22T08:36:25.627Z",
+      "timestamp": "2025-06-22T09:25:54.249Z",
       "message": "🚀 Starting Claude CLI detection tests...",
       "type": "info"
     },
     {
-      "timestamp": "2025-06-22T08:36:25.629Z",
+      "timestamp": "2025-06-22T09:25:54.251Z",
       "message": "Checking Claude CLI installation status...",
       "type": "info"
     },
     {
-      "timestamp": "2025-06-22T08:36:25.635Z",
+      "timestamp": "2025-06-22T09:25:54.256Z",
       "message": "Claude CLI not found in PATH",
       "type": "info"
     },
     {
-      "timestamp": "2025-06-22T08:36:25.635Z",
+      "timestamp": "2025-06-22T09:25:54.256Z",
       "message": "Testing extension Claude CLI detection logic...",
       "type": "info"
     },
     {
-      "timestamp": "2025-06-22T08:36:25.637Z",
+      "timestamp": "2025-06-22T09:25:54.258Z",
       "message": "Extension detection matches actual CLI state",
       "type": "success"
     },
     {
-      "timestamp": "2025-06-22T08:36:25.637Z",
+      "timestamp": "2025-06-22T09:25:54.259Z",
       "message": "Testing shell detection for Claude CLI...",
       "type": "info"
     },
     {
-      "timestamp": "2025-06-22T08:36:25.642Z",
+      "timestamp": "2025-06-22T09:25:54.263Z",
       "message": "bash: Claude CLI not found",
       "type": "info"
     },
     {
-      "timestamp": "2025-06-22T08:36:25.646Z",
+      "timestamp": "2025-06-22T09:25:54.267Z",
       "message": "zsh: Claude CLI not found",
       "type": "info"
     },
     {
-      "timestamp": "2025-06-22T08:36:25.649Z",
+      "timestamp": "2025-06-22T09:25:54.269Z",
       "message": "fish: Claude CLI not found",
       "type": "info"
     },
     {
-      "timestamp": "2025-06-22T08:36:25.652Z",
+      "timestamp": "2025-06-22T09:25:54.273Z",
       "message": "sh: Claude CLI not found",
       "type": "info"
     },
     {
-      "timestamp": "2025-06-22T08:36:25.652Z",
+      "timestamp": "2025-06-22T09:25:54.274Z",
       "message": "Testing PATH-based Claude CLI detection...",
       "type": "info"
     },
     {
-      "timestamp": "2025-06-22T08:36:25.657Z",
+      "timestamp": "2025-06-22T09:25:54.278Z",
       "message": "Claude CLI not found in PATH",
       "type": "info"
     },
     {
-      "timestamp": "2025-06-22T08:36:25.657Z",
+      "timestamp": "2025-06-22T09:25:54.278Z",
       "message": "Testing npm global package detection...",
       "type": "info"
     },
     {
-      "timestamp": "2025-06-22T08:36:26.999Z",
+      "timestamp": "2025-06-22T09:25:55.691Z",
       "message": "Claude CLI found in npm global packages",
       "type": "success"
     }

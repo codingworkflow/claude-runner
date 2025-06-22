@@ -70,3 +70,4 @@ webview.css.map
 # SonarQube configuration (contains sensitive data)
 .scannerwork/
 .sonar
+claude-detection-report.json
