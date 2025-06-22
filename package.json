@@ -241,6 +241,7 @@
     "@testing-library/react": "^14.0.0",
     "@testing-library/user-event": "^14.0.0",
     "@types/glob": "^8.1.0",
+    "@types/jest": "^30.0.0",
     "@types/mocha": "^10.0.1",
     "@types/node": "20.x",
     "@types/sinon": "^17.0.4",
