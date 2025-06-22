@@ -193,6 +193,7 @@
     "vscode:prepublish": "npm run compile-production",
     "compile": "webpack --mode none",
     "compile-debug": "webpack --config webpack.debug.config.js --mode none",
+    "compile-simple": "webpack --config webpack.simple.config.js --mode none",
     "compile-production": "webpack --mode production --devtool hidden-source-map",
     "watch": "webpack --watch --mode development",
     "compile-tests": "tsc -p ./tsconfig.test.json --outDir out",

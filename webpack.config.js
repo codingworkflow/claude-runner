@@ -1,14 +1,8 @@
-// @ts-check
-"use strict";
-
 const path = require("path");
 
-// Debug: Log webpack config loading
-console.log("📦 Loading webpack config...");
-console.log("Current working directory:", process.cwd());
-console.log("Config file path:", __filename);
+console.log("🔧 Fixed webpack config loading...");
 
-/** @type {import('webpack').Configuration} */
+// Extension config
 const extensionConfig = {
   target: "node",
   mode: "none",
@@ -22,29 +16,24 @@ const extensionConfig = {
     vscode: "commonjs vscode",
   },
   resolve: {
-    extensions: [".ts", ".tsx", ".js", ".jsx"],
+    extensions: [".ts", ".tsx", ".js"],
   },
   module: {
     rules: [
       {
-        test: /\.tsx?$/,
-        exclude: [/node_modules/, /\.test\.tsx?$/, /test\//, /__tests__\//],
-        use: [
-          {
-            loader: "ts-loader",
-            options: {
-              configFile: path.resolve(__dirname, "tsconfig.json"),
-              transpileOnly: false,
-            },
-          },
-        ],
+        test: /\.ts$/,
+        exclude: /node_modules/,
+        loader: "ts-loader",
+        options: {
+          transpileOnly: true,
+        },
       },
     ],
   },
   devtool: "nosources-source-map",
 };
 
-/** @type {import('webpack').Configuration} */
+// Webview config
 const webviewConfig = {
   target: "web",
   mode: "none",
@@ -54,22 +43,17 @@ const webviewConfig = {
     filename: "webview.js",
   },
   resolve: {
-    extensions: [".ts", ".tsx", ".js", ".jsx"],
+    extensions: [".ts", ".tsx", ".js"],
   },
   module: {
     rules: [
       {
         test: /\.tsx?$/,
-        exclude: [/node_modules/, /\.test\.tsx?$/, /test\//, /__tests__\//],
-        use: [
-          {
-            loader: "ts-loader",
-            options: {
-              configFile: path.resolve(__dirname, "tsconfig.json"),
-              transpileOnly: false,
-            },
-          },
-        ],
+        exclude: /node_modules/,
+        loader: "ts-loader",
+        options: {
+          transpileOnly: true,
+        },
       },
       {
         test: /\.css$/,

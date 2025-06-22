@@ -59,9 +59,9 @@ jobs:
           npx tsc --version
           npx tsc --project tsconfig.json --noEmit
           echo "TypeScript compilation check passed"
-          echo "Testing debug webpack config..."
-          npm run compile-debug
-          echo "Debug compilation passed, trying full build..."
+          echo "Testing simple webpack config..."
+          npm run compile-simple
+          echo "Simple compilation passed, trying full build..."
           make build-vsix
 
       - name: Run Phase 1 tests (without Claude CLI)
