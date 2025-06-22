@@ -30,6 +30,19 @@ jobs:
       - name: Setup project
         run: make setup
 
+      - name: Debug webpack and dependencies
+        run: |
+          echo "Node version: $(node --version)"
+          echo "NPM version: $(npm --version)"
+          echo "Checking ts-loader installation:"
+          npm ls ts-loader || echo "ts-loader not found"
+          echo "Checking TypeScript:"
+          npm ls typescript || echo "typescript not found"
+          echo "Webpack config exists:"
+          ls -la webpack.config.js
+          echo "TypeScript config exists:"
+          ls -la tsconfig.json
+
       - name: Verify Claude CLI is NOT installed
         run: |
           if command -v claude-code &> /dev/null; then
@@ -42,6 +55,10 @@ jobs:
       - name: Build and validate extension
         run: |
           make lint
+          echo "Trying simple TypeScript compilation..."
+          npx tsc --version
+          npx tsc --project tsconfig.json --noEmit
+          echo "TypeScript compilation check passed"
           make build-vsix
 
       - name: Run Phase 1 tests (without Claude CLI)

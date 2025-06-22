@@ -54,6 +54,8 @@ setup:
 # Build the extension (compile only)
 build:
 	@echo "🔧 Compiling TypeScript..."
+	@echo "Trying direct TypeScript compilation first..."
+	@npx tsc --project tsconfig.json --outDir out || echo "Direct tsc failed, trying webpack..."
 	@npm run compile || true
 	@echo "✅ Extension compiled successfully"
 
