@@ -20,7 +20,7 @@ COPY . .
 RUN make setup
 RUN make build-vsix
 
-COPY scripts/docker-test-runner.sh /usr/local/bin/run-tests.sh
+COPY docker/docker-test-runner.sh /usr/local/bin/run-tests.sh
 RUN chmod +x /usr/local/bin/run-tests.sh
 
 CMD ["/usr/local/bin/run-tests.sh"]

@@ -12,11 +12,11 @@ if [ "$INSTALL_CLAUDE" = "true" ]; then
     make install-claude-cli
     make setup-claude-config
     
-    echo "Running Phase 2 tests with Claude CLI..."
-    make test-ci-phase2
+    echo "Running tests with Claude CLI installed..."
+    make test-ci-with-claude
 else
-    echo "Running Phase 1 tests without Claude CLI..."
-    make test-ci-phase1
+    echo "Running tests without Claude CLI installed..."
+    make test-ci-without-claude
 fi
 
 echo "Docker E2E tests completed"

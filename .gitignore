@@ -6,7 +6,6 @@ out/
 # Dependencies
 node_modules/
 npm-debug.log*
-package-lock.json
 
 # VS Code
 .vscode-test/

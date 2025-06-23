@@ -66,8 +66,8 @@ run: |
 
 ```yaml
 # GOOD: Pipeline just orchestrates, tests are in codebase
-- name: Run Phase 1 tests (without Claude CLI)
-  run: npm run test:ci:phase1
+- name: Run Without Claude CLI tests
+  run: npm run test:ci:without-claude-cli
 ```
 
 **Benefits**:
@@ -113,13 +113,13 @@ class ClaudeDetectionTester {
 - Test data management
 - Mock setup and teardown
 
-## Our Two-Phase Testing Strategy
+## Our Two-Stage Testing Strategy
 
-### Phase 1: Detection Tests (Without Claude CLI)
+### Without Claude CLI: Detection Tests
 
 ```bash
 # What it runs
-npm run test:ci:phase1
+npm run test:ci:without-claude-cli
 
 # What that includes
 npm run test:unit           # Unit tests
@@ -129,14 +129,14 @@ npm run test:claude-detection  # CLI detection logic
 
 **Purpose**: Verify the extension handles missing Claude CLI gracefully
 
-### Phase 2: Integration Tests (With Claude CLI)
+### With Claude CLI: Integration Tests
 
 ```bash
 # What it runs
-npm run test:ci:phase2
+npm run test:ci:with-claude-cli
 
 # What that includes
-npm run test:ci:phase1      # All Phase 1 tests
+npm run test:ci:without-claude-cli      # All Without Claude CLI tests
 npm run test:e2e            # End-to-end workflows
 npm run test:integration    # Integration tests
 ```
@@ -184,7 +184,7 @@ npm run test:integration    # Integration tests
 
 ```
 ├── .github/workflows/          # CI/CD orchestration only
-│   ├── test-pipeline.yml       # Main 2-phase pipeline
+│   ├── test-pipeline.yml       # Main 2-stage pipeline
 │   └── docker-e2e.yml         # Docker-based testing
 ├── scripts/                   # Utility test scripts
 │   └── test-claude-detection.js
@@ -209,8 +209,8 @@ npm run test:unit             # Test individual functions
 ### CI Simulation
 
 ```bash
-npm run test:ci:phase1         # Simulate Phase 1 (no CLI)
-npm run test:ci:phase2         # Simulate Phase 2 (with CLI)
+npm run test:ci:without-claude-cli         # Simulate Without Claude CLI
+npm run test:ci:with-claude-cli         # Simulate With Claude CLI
 ```
 
 ### Individual Categories

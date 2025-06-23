@@ -9,7 +9,7 @@ on:
 
 jobs:
   test-without-claude:
-    name: "Phase 1: Test Extension without Claude CLI"
+    name: "Test Extension without Claude CLI"
     runs-on: ubuntu-latest
     
     steps:
@@ -32,10 +32,10 @@ jobs:
           make lint
           make build-vsix
 
-      - name: Run Phase 1 tests
+      - name: Run tests without Claude CLI
         run: |
           make setup-test-env
-          make test-ci-phase1
+          make test-ci-without-claude
         timeout-minutes: 15
 
       - name: Upload VSIX artifact
@@ -46,7 +46,7 @@ jobs:
           retention-days: 1
 
   test-with-claude:
-    name: "Phase 2: Test Extension with Claude CLI"
+    name: "Test Extension with Claude CLI"
     runs-on: ubuntu-latest
     needs: test-without-claude
     
@@ -79,10 +79,10 @@ jobs:
           make install-claude-cli
           make setup-claude-config
 
-      - name: Run Phase 2 tests
+      - name: Run tests with Claude CLI
         run: |
           make setup-test-env
-          make test-ci-phase2
+          make test-ci-with-claude
         timeout-minutes: 20
 
   test-report:
@@ -99,15 +99,15 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           
           if [ "${{ needs.test-without-claude.result }}" == "success" ]; then
-            echo "Phase 1: Extension tests without Claude CLI - PASSED" >> $GITHUB_STEP_SUMMARY
+            echo "Extension tests without Claude CLI - PASSED" >> $GITHUB_STEP_SUMMARY
           else
-            echo "Phase 1: Extension tests without Claude CLI - FAILED" >> $GITHUB_STEP_SUMMARY
+            echo "Extension tests without Claude CLI - FAILED" >> $GITHUB_STEP_SUMMARY
           fi
           
           if [ "${{ needs.test-with-claude.result }}" == "success" ]; then
-            echo "Phase 2: Extension tests with Claude CLI - PASSED" >> $GITHUB_STEP_SUMMARY
+            echo "Extension tests with Claude CLI - PASSED" >> $GITHUB_STEP_SUMMARY
           else
-            echo "Phase 2: Extension tests with Claude CLI - FAILED" >> $GITHUB_STEP_SUMMARY
+            echo "Extension tests with Claude CLI - FAILED" >> $GITHUB_STEP_SUMMARY
           fi
           
           echo "" >> $GITHUB_STEP_SUMMARY

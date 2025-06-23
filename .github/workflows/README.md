@@ -4,9 +4,9 @@ This directory contains the GitHub Actions workflows for testing the Claude Runn
 
 ## Pipeline Overview
 
-Our CI/CD pipeline consists of two main phases that test the extension in different environments:
+Our CI/CD pipeline consists of two main stages that test the extension in different environments:
 
-### 🔍 Phase 1: Detection Tests (Without Claude CLI)
+### 🔍 Without Claude CLI: Detection Tests
 
 **Purpose**: Validate that the extension correctly detects when Claude CLI is not installed
 
@@ -20,7 +20,7 @@ Our CI/CD pipeline consists of two main phases that test the extension in differ
 
 **Environment**: Clean container without Claude CLI installed
 
-### 🔗 Phase 2: Integration Tests (With Claude CLI)
+### 🔗 With Claude CLI: Integration Tests
 
 **Purpose**: Validate full extension functionality with Claude CLI available
 
@@ -54,12 +54,12 @@ Our CI/CD pipeline consists of two main phases that test the extension in differ
 - Runs unit tests
 - Runs main window load test
 - Tests Claude CLI detection logic
-- Uploads VSIX artifact for Phase 2
+- Uploads VSIX artifact for With Claude CLI stage
 
 #### `test-with-claude`
 
 - Runs in VS Code dev container
-- Downloads VSIX from Phase 1
+- Downloads VSIX from Without Claude CLI stage
 - Installs Claude CLI via npm
 - Verifies Claude CLI installation
 - Runs main window test with CLI present
@@ -69,7 +69,7 @@ Our CI/CD pipeline consists of two main phases that test the extension in differ
 #### `test-report`
 
 - Generates comprehensive test report
-- Shows results from both phases
+- Shows results from both stages
 - Creates GitHub Actions summary
 
 ### 2. `docker-e2e.yml` - Advanced Docker Testing
@@ -82,7 +82,7 @@ Our CI/CD pipeline consists of two main phases that test the extension in differ
 **Features**:
 
 - Uses custom Docker containers for isolation
-- Matrix strategy for testing both phases
+- Matrix strategy for testing both stages
 - Xvfb for headless VS Code testing
 - Advanced artifact collection
 - Comprehensive environment setup
@@ -96,13 +96,13 @@ Our CI/CD pipeline consists of two main phases that test the extension in differ
 npm run test:claude-detection
 make test-claude-detection
 
-# Run Phase 1 tests (simulate CI without Claude)
-npm run test:ci:phase1
-make test-ci-phase1
+# Run Without Claude CLI tests (simulate CI without Claude)
+npm run test:ci:without-claude-cli
+make test-ci-without-claude-cli
 
-# Run Phase 2 tests (simulate CI with Claude)
-npm run test:ci:phase2
-make test-ci-phase2
+# Run With Claude CLI tests (simulate CI with Claude)
+npm run test:ci:with-claude-cli
+make test-ci-with-claude-cli
 ```
 
 ### Individual Test Categories
@@ -210,12 +210,12 @@ The pipeline is designed to handle various failure scenarios:
 ### Local Reproduction
 
 ```bash
-# Reproduce Phase 1 locally (without Claude CLI)
-make test-ci-phase1
+# Reproduce Without Claude CLI locally
+make test-ci-without-claude-cli
 
-# Install Claude CLI and test Phase 2
+# Install Claude CLI and test With Claude CLI stage
 npm install -g @anthropic-ai/claude-code
-make test-ci-phase2
+make test-ci-with-claude-cli
 ```
 
 ## Adding New Tests
@@ -252,8 +252,8 @@ Add tests to `src/test/services/`
 
 ### Parallel Execution
 
-- Phase 1 and Phase 2 run sequentially (Phase 2 needs Phase 1 artifacts)
-- Within phases, tests run in parallel where safe
+- Without Claude CLI and With Claude CLI run sequentially (With Claude CLI needs Without Claude CLI artifacts)
+- Within stages, tests run in parallel where safe
 - Docker matrix tests run in parallel
 
 ## Security Considerations

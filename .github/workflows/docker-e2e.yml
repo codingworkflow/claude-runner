@@ -17,12 +17,12 @@ jobs:
     strategy:
       matrix:
         test-phase:
-          - name: "without-claude"
+          - name: "without-claude-cli"
             install-claude: false
-            description: "Test extension detection without Claude CLI"
-          - name: "with-claude"
+            description: "Test extension when Claude CLI not installed"
+          - name: "with-claude-cli"
             install-claude: true
-            description: "Test full functionality with Claude CLI"
+            description: "Test extension when Claude CLI is installed"
     
     steps:
       - name: Checkout code
@@ -33,7 +33,7 @@ jobs:
 
       - name: Build test Docker image
         run: |
-          docker build -f Dockerfile.test -t claude-runner-test:${{ matrix.test-phase.name }} .
+          docker build -f docker/Dockerfile.test -t claude-runner-test:${{ matrix.test-phase.name }} .
 
       - name: Run tests in Docker container
         run: |
@@ -73,12 +73,12 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "Test Phases:" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Phase 1: Without Claude CLI" >> $GITHUB_STEP_SUMMARY
+          echo "Without Claude CLI:" >> $GITHUB_STEP_SUMMARY
           echo "- Tests extension detection of missing Claude CLI" >> $GITHUB_STEP_SUMMARY
           echo "- Verifies graceful handling of missing dependencies" >> $GITHUB_STEP_SUMMARY
           echo "- Runs core unit and main window tests" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Phase 2: With Claude CLI" >> $GITHUB_STEP_SUMMARY
+          echo "With Claude CLI:" >> $GITHUB_STEP_SUMMARY
           echo "- Installs Claude CLI via npm" >> $GITHUB_STEP_SUMMARY
           echo "- Tests full integration capabilities" >> $GITHUB_STEP_SUMMARY
           echo "- Runs comprehensive E2E test suite" >> $GITHUB_STEP_SUMMARY

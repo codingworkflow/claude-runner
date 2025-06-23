@@ -6,48 +6,48 @@ This document provides a comprehensive guide to testing the Claude Runner VS Cod
 
 ## Testing Architecture
 
-### 🎯 Two-Phase Testing Strategy
+### Two-Phase Testing Strategy
 
-#### Phase 1: Detection Tests (Without Claude CLI)
+#### Without Claude CLI: Detection Tests
 
-- **Purpose**: Validate extension behavior when Claude CLI is not installed
-- **Key Tests**: Detection logic, error handling, UI states
-- **Environment**: Clean environment without Claude CLI
+- Purpose: Validate extension behavior when Claude CLI is not installed
+- Key Tests: Detection logic, error handling, UI states
+- Environment: Clean environment without Claude CLI
 
-#### Phase 2: Integration Tests (With Claude CLI)
+#### With Claude CLI: Integration Tests
 
-- **Purpose**: Validate full functionality with Claude CLI available
-- **Key Tests**: CLI integration, end-to-end workflows, complete UI flows
-- **Environment**: Environment with Claude CLI installed
+- Purpose: Validate full functionality with Claude CLI available
+- Key Tests: CLI integration, end-to-end workflows, complete UI flows
+- Environment: Environment with Claude CLI installed
 
 ## GitHub Actions CI/CD Pipeline
 
-### 🚀 Main Pipeline (`test-pipeline.yml`)
+### Main Pipeline (`test-pipeline.yml`)
 
-**Automated on**: Push to main/develop, Pull requests
+Automated on: Push to main/develop, Pull requests
 
-**Jobs**:
+Jobs:
 
-1. **test-without-claude**: Phase 1 testing in VS Code dev container
-2. **test-with-claude**: Phase 2 testing with CLI installation
+1. **test-without-claude**: Without Claude CLI testing in VS Code dev container
+2. **test-with-claude**: With Claude CLI testing with CLI installation
 3. **test-report**: Comprehensive results summary
 
-**Key Features**:
+Key Features:
 
 - Docker containerization for isolation
 - Xvfb for headless VS Code testing
 - VSIX package building and validation
-- Artifact sharing between phases
+- Artifact sharing between test stages
 - Comprehensive error handling
 
-### 🐳 Docker E2E Pipeline (`docker-e2e.yml`)
+### Docker E2E Pipeline (`docker-e2e.yml`)
 
-**Automated on**: Manual trigger, Weekly schedule
+Automated on: Manual trigger, Weekly schedule
 
-**Features**:
+Features:
 
 - Custom Docker images for testing
-- Matrix strategy for both phases
+- Matrix strategy for both test stages
 - Advanced artifact collection
 - Comprehensive environment setup
 
@@ -59,11 +59,11 @@ This document provides a comprehensive guide to testing the Claude Runner VS Cod
 # Test Claude CLI detection
 npm run test:claude-detection
 
-# Simulate CI Phase 1 (without Claude CLI)
-npm run test:ci:phase1
+# Simulate CI Without Claude CLI
+npm run test:ci:without-claude-cli
 
-# Simulate CI Phase 2 (with Claude CLI)
-npm run test:ci:phase2
+# Simulate CI With Claude CLI
+npm run test:ci:with-claude-cli
 
 # Main window VS Code test
 npm run test:main-window
@@ -91,33 +91,33 @@ make test-all-coverage
 
 ## Test Coverage
 
-### ✅ VS Code Extension Tests
+### VS Code Extension Tests
 
-- **Main Window Loading**: Extension activation, UI rendering, panel display
-- **Command Registration**: All extension commands properly registered
-- **Configuration**: Default settings, user preferences, workspace settings
-- **Error Handling**: Graceful failure modes, user-friendly messages
+- Main Window Loading: Extension activation, UI rendering, panel display
+- Command Registration: All extension commands properly registered
+- Configuration: Default settings, user preferences, workspace settings
+- Error Handling: Graceful failure modes, user-friendly messages
 
-### ✅ Claude CLI Detection Tests
+### Claude CLI Detection Tests
 
-- **Path Detection**: Searches common installation paths
-- **Shell Detection**: Tests across multiple shell environments
-- **NPM Detection**: Finds globally installed packages
-- **Version Validation**: Verifies compatible CLI versions
+- Path Detection: Searches common installation paths
+- Shell Detection: Tests across multiple shell environments
+- NPM Detection: Finds globally installed packages
+- Version Validation: Verifies compatible CLI versions
 
-### ✅ Logs Processing Tests
+### Logs Processing Tests
 
-- **Project Management**: List projects, handle missing directories
-- **Conversation Loading**: Parse JSONL files, extract metadata
-- **Data Processing**: Token counting, usage analysis, timestamp handling
-- **Error Resilience**: Malformed files, missing data, large datasets
+- Project Management: List projects, handle missing directories
+- Conversation Loading: Parse JSONL files, extract metadata
+- Data Processing: Token counting, usage analysis, timestamp handling
+- Error Resilience: Malformed files, missing data, large datasets
 
-### ✅ Conversation Flow Tests
+### Conversation Flow Tests
 
-- **Interactive Chat**: Session startup, prompt handling, error states
-- **Task Execution**: Single tasks, output formatting, error handling
-- **Pipeline Processing**: Multiple tasks, parallel execution, partial failures
-- **State Management**: UI persistence, configuration updates, workspace state
+- Interactive Chat: Session startup, prompt handling, error states
+- Task Execution: Single tasks, output formatting, error handling
+- Pipeline Processing: Multiple tasks, parallel execution, partial failures
+- State Management: UI persistence, configuration updates, workspace state
 
 ## Test Environment Setup
 
@@ -146,14 +146,14 @@ npm run test:main-window
 ### CI Environment Simulation
 
 ```bash
-# Phase 1: Without Claude CLI
-make test-ci-phase1
+# Without Claude CLI
+make test-ci-without-claude-cli
 
-# Install Claude CLI for Phase 2
+# Install Claude CLI for With Claude CLI tests
 npm install -g @anthropic-ai/claude-code
 
-# Phase 2: With Claude CLI
-make test-ci-phase2
+# With Claude CLI
+make test-ci-with-claude-cli
 ```
 
 ## Test Data and Fixtures
@@ -179,7 +179,7 @@ tests/fixtures/logs/
 
 ```bash
 # Run the same tests that failed in CI
-npm run test:ci:phase1  # or phase2
+npm run test:ci:without-claude-cli  # or with-claude-cli
 
 # Run specific test categories
 npm run test:main-window
@@ -196,8 +196,8 @@ npm run test:e2e
 
 ```bash
 # Build and run Docker test environment
-docker build -f .github/workflows/Dockerfile.test .
-docker run --rm -e TEST_PHASE=without-claude image-name
+docker build -f docker/Dockerfile.test .
+docker run --rm -e TEST_STAGE=without-claude-cli image-name
 ```
 
 ## Adding New Tests
@@ -240,16 +240,16 @@ suite("New Feature Tests", () => {
 
 ### Test Execution Times
 
-- **Unit Tests**: ~30 seconds
-- **Main Window Test**: ~2-3 minutes
-- **E2E Tests**: ~5-10 minutes
-- **Full CI Pipeline**: ~15-20 minutes
+- Unit Tests: ~30 seconds
+- Main Window Test: ~2-3 minutes
+- E2E Tests: ~5-10 minutes
+- Full CI Pipeline: ~15-20 minutes
 
 ### Resource Usage
 
-- **Memory**: ~2GB for VS Code tests
-- **CPU**: Moderate usage during compilation
-- **Network**: VS Code downloads, package installs
+- Memory: ~2GB for VS Code tests
+- CPU: Moderate usage during compilation
+- Network: VS Code downloads, package installs
 
 ## Security and Best Practices
 
@@ -303,7 +303,7 @@ npm run test:claude-detection
 ```bash
 # Check Docker setup
 docker --version
-docker build --no-cache -f Dockerfile.test .
+docker build --no-cache -f docker/Dockerfile.test .
 ```
 
 ## Contributing to Tests

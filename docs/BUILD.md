@@ -21,18 +21,18 @@ make install-devcontainer
 
 ## Environment Requirements
 
-- **Node.js**: v23+ (current: v23.11.1)
-- **VS Code**: v1.85.0+
-- **Make**: For build commands
+- Node.js: v23+ (current: v23.11.1)
+- VS Code: v1.85.0+
+- Make: For build commands
 
 ## Build Process
 
 The extension uses TypeScript and webpack for building:
 
-1. **Setup**: `make setup` - Install dependencies
-2. **Compile**: `make build` - Compile TypeScript
-3. **Package**: `make build-vsix` - Create VSIX file
-4. **Install**: `make install-local` - Install in VS Code
+1. Setup: `make setup` - Install dependencies
+2. Compile: `make build` - Compile TypeScript
+3. Package: `make build-vsix` - Create VSIX file
+4. Install: `make install-local` - Install in VS Code
 
 ## Installation Methods
 
@@ -62,9 +62,9 @@ make serve-vsix             # HTTP server for download
 # Run all tests
 make test
 
-# Test phases (like CI)
-make test-ci-phase1    # Without Claude CLI
-make test-ci-phase2    # With Claude CLI
+# Test stages (like CI)
+make test-ci-without-claude-cli    # Without Claude CLI
+make test-ci-with-claude-cli       # With Claude CLI
 
 # Individual test types
 make test-unit

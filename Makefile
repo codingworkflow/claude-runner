@@ -17,8 +17,8 @@ help:
 	@echo "  make test-integration - Run integration tests only"
 	@echo "  make test-all-coverage - Run all tests with coverage"
 	@echo "  make test-claude-detection - Run Claude CLI detection test"
-	@echo "  make test-ci-phase1 - Run CI Phase 1 tests (without Claude CLI)"
-	@echo "  make test-ci-phase2 - Run CI Phase 2 tests (with Claude CLI)"
+	@echo "  make test-ci-without-claude - Run CI tests without Claude CLI"
+	@echo "  make test-ci-with-claude - Run CI tests with Claude CLI"
 	@echo "  make test-watch    - Run tests in watch mode"
 	@echo "  make lint          - Run ESLint and fix issues"
 	@echo "  make validate      - Run tests and linting"
@@ -143,15 +143,15 @@ test-claude-detection:
 	@echo "🔍 Running Claude CLI detection test..."
 	@npm run test:claude-detection
 
-# Run CI Phase 1 tests (without Claude CLI)
-test-ci-phase1:
-	@echo "🧪 Running CI Phase 1 tests (without Claude CLI)..."
-	@npm run test:ci:phase1
+# Run CI tests without Claude CLI
+test-ci-without-claude:
+	@echo "Running CI tests without Claude CLI..."
+	@npm run test:ci:without-claude
 
-# Run CI Phase 2 tests (with Claude CLI)
-test-ci-phase2:
-	@echo "🧪 Running CI Phase 2 tests (with Claude CLI)..."
-	@npm run test:ci:phase2
+# Run CI tests with Claude CLI
+test-ci-with-claude:
+	@echo "Running CI tests with Claude CLI..."
+	@npm run test:ci:with-claude
 
 # Install system dependencies for CI
 setup-ci:
