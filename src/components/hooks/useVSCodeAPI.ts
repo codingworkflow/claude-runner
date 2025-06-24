@@ -13,6 +13,15 @@ interface TaskItem {
   continueFrom?: string | null;
 }
 
+interface CommandFile {
+  name: string;
+  path: string;
+  content: string;
+  description?: string;
+  allowedTools?: string[];
+  isProject: boolean;
+}
+
 export const useVSCodeAPI = () => {
   const vscode = (
     window as typeof window & {
@@ -82,7 +91,7 @@ export const useVSCodeAPI = () => {
 
   // UI State updates
   const updateActiveTab = useCallback(
-    (tab: "chat" | "pipeline" | "usage" | "windows" | "logs") => {
+    (tab: "chat" | "pipeline" | "commands" | "usage" | "logs") => {
       sendMessage("updateActiveTab", { tab });
     },
     [sendMessage],
@@ -190,6 +199,46 @@ export const useVSCodeAPI = () => {
     [sendMessage],
   );
 
+  // Command operations
+  const loadCommands = useCallback(() => {
+    sendMessage("loadCommands");
+  }, [sendMessage]);
+
+  const scanCommands = useCallback(
+    (rootPath: string) => {
+      sendMessage("scanCommands", { rootPath });
+    },
+    [sendMessage],
+  );
+
+  const createCommand = useCallback(
+    (name: string, isGlobal: boolean, rootPath?: string) => {
+      sendMessage("createCommand", { name, isGlobal, rootPath });
+    },
+    [sendMessage],
+  );
+
+  const editCommand = useCallback(
+    (path: string) => {
+      sendMessage("editCommand", { path });
+    },
+    [sendMessage],
+  );
+
+  const updateCommand = useCallback(
+    (command: CommandFile) => {
+      sendMessage("updateCommand", { command });
+    },
+    [sendMessage],
+  );
+
+  const deleteCommand = useCallback(
+    (path: string) => {
+      sendMessage("deleteCommand", { path });
+    },
+    [sendMessage],
+  );
+
   return {
     startInteractive,
     runTask,
@@ -213,5 +262,12 @@ export const useVSCodeAPI = () => {
     requestLogConversations,
     requestLogConversation,
     recheckClaude,
+    // Command operations
+    loadCommands,
+    scanCommands,
+    createCommand,
+    editCommand,
+    updateCommand,
+    deleteCommand,
   };
 };

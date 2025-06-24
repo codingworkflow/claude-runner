@@ -1479,6 +1479,500 @@ input.error {
   color: var(--vscode-testing-iconFailed);
 }
 
+/* Commands Panel Styles */
+
+/* Command tabs */
+.commands-tabs {
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid var(--vscode-panel-border);
+  margin-bottom: 16px;
+}
+
+.commands-tabs .tab-button {
+  padding: 8px 16px;
+  border: none;
+  background: none;
+  color: var(--vscode-tab-inactiveForeground);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  font-size: 13px;
+  transition: all 0.2s ease;
+}
+
+.commands-tabs .tab-button:hover {
+  color: var(--vscode-tab-activeForeground);
+  background-color: var(--vscode-tab-hoverBackground);
+}
+
+.commands-tabs .tab-button.active {
+  color: var(--vscode-tab-activeForeground);
+  border-bottom-color: var(
+    --vscode-tab-activeBorder,
+    var(--vscode-focusBorder)
+  );
+}
+
+.commands-tabs .tab-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.tab-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 8px;
+}
+
+.command-list-container {
+  min-height: 200px;
+}
+
+/* Add command form */
+.add-command-form {
+  padding: 12px;
+  background-color: var(--vscode-input-background);
+  border: 1px solid var(--vscode-input-border);
+  border-radius: 4px;
+  margin-bottom: 12px;
+}
+
+.add-command-form input {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid var(--vscode-input-border);
+  border-radius: 3px;
+  background-color: var(--vscode-input-background);
+  color: var(--vscode-input-foreground);
+  font-size: 13px;
+  margin-bottom: 8px;
+}
+
+.add-command-form input:focus {
+  outline: none;
+  border-color: var(--vscode-focusBorder);
+}
+
+.form-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.section-header h4 {
+  margin: 0;
+  flex: 1;
+}
+
+.section-path {
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground);
+  font-family: var(--vscode-editor-font-family);
+  margin-right: 8px;
+}
+
+.commands-panel {
+  width: 100%;
+}
+
+.commands-info {
+  margin-bottom: 16px;
+}
+
+.command-item {
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 4px;
+  padding: 12px;
+  margin-bottom: 12px;
+  background-color: var(--vscode-editor-background);
+  transition: all 0.2s ease;
+}
+
+.command-item:hover {
+  background-color: var(--vscode-list-hoverBackground);
+  border-color: var(--vscode-focusBorder);
+}
+
+.command-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 8px;
+  gap: 12px;
+}
+
+.command-info {
+  flex: 1;
+}
+
+.command-info h4 {
+  margin: 0 0 4px 0;
+  font-size: 1em;
+  font-weight: 600;
+  color: var(--vscode-charts-blue);
+  font-family: var(--vscode-editor-font-family);
+}
+
+.command-info p {
+  margin: 0;
+  font-style: italic;
+}
+
+.command-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.command-preview {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--vscode-panel-border);
+}
+
+.command-content {
+  background-color: var(--vscode-textCodeBlock-background);
+  border: 1px solid var(--vscode-input-border);
+  border-radius: 3px;
+  padding: 8px;
+  font-size: 0.85em;
+  color: var(--vscode-foreground);
+  font-family: var(--vscode-editor-font-family);
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  margin: 0;
+  max-height: 120px;
+  overflow-y: auto;
+}
+
+/* Command Editor Styles */
+.command-editor {
+  margin-top: 16px;
+}
+
+.command-scope-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.command-scope-selector label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9em;
+  cursor: pointer;
+}
+
+.command-scope-selector input[type="radio"] {
+  width: auto;
+  margin: 0;
+}
+
+/* Command Help Styles */
+.commands-help {
+  background-color: var(--vscode-input-background);
+  border: 1px solid var(--vscode-input-border);
+  border-radius: 4px;
+  padding: 12px;
+  margin: 16px 0;
+}
+
+.commands-help h5 {
+  margin: 0 0 8px 0;
+  font-size: 0.9em;
+  font-weight: 600;
+  color: var(--vscode-foreground);
+}
+
+.commands-help .help-examples {
+  font-family: var(--vscode-editor-font-family);
+  font-size: 0.85em;
+  line-height: 1.4;
+}
+
+.commands-help code {
+  background-color: var(--vscode-textCodeBlock-background);
+  color: var(--vscode-textPreformat-foreground);
+  padding: 2px 4px;
+  border-radius: 3px;
+  font-family: var(--vscode-editor-font-family);
+  font-size: 0.9em;
+}
+
+/* Smart Tab Navigation Styles */
+.smart-tab-navigation {
+  border-bottom: 1px solid var(--vscode-panel-border);
+  margin-bottom: 20px;
+  width: 100%;
+  overflow: hidden;
+}
+
+.tab-container {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  position: relative;
+}
+
+.tab-button {
+  padding: 8px 16px;
+  background: transparent;
+  color: var(--vscode-foreground);
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  min-width: fit-content;
+}
+
+.tab-button:hover:not(:disabled) {
+  background-color: var(--vscode-list-hoverBackground);
+}
+
+.tab-button.active {
+  color: var(--vscode-button-foreground);
+  border-bottom-color: var(--vscode-button-background);
+  background-color: var(--vscode-input-background);
+}
+
+.tab-button:focus {
+  outline: 1px solid var(--vscode-focusBorder);
+  outline-offset: -1px;
+}
+
+.tab-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.tab-icon {
+  font-size: 0.9em;
+  min-width: 14px;
+  text-align: center;
+}
+
+.tab-label {
+  font-size: 0.9em;
+}
+
+/* Overflow Menu Styles */
+.overflow-menu-container {
+  position: relative;
+  margin-left: auto;
+}
+
+.overflow-button {
+  border-left: 1px solid var(--vscode-panel-border);
+  margin-left: 8px;
+}
+
+.overflow-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background-color: var(--vscode-dropdown-background);
+  border: 1px solid var(--vscode-dropdown-border);
+  border-radius: 4px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  z-index: 1000;
+  min-width: 150px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.overflow-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 12px;
+  background: transparent;
+  color: var(--vscode-dropdown-foreground);
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 0.9em;
+  text-align: left;
+}
+
+.overflow-item:hover:not(:disabled) {
+  background-color: var(--vscode-list-hoverBackground);
+}
+
+.overflow-item.active {
+  background-color: var(--vscode-list-activeSelectionBackground);
+  color: var(--vscode-list-activeSelectionForeground);
+}
+
+.overflow-item:focus {
+  outline: 1px solid var(--vscode-focusBorder);
+  outline-offset: -1px;
+}
+
+/* Responsive Tab Styles */
+@media (max-width: 600px) {
+  .tab-label {
+    display: none;
+  }
+
+  .tab-button {
+    padding: 8px 12px;
+    min-width: 40px;
+    justify-content: center;
+  }
+
+  .overflow-item .tab-label {
+    display: inline;
+  }
+}
+
+/* Collapsible Sections - VS Code Style */
+.collapsible-sections {
+  margin-top: 20px;
+  border-top: 1px solid var(--vscode-panel-border);
+}
+
+.collapsible-section {
+  border-bottom: 1px solid var(--vscode-panel-border);
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  background-color: var(--vscode-sideBar-background);
+  color: var(--vscode-sideBarSectionHeader-foreground);
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.2s ease;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: 0.5px;
+}
+
+.section-header:hover {
+  background-color: var(--vscode-list-hoverBackground);
+}
+
+.chevron {
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 6px;
+  transition: transform 0.2s ease;
+  font-size: 10px;
+  color: var(--vscode-icon-foreground);
+}
+
+.chevron.expanded {
+  transform: rotate(90deg);
+}
+
+.section-title {
+  flex: 1;
+  color: var(--vscode-sideBarSectionHeader-foreground);
+}
+
+.section-content {
+  background-color: var(--vscode-editor-background);
+  border-left: 2px solid var(--vscode-panel-border);
+  margin-left: 12px;
+  padding: 16px;
+}
+
+.commands-info p {
+  margin: 8px 0;
+  font-size: 0.9em;
+  color: var(--vscode-descriptionForeground);
+}
+
+.commands-info code {
+  background-color: var(--vscode-textCodeBlock-background);
+  color: var(--vscode-textPreformat-foreground);
+  padding: 2px 4px;
+  border-radius: 3px;
+  font-family: var(--vscode-editor-font-family);
+  font-size: 0.85em;
+}
+
+/* Collapsible Sections - VS Code Style */
+.collapsible-sections {
+  margin-top: 20px;
+  border-top: 1px solid var(--vscode-panel-border);
+}
+
+.collapsible-section {
+  border-bottom: 1px solid var(--vscode-panel-border);
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  background-color: var(--vscode-sideBar-background);
+  color: var(--vscode-sideBarSectionHeader-foreground);
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.2s ease;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: 0.5px;
+}
+
+.section-header:hover {
+  background-color: var(--vscode-list-hoverBackground);
+}
+
+.chevron {
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 6px;
+  transition: transform 0.2s ease;
+  font-size: 10px;
+  color: var(--vscode-icon-foreground);
+}
+
+.chevron.expanded {
+  transform: rotate(90deg);
+}
+
+.section-title {
+  flex: 1;
+  color: var(--vscode-sideBarSectionHeader-foreground);
+}
+
+.section-content {
+  background-color: var(--vscode-editor-background);
+  border-left: 2px solid var(--vscode-panel-border);
+  margin-left: 12px;
+}
+
+.section-content > * {
+  margin: 0;
+  padding: 16px;
+}
+
 /* Pipeline Progress Section */
 .pipeline-progress {
   margin-top: 24px;
@@ -1850,4 +2344,528 @@ input.error {
 .prompt-textarea:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+/* Commands Panel */
+.commands-panel {
+  width: 100%;
+}
+
+.commands-panel h3 {
+  margin: 0 0 16px 0;
+  font-size: 1.1em;
+  font-weight: 600;
+}
+
+.commands-panel h4 {
+  margin: 16px 0 8px 0;
+  font-size: 1em;
+  font-weight: 600;
+}
+
+.commands-panel ul {
+  margin: 8px 0;
+  padding-left: 20px;
+}
+
+.commands-panel li {
+  margin: 4px 0;
+}
+
+.command-example {
+  background-color: var(--vscode-textCodeBlock-background);
+  border: 1px solid var(--vscode-input-border);
+  border-radius: 4px;
+  padding: 12px;
+  margin: 8px 0;
+  font-family: var(--vscode-editor-font-family);
+  font-size: 0.9em;
+  color: var(--vscode-foreground);
+  white-space: pre-wrap;
+  overflow-x: auto;
+}
+
+/* Commands Section - VS Code Style */
+.commands-section {
+  margin-top: 20px;
+  border-top: 1px solid var(--vscode-panel-border);
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  padding: 8px 8px 8px 4px;
+  cursor: pointer;
+  user-select: none;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: 0.5px;
+  color: var(--vscode-foreground);
+}
+
+.section-header:hover {
+  background-color: var(--vscode-list-hoverBackground);
+}
+
+.disclosure-triangle {
+  margin-right: 4px;
+  transition: transform 0.1s ease;
+  font-size: 8px;
+  width: 12px;
+  text-align: center;
+}
+
+.disclosure-triangle.expanded {
+  transform: rotate(90deg);
+}
+
+.section-label {
+  color: var(--vscode-foreground);
+  opacity: 0.8;
+}
+
+.section-content {
+  padding: 8px 20px 16px 20px;
+  border-bottom: 1px solid var(--vscode-panel-border);
+}
+
+.commands-content {
+  font-size: 0.9em;
+  line-height: 1.4;
+}
+
+.commands-help {
+  margin: 12px 0;
+  padding: 8px;
+  background-color: var(--vscode-textCodeBlock-background);
+  border-radius: 3px;
+  font-size: 0.85em;
+}
+
+.commands-examples h4 {
+  margin: 12px 0 6px 0;
+  font-size: 0.9em;
+  font-weight: 600;
+}
+
+.commands-examples ul {
+  margin: 6px 0;
+  padding-left: 16px;
+}
+
+.commands-examples li {
+  margin: 2px 0;
+}
+
+/* Commands Panel Content */
+.commands-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 16px;
+  gap: 12px;
+}
+
+.commands-info {
+  flex: 1;
+}
+
+.commands-info p {
+  margin: 4px 0;
+  font-size: 0.9em;
+}
+
+.commands-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.command-group {
+  margin-bottom: 20px;
+}
+
+.command-group h4 {
+  margin: 0 0 8px 0;
+  font-size: 0.95em;
+  font-weight: 600;
+  color: var(--vscode-foreground);
+}
+
+.command-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.command-item {
+  padding: 8px 12px;
+  background-color: var(--vscode-input-background);
+  border: 1px solid var(--vscode-input-border);
+  border-radius: 3px;
+  transition: background-color 0.2s ease;
+}
+
+.command-item:hover {
+  background-color: var(--vscode-list-hoverBackground);
+}
+
+.command-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 2px;
+}
+
+.command-name {
+  font-family: var(--vscode-editor-font-family);
+  font-size: 0.9em;
+  font-weight: 600;
+  color: var(--vscode-charts-blue);
+}
+
+.command-description {
+  font-size: 0.85em;
+  color: var(--vscode-descriptionForeground);
+  font-style: italic;
+}
+
+.command-path {
+  font-size: 0.8em;
+  color: var(--vscode-descriptionForeground);
+  font-family: var(--vscode-editor-font-family);
+  opacity: 0.7;
+}
+
+.no-commands {
+  text-align: center;
+  padding: 20px;
+}
+
+.no-commands h4 {
+  margin: 0 0 16px 0;
+  color: var(--vscode-foreground);
+}
+
+.command-example {
+  background-color: var(--vscode-textCodeBlock-background);
+  border: 1px solid var(--vscode-input-border);
+  border-radius: 3px;
+  padding: 8px;
+  margin: 8px 0;
+  font-family: var(--vscode-editor-font-family);
+  font-size: 0.85em;
+  color: var(--vscode-foreground);
+  white-space: pre-wrap;
+  text-align: left;
+}
+
+/* Updated Commands Panel Structure */
+.scanning-status {
+  padding: 16px;
+  text-align: center;
+}
+
+.scan-paths {
+  margin-top: 8px;
+  font-size: 0.9em;
+  color: var(--vscode-descriptionForeground);
+}
+
+.scan-paths div {
+  margin: 4px 0;
+}
+
+.commands-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--vscode-panel-border);
+}
+
+.commands-summary {
+  display: flex;
+  gap: 16px;
+}
+
+.command-count {
+  font-size: 0.9em;
+  color: var(--vscode-foreground);
+  font-weight: 500;
+}
+
+.command-section {
+  margin-bottom: 20px;
+}
+
+.section-header {
+  margin-bottom: 8px;
+}
+
+.section-header h4 {
+  margin: 0 0 4px 0;
+  font-size: 1em;
+  font-weight: 600;
+  color: var(--vscode-foreground);
+}
+
+.section-path {
+  font-size: 0.85em;
+  color: var(--vscode-descriptionForeground);
+  font-family: var(--vscode-editor-font-family);
+}
+
+.command-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.command-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background-color: var(--vscode-input-background);
+  border: 1px solid var(--vscode-input-border);
+  border-radius: 3px;
+  transition: background-color 0.2s ease;
+}
+
+.command-item:hover {
+  background-color: var(--vscode-list-hoverBackground);
+}
+
+.command-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.command-name {
+  font-family: var(--vscode-editor-font-family);
+  font-size: 0.9em;
+  font-weight: 600;
+  color: var(--vscode-charts-blue);
+}
+
+.command-description {
+  font-size: 0.8em;
+  color: var(--vscode-descriptionForeground);
+  font-style: italic;
+}
+
+.command-actions {
+  flex-shrink: 0;
+}
+
+.no-commands {
+  padding: 12px;
+  text-align: center;
+  color: var(--vscode-descriptionForeground);
+  font-style: italic;
+}
+
+.no-workspace {
+  padding: 12px;
+  text-align: center;
+  color: var(--vscode-descriptionForeground);
+  font-style: italic;
+}
+
+.create-hint {
+  margin-top: 8px;
+}
+
+.commands-usage {
+  margin-top: 20px;
+  padding-top: 12px;
+  border-top: 1px solid var(--vscode-panel-border);
+}
+
+.usage-help {
+  font-size: 0.9em;
+  margin-bottom: 4px;
+}
+
+.paths-info {
+  font-size: 0.85em;
+  color: var(--vscode-descriptionForeground);
+}
+
+/* Enhanced Commands Panel */
+.commands-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--vscode-panel-border);
+}
+
+.commands-summary {
+  display: flex;
+  gap: 16px;
+  font-size: 0.9em;
+  color: var(--vscode-descriptionForeground);
+}
+
+.scanning-paths {
+  margin-top: 8px;
+  font-size: 0.85em;
+  color: var(--vscode-descriptionForeground);
+}
+
+.scanning-paths div {
+  margin: 2px 0;
+}
+
+.commands-tables {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin-bottom: 16px;
+}
+
+@media (max-width: 800px) {
+  .commands-tables {
+    grid-template-columns: 1fr;
+  }
+}
+
+.command-section {
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 4px;
+  padding: 12px;
+  background-color: var(--vscode-input-background);
+}
+
+.section-title {
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--vscode-panel-border);
+}
+
+.section-title h4 {
+  margin: 0 0 4px 0;
+  font-size: 0.95em;
+  font-weight: 600;
+  color: var(--vscode-foreground);
+}
+
+.section-path {
+  font-size: 0.8em;
+  color: var(--vscode-descriptionForeground);
+  font-family: var(--vscode-editor-font-family);
+}
+
+.command-list {
+  min-height: 60px;
+  margin-bottom: 12px;
+}
+
+.command-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 8px;
+  margin: 2px 0;
+  background-color: var(--vscode-editor-background);
+  border: 1px solid var(--vscode-input-border);
+  border-radius: 3px;
+  transition: background-color 0.2s ease;
+}
+
+.command-row:hover {
+  background-color: var(--vscode-list-hoverBackground);
+}
+
+.command-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+}
+
+.command-name {
+  font-family: var(--vscode-editor-font-family);
+  font-size: 0.9em;
+  font-weight: 600;
+  color: var(--vscode-charts-blue);
+}
+
+.command-desc {
+  font-size: 0.8em;
+  color: var(--vscode-descriptionForeground);
+  font-style: italic;
+}
+
+.no-commands-msg {
+  text-align: center;
+  padding: 16px;
+  color: var(--vscode-descriptionForeground);
+  font-style: italic;
+  font-size: 0.9em;
+}
+
+.no-workspace {
+  text-align: center;
+  padding: 20px;
+  color: var(--vscode-descriptionForeground);
+  font-style: italic;
+}
+
+.create-command {
+  border-top: 1px solid var(--vscode-panel-border);
+  padding-top: 8px;
+}
+
+.create-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.create-form input {
+  padding: 4px 8px;
+  border: 1px solid var(--vscode-input-border);
+  border-radius: 2px;
+  background-color: var(--vscode-input-background);
+  color: var(--vscode-input-foreground);
+  font-size: 0.9em;
+}
+
+.create-form input:focus {
+  outline: 1px solid var(--vscode-focusBorder);
+  outline-offset: -1px;
+}
+
+.create-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.commands-usage {
+  margin-top: 16px;
+  padding: 8px 12px;
+  background-color: var(--vscode-textCodeBlock-background);
+  border-radius: 4px;
+  border: 1px solid var(--vscode-input-border);
+}
+
+.usage-info {
+  font-size: 0.85em;
+  color: var(--vscode-foreground);
+}
+
+.usage-info code {
+  background-color: var(--vscode-textBlockQuote-background);
+  padding: 1px 3px;
+  border-radius: 2px;
+  font-family: var(--vscode-editor-font-family);
 }

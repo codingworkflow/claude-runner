@@ -67,7 +67,12 @@ export class MessageRouter {
       case "updateActiveTab":
         return {
           kind: "updateActiveTab",
-          tab: message.tab as "chat" | "pipeline" | "usage" | "logs",
+          tab: message.tab as
+            | "chat"
+            | "pipeline"
+            | "commands"
+            | "usage"
+            | "logs",
         };
       case "updateChatPrompt":
         return { kind: "updateChatPrompt", prompt: message.prompt as string };
@@ -135,6 +140,28 @@ export class MessageRouter {
             | "fish"
             | "sh"
             | undefined,
+        };
+      case "scanCommands":
+        return {
+          kind: "scanCommands",
+          rootPath: message.rootPath as string,
+        };
+      case "openFile":
+        return {
+          kind: "openFile",
+          path: message.path as string,
+        };
+      case "createCommand":
+        return {
+          kind: "createCommand",
+          name: message.name as string,
+          isGlobal: message.isGlobal as boolean,
+          rootPath: message.rootPath as string,
+        };
+      case "deleteCommand":
+        return {
+          kind: "deleteCommand",
+          path: message.path as string,
         };
       case "webviewError":
         return { kind: "webviewError", error: message.error as string };

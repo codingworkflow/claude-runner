@@ -49,7 +49,8 @@ function initializeApp() {
       message.command === "logConversationsData" ||
       message.command === "logConversationsError" ||
       message.command === "logConversationData" ||
-      message.command === "logConversationError"
+      message.command === "logConversationError" ||
+      message.type === "commandScanResult"
     ) {
       // These messages are handled by component-specific panels directly
       return;

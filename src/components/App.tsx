@@ -3,6 +3,7 @@ import ChatPanel from "./panels/ChatPanel";
 import PipelinePanel from "./panels/PipelinePanel";
 import UsageReportPanel from "./panels/UsageReportPanel";
 import LogsPanel from "./panels/LogsPanel";
+import CommandsPanel from "./panels/CommandsPanel";
 import ShellSelector from "./common/ShellSelector";
 import { useVSCodeAPI } from "./hooks/useVSCodeAPI";
 import { getModelIds } from "../models/ClaudeModels";
@@ -30,7 +31,7 @@ export interface AppProps {
   status: "stopped" | "running" | "starting" | "stopping";
 
   // UI state - all controlled by extension
-  activeTab: "chat" | "pipeline" | "usage" | "logs";
+  activeTab: "chat" | "pipeline" | "commands" | "usage" | "logs";
   showAdvancedTabs: boolean;
   outputFormat: "text" | "json";
   tasks: TaskItem[];
@@ -188,13 +189,19 @@ const App: React.FC<AppProps> = ({
           className={`tab-button ${activeTab === "chat" ? "active" : ""}`}
           onClick={() => updateActiveTab("chat")}
         >
-          Chat
+          💬 Chat
         </button>
         <button
           className={`tab-button ${activeTab === "pipeline" ? "active" : ""}`}
           onClick={() => updateActiveTab("pipeline")}
         >
-          Pipeline
+          ⚡ Pipeline
+        </button>
+        <button
+          className={`tab-button ${activeTab === "commands" ? "active" : ""}`}
+          onClick={() => updateActiveTab("commands")}
+        >
+          ⌘ Commands
         </button>
         {(showAdvancedTabs ||
           activeTab === "usage" ||
@@ -204,13 +211,13 @@ const App: React.FC<AppProps> = ({
               className={`tab-button ${activeTab === "usage" ? "active" : ""}`}
               onClick={() => updateActiveTab("usage")}
             >
-              Usage
+              📊 Usage
             </button>
             <button
               className={`tab-button ${activeTab === "logs" ? "active" : ""}`}
               onClick={() => updateActiveTab("logs")}
             >
-              Logs
+              📋 Logs
             </button>
           </>
         )}
@@ -274,6 +281,13 @@ const App: React.FC<AppProps> = ({
 
         {activeTab === "logs" && (
           <LogsPanel
+            disabled={status === "starting" || status === "stopping"}
+          />
+        )}
+
+        {activeTab === "commands" && (
+          <CommandsPanel
+            rootPath={rootPath}
             disabled={status === "starting" || status === "stopping"}
           />
         )}

@@ -9,6 +9,7 @@ import { UsageReportService } from "../services/UsageReportService";
 import { ClaudeVersionService } from "../services/ClaudeVersionService";
 import { ClaudeDetectionService } from "../services/ClaudeDetectionService";
 import { LogsService } from "../services/LogsService";
+import { CommandsService, CommandFile } from "../services/CommandsService";
 import { getModelIds } from "../models/ClaudeModels";
 
 export interface ControllerCallbacks {
@@ -20,11 +21,16 @@ export interface ControllerCallbacks {
   onLogConversationsError?: (error: string) => void;
   onLogConversationData?: (data: unknown) => void;
   onLogConversationError?: (error: string) => void;
+  onCommandScanResult?: (data: {
+    globalCommands: CommandFile[];
+    projectCommands: CommandFile[];
+  }) => void;
 }
 
 export class RunnerController implements EventBus {
   readonly state$ = new BehaviorSubject<UIState>(this.getInitialState());
   private callbacks: ControllerCallbacks = {};
+  private readonly commandsService: CommandsService;
 
   constructor(
     private readonly context: vscode.ExtensionContext,
@@ -37,10 +43,14 @@ export class RunnerController implements EventBus {
     private readonly logsService: LogsService,
     private readonly availablePipelines: string[] = [],
   ) {
+    // Initialize commands service
+    this.commandsService = new CommandsService(context);
+
     // Set up pipeline service root path
     const currentState = this.state$.value;
     if (currentState.rootPath) {
       this.pipelineService.setRootPath(currentState.rootPath);
+      this.commandsService.setRootPath(currentState.rootPath);
     }
 
     // Listen for workspace changes
@@ -123,6 +133,22 @@ export class RunnerController implements EventBus {
       case "recheckClaude":
         void this.recheckClaude(cmd.shell);
         break;
+      case "scanCommands":
+        console.log(
+          "RunnerController: Received scanCommands command with rootPath:",
+          cmd.rootPath,
+        );
+        void this.scanCommands(cmd.rootPath);
+        break;
+      case "openFile":
+        void this.openFile(cmd.path);
+        break;
+      case "createCommand":
+        void this.createCommand(cmd.name, cmd.isGlobal, cmd.rootPath);
+        break;
+      case "deleteCommand":
+        void this.deleteCommand(cmd.path);
+        break;
       case "webviewError":
         console.error("Webview error:", cmd.error);
         break;
@@ -152,7 +178,12 @@ export class RunnerController implements EventBus {
     const activeTab =
       lastActiveTab === "windows"
         ? "chat"
-        : ((lastActiveTab as "chat" | "pipeline" | "usage" | "logs") ?? "chat");
+        : ((lastActiveTab as
+            | "chat"
+            | "pipeline"
+            | "commands"
+            | "usage"
+            | "logs") ?? "chat");
 
     return {
       // Configuration that can be changed in UI
@@ -406,6 +437,7 @@ export class RunnerController implements EventBus {
   private async updateRootPath(path: string): Promise<void> {
     this.updateState({ rootPath: path });
     this.pipelineService.setRootPath(path);
+    this.commandsService.setRootPath(path);
     await this.loadAvailablePipelines();
   }
 
@@ -434,7 +466,9 @@ export class RunnerController implements EventBus {
     }
   }
 
-  private updateActiveTab(tab: "chat" | "pipeline" | "usage" | "logs"): void {
+  private updateActiveTab(
+    tab: "chat" | "pipeline" | "commands" | "usage" | "logs",
+  ): void {
     this.updateState({ activeTab: tab });
     this.context.workspaceState.update("lastActiveTab", tab);
   }
@@ -732,5 +766,58 @@ export class RunnerController implements EventBus {
 
   public setCallbacks(callbacks: ControllerCallbacks): void {
     this.callbacks = callbacks;
+  }
+
+  private async scanCommands(rootPath: string): Promise<void> {
+    try {
+      console.log(
+        "RunnerController.scanCommands: Starting scan with rootPath:",
+        rootPath,
+      );
+
+      // Update commands service with current root path
+      this.commandsService.setRootPath(rootPath);
+
+      // Scan commands using the service
+      console.log(
+        "RunnerController.scanCommands: Calling service.scanCommands()",
+      );
+      const result = await this.commandsService.scanCommands();
+
+      console.log("RunnerController.scanCommands: Service returned:", result);
+
+      // Send results back to webview
+      console.log(
+        "RunnerController.scanCommands: Calling callback with result",
+      );
+      this.callbacks.onCommandScanResult?.(result);
+    } catch (error) {
+      console.error(
+        "RunnerController.scanCommands: Error scanning commands:",
+        error,
+      );
+      this.callbacks.onCommandScanResult?.({
+        globalCommands: [],
+        projectCommands: [],
+      });
+    }
+  }
+
+  private async openFile(filePath: string): Promise<void> {
+    await this.commandsService.openCommandFile(filePath);
+  }
+
+  private async createCommand(
+    name: string,
+    isGlobal: boolean,
+    rootPath: string,
+  ): Promise<void> {
+    // Update commands service with current root path
+    this.commandsService.setRootPath(rootPath);
+    await this.commandsService.createCommand(name, isGlobal);
+  }
+
+  private async deleteCommand(filePath: string): Promise<void> {
+    await this.commandsService.deleteCommand(filePath);
   }
 }

@@ -66,6 +66,7 @@ extension.js.map
 webview.js.map
 webview.css.map
 .claude/pipeline-logs/*
+!tests/fixtures/logs/**
 
 # SonarQube configuration (contains sensitive data)
 .scannerwork/

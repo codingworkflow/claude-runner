@@ -11,6 +11,13 @@ import { ClaudeVersionService } from "../services/ClaudeVersionService";
 import { LogsService } from "../services/LogsService";
 import { MessageRouter, getWebviewHtml } from "../components/webview";
 
+interface CommandFile {
+  name: string;
+  path: string;
+  description: string;
+  isProject: boolean;
+}
+
 export class ClaudeRunnerPanel implements vscode.WebviewViewProvider {
   public static readonly viewType = "claude-runner.mainView";
   private _view?: vscode.WebviewView;
@@ -56,6 +63,7 @@ export class ClaudeRunnerPanel implements vscode.WebviewViewProvider {
         this.handleLogConversationsError(error),
       onLogConversationData: (data) => this.handleLogConversationResponse(data),
       onLogConversationError: (error) => this.handleLogConversationError(error),
+      onCommandScanResult: (data) => this.handleCommandScanResult(data),
     });
 
     // Load pipelines
@@ -250,6 +258,24 @@ export class ClaudeRunnerPanel implements vscode.WebviewViewProvider {
       command: "logConversationError",
       error: error,
     });
+  }
+
+  private handleCommandScanResult(data: {
+    globalCommands: CommandFile[];
+    projectCommands: CommandFile[];
+  }): void {
+    console.log(
+      "ClaudeRunnerPanel.handleCommandScanResult: Received data:",
+      data,
+    );
+    this.postMessage({
+      type: "commandScanResult",
+      globalCommands: data.globalCommands,
+      projectCommands: data.projectCommands,
+    });
+    console.log(
+      "ClaudeRunnerPanel.handleCommandScanResult: Posted message to webview",
+    );
   }
 
   public toggleAdvancedTabs(): void {

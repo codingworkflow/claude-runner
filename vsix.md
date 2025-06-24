@@ -2,7 +2,7 @@
 
 **Seamlessly integrate Claude AI directly into your VS Code workflow with an intuitive, feature-rich interface.**
 
-![Claude Runner Logo](./assets/icon.png)
+![Claude Runner Logo](https://raw.githubusercontent.com/codingworkflow/claude-runner/main/assets/icon.png)
 
 Claude Runner transforms your development experience by bringing Anthropic's powerful Claude AI models directly into Visual Studio Code. Whether you're debugging code, writing documentation, or architecting solutions, Claude Runner provides the tools you need to work smarter, not harder.
 
@@ -28,7 +28,7 @@ Start conversations with Claude directly in your VS Code terminal:
 - Persistent conversation sessions
 - Smart working directory integration
 
-![Quick start chat](./assets/marketplace/chat.png)
+![Quick start chat](https://raw.githubusercontent.com/codingworkflow/claude-runner/main/assets/marketplace/chat.png)
 
 ### **Pipeline Workflows**
 
@@ -40,9 +40,9 @@ Create and execute sophisticated multi-step workflows:
 - Save and reuse pipelines
 - Format similar to Claude Code Github action
 
-![Create Pipeline](./assets/marketplace/pipeline.png)
+![Create Pipeline](https://raw.githubusercontent.com/codingworkflow/claude-runner/main/assets/marketplace/pipeline.png)
 
-![Save Pipeline](./assets/marketplace/pipeline.png)
+![Save Pipeline](https://raw.githubusercontent.com/codingworkflow/claude-runner/main/assets/marketplace/savepipeline.png)
 
 ### **Usage Analytics & Cost Tracking**
 
@@ -53,9 +53,9 @@ Monitor your Claude usage with detailed analytics:
 - Daily/weekly/monthly breakdowns
 - Estimate user per 5 hours, set start window, max output
 
-![Usage Tracking](./assets/marketplace/usage.png)
+![Usage Tracking](https://raw.githubusercontent.com/codingworkflow/claude-runner/main/assets/marketplace/usage.png)
 
-![alt text](assets/marketplace/currentuse.png)
+![Current Usage](https://raw.githubusercontent.com/codingworkflow/claude-runner/main/assets/marketplace/currentuse.png)
 
 ### **Access session logs**
 
@@ -63,9 +63,9 @@ View in vscode previous Claude code chats:
 
 - Browse sessions history
 
-![Conversation list](./assets/marketplace/logs.png)
+![Conversation list](https://raw.githubusercontent.com/codingworkflow/claude-runner/main/assets/marketplace/logs.png)
 
-![Claude code session](./assets/marketplace/conversation.png)
+![Claude code session](https://raw.githubusercontent.com/codingworkflow/claude-runner/main/assets/marketplace/conversation.png)
 
 ## Quick Start
 

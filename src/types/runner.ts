@@ -11,7 +11,10 @@ export type RunnerCommand =
   | { kind: "updateRootPath"; path: string }
   | { kind: "updateAllowAllTools"; allow: boolean }
   | { kind: "browseFolder" }
-  | { kind: "updateActiveTab"; tab: "chat" | "pipeline" | "usage" | "logs" }
+  | {
+      kind: "updateActiveTab";
+      tab: "chat" | "pipeline" | "commands" | "usage" | "logs";
+    }
   | { kind: "updateChatPrompt"; prompt: string }
   | { kind: "updateShowChatPrompt"; show: boolean }
   | { kind: "updateOutputFormat"; format: "text" | "json" }
@@ -41,6 +44,10 @@ export type RunnerCommand =
   | { kind: "requestLogConversations"; projectName: string }
   | { kind: "requestLogConversation"; filePath: string }
   | { kind: "recheckClaude"; shell?: "auto" | "bash" | "zsh" | "fish" | "sh" }
+  | { kind: "scanCommands"; rootPath: string }
+  | { kind: "openFile"; path: string }
+  | { kind: "createCommand"; name: string; isGlobal: boolean; rootPath: string }
+  | { kind: "deleteCommand"; path: string }
   | { kind: "webviewError"; error: string };
 
 // Complete UI state interface - single source of truth
@@ -52,7 +59,7 @@ export interface UIState {
   parallelTasksCount: number;
 
   // Tab state
-  activeTab: "chat" | "pipeline" | "usage" | "logs";
+  activeTab: "chat" | "pipeline" | "commands" | "usage" | "logs";
   showAdvancedTabs: boolean;
 
   // Pipeline state
