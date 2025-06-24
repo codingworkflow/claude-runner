@@ -41,6 +41,7 @@ coverage/
 
 # Testing
 .nyc_output/
+.ruff_cache/
 
 # Runtime
 *.pid

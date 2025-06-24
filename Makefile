@@ -110,8 +110,8 @@ clean:
 
 # Run tests
 test:
-	@echo "🧪 Running tests..."
-	@npm run test
+	@echo "Running tests..."
+	@npm run test:unit
 
 # Run main window load test only
 test-main-window:

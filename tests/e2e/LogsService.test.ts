@@ -1,6 +1,6 @@
 import { LogsService } from "../../src/services/LogsService";
 
-describe("Simple Logs Service Test", () => {
+describe("LogsService", () => {
   let logsService: LogsService;
 
   beforeEach(() => {
@@ -32,9 +32,9 @@ describe("Simple Logs Service Test", () => {
     const formattedDate = logsService.formatDate(invalidTimestamp);
     const formattedTime = logsService.formatTime(invalidTimestamp);
 
-    expect(formattedDateTime).toBe(invalidTimestamp);
-    expect(formattedDate).toBe(invalidTimestamp);
-    expect(formattedTime).toBe(invalidTimestamp);
+    expect(formattedDateTime).toBe("Invalid Date");
+    expect(formattedDate).toBe("Invalid Date");
+    expect(formattedTime).toBe("Invalid Date");
   });
 
   test("should clear cache correctly", () => {

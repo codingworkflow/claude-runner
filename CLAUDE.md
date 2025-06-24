@@ -10,6 +10,8 @@ This file provides guidance to Claude Code when working with the Claude Runner V
 - Follow existing code style and patterns
 - Don't create new reports after changes unless asked
 - Don't add comments in code
+- NEVER name file \_fixed , improvment. Only clear normal naming.
+- Never create .backup or similar as we use git.
 
 ## Quick Reference
 
