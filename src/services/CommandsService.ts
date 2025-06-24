@@ -23,6 +23,7 @@ export class CommandsService {
    * Set the root path for command scanning
    */
   setRootPath(rootPath: string): void {
+    console.log("CommandsService: setRootPath called with:", rootPath);
     this.rootPath = rootPath;
   }
 
@@ -49,8 +50,16 @@ export class CommandsService {
           ".claude",
           "commands",
         );
+        console.log(
+          "CommandsService: Scanning project commands in:",
+          projectCommandsPath,
+        );
         projectCommands.push(
           ...(await this.scanCommandsInDirectory(projectCommandsPath, true)),
+        );
+      } else {
+        console.log(
+          "CommandsService: No rootPath set, skipping project commands scan",
         );
       }
 

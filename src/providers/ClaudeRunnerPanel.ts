@@ -21,7 +21,7 @@ interface CommandFile {
 export class ClaudeRunnerPanel implements vscode.WebviewViewProvider {
   public static readonly viewType = "claude-runner.mainView";
   private _view?: vscode.WebviewView;
-  private readonly controller: RunnerController;
+  public readonly controller: RunnerController;
   private stateSubscription?: Subscription;
   private availablePipelines: string[] = [];
 
@@ -280,6 +280,28 @@ export class ClaudeRunnerPanel implements vscode.WebviewViewProvider {
 
   public toggleAdvancedTabs(): void {
     this.controller.toggleAdvancedTabs();
+  }
+
+  public getCurrentRootPath(): string {
+    return this.controller.getCurrentState().rootPath;
+  }
+
+  public subscribeToRootPathChanges(
+    callback: (newPath: string) => void,
+  ): vscode.Disposable {
+    // Subscribe to controller state changes and filter for rootPath changes
+    let lastRootPath = this.controller.getCurrentState().rootPath;
+
+    const subscription = this.controller.state$.subscribe((newState) => {
+      if (newState.rootPath !== lastRootPath) {
+        lastRootPath = newState.rootPath;
+        callback(newState.rootPath);
+      }
+    });
+
+    return {
+      dispose: () => subscription.unsubscribe(),
+    };
   }
 
   /**

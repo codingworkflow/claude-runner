@@ -3,7 +3,6 @@ import ChatPanel from "./panels/ChatPanel";
 import PipelinePanel from "./panels/PipelinePanel";
 import UsageReportPanel from "./panels/UsageReportPanel";
 import LogsPanel from "./panels/LogsPanel";
-import CommandsPanel from "./panels/CommandsPanel";
 import ShellSelector from "./common/ShellSelector";
 import { useVSCodeAPI } from "./hooks/useVSCodeAPI";
 import { getModelIds } from "../models/ClaudeModels";
@@ -31,7 +30,7 @@ export interface AppProps {
   status: "stopped" | "running" | "starting" | "stopping";
 
   // UI state - all controlled by extension
-  activeTab: "chat" | "pipeline" | "commands" | "usage" | "logs";
+  activeTab: "chat" | "pipeline" | "usage" | "logs";
   showAdvancedTabs: boolean;
   outputFormat: "text" | "json";
   tasks: TaskItem[];
@@ -197,12 +196,6 @@ const App: React.FC<AppProps> = ({
         >
           ⚡ Pipeline
         </button>
-        <button
-          className={`tab-button ${activeTab === "commands" ? "active" : ""}`}
-          onClick={() => updateActiveTab("commands")}
-        >
-          ⌘ Commands
-        </button>
         {(showAdvancedTabs ||
           activeTab === "usage" ||
           activeTab === "logs") && (
@@ -281,13 +274,6 @@ const App: React.FC<AppProps> = ({
 
         {activeTab === "logs" && (
           <LogsPanel
-            disabled={status === "starting" || status === "stopping"}
-          />
-        )}
-
-        {activeTab === "commands" && (
-          <CommandsPanel
-            rootPath={rootPath}
             disabled={status === "starting" || status === "stopping"}
           />
         )}

@@ -67,12 +67,7 @@ export class MessageRouter {
       case "updateActiveTab":
         return {
           kind: "updateActiveTab",
-          tab: message.tab as
-            | "chat"
-            | "pipeline"
-            | "commands"
-            | "usage"
-            | "logs",
+          tab: message.tab as "chat" | "pipeline" | "usage" | "logs",
         };
       case "updateChatPrompt":
         return { kind: "updateChatPrompt", prompt: message.prompt as string };

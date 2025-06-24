@@ -126,12 +126,12 @@ const CommandsPanel: React.FC<CommandsPanelProps> = ({
         command: "deleteCommand",
         path: command.path,
       });
-    }
 
-    // Refresh commands list
-    setTimeout(() => {
-      loadCommands();
-    }, 500);
+      // Refresh commands list after a short delay to allow deletion to complete
+      setTimeout(() => {
+        loadCommands();
+      }, 1000);
+    }
   };
 
   if (loading) {

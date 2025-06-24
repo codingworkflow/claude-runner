@@ -32,6 +32,11 @@ export class RunnerController implements EventBus {
   private callbacks: ControllerCallbacks = {};
   private readonly commandsService: CommandsService;
 
+  // Public method to get current state value
+  public getCurrentState(): UIState {
+    return this.state$.value;
+  }
+
   constructor(
     private readonly context: vscode.ExtensionContext,
     private readonly claudeCodeService: ClaudeCodeService,
@@ -178,12 +183,7 @@ export class RunnerController implements EventBus {
     const activeTab =
       lastActiveTab === "windows"
         ? "chat"
-        : ((lastActiveTab as
-            | "chat"
-            | "pipeline"
-            | "commands"
-            | "usage"
-            | "logs") ?? "chat");
+        : ((lastActiveTab as "chat" | "pipeline" | "usage" | "logs") ?? "chat");
 
     return {
       // Configuration that can be changed in UI
@@ -466,9 +466,7 @@ export class RunnerController implements EventBus {
     }
   }
 
-  private updateActiveTab(
-    tab: "chat" | "pipeline" | "commands" | "usage" | "logs",
-  ): void {
+  private updateActiveTab(tab: "chat" | "pipeline" | "usage" | "logs"): void {
     this.updateState({ activeTab: tab });
     this.context.workspaceState.update("lastActiveTab", tab);
   }
@@ -818,6 +816,15 @@ export class RunnerController implements EventBus {
   }
 
   private async deleteCommand(filePath: string): Promise<void> {
-    await this.commandsService.deleteCommand(filePath);
+    const fileName = filePath.split("/").pop()?.replace(".md", "") ?? "command";
+    const confirmed = await vscode.window.showWarningMessage(
+      `Are you sure you want to delete the command "${fileName}"?`,
+      { modal: true },
+      "Delete",
+    );
+
+    if (confirmed === "Delete") {
+      await this.commandsService.deleteCommand(filePath);
+    }
   }
 }

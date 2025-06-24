@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
 import { ClaudeRunnerPanel } from "./providers/ClaudeRunnerPanel";
+import { CommandsWebviewProvider } from "./providers/CommandsWebviewProvider";
 import { ClaudeCodeService } from "./services/ClaudeCodeService";
 import { TerminalService } from "./services/TerminalService";
 import { ConfigurationService } from "./services/ConfigurationService";
@@ -7,6 +8,7 @@ import { ClaudeDetectionService } from "./services/ClaudeDetectionService";
 import { detectParallelTasksCount } from "./utils/detectParallelTasksCount";
 
 let claudeRunnerPanel: ClaudeRunnerPanel | undefined;
+let commandsWebviewProvider: CommandsWebviewProvider | undefined;
 let claudeCodeService: ClaudeCodeService;
 let terminalService: TerminalService;
 let configurationService: ConfigurationService;
@@ -92,6 +94,18 @@ export async function activate(context: vscode.ExtensionContext) {
       // The recheck is handled by the webview message, not directly by this command
       // This command is registered to appear in package.json but actual logic is in the panel
     }),
+
+    vscode.commands.registerCommand("claude-runner.refreshCommands", () => {
+      commandsWebviewProvider?.scanCommands();
+    }),
+
+    vscode.commands.registerCommand("claude-runner.addGlobalCommand", () => {
+      commandsWebviewProvider?.addGlobalCommand();
+    }),
+
+    vscode.commands.registerCommand("claude-runner.addProjectCommand", () => {
+      commandsWebviewProvider?.addProjectCommand();
+    }),
   ];
 
   // Register all disposables
@@ -106,10 +120,33 @@ export async function activate(context: vscode.ExtensionContext) {
     isClaudeInstalled,
   );
 
+  // Create Commands webview provider with access to main panel's root path
+  commandsWebviewProvider = new CommandsWebviewProvider(
+    context.extensionUri,
+    context,
+    () =>
+      claudeRunnerPanel?.getCurrentRootPath() ||
+      getCurrentWorkspacePath() ||
+      "",
+    (callback: (newPath: string) => void) => {
+      // Subscribe to root path changes from the main panel's controller
+      if (claudeRunnerPanel) {
+        const subscription =
+          claudeRunnerPanel.subscribeToRootPathChanges(callback);
+        context.subscriptions.push(subscription);
+      }
+    },
+  );
+
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider(
       "claude-runner.mainView",
       claudeRunnerPanel,
+    ),
+    vscode.window.registerWebviewViewProvider(
+      CommandsWebviewProvider.viewType,
+      commandsWebviewProvider,
+      { webviewOptions: { retainContextWhenHidden: true } },
     ),
   );
 

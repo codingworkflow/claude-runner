@@ -13,7 +13,7 @@ export type RunnerCommand =
   | { kind: "browseFolder" }
   | {
       kind: "updateActiveTab";
-      tab: "chat" | "pipeline" | "commands" | "usage" | "logs";
+      tab: "chat" | "pipeline" | "usage" | "logs";
     }
   | { kind: "updateChatPrompt"; prompt: string }
   | { kind: "updateShowChatPrompt"; show: boolean }
@@ -59,7 +59,7 @@ export interface UIState {
   parallelTasksCount: number;
 
   // Tab state
-  activeTab: "chat" | "pipeline" | "commands" | "usage" | "logs";
+  activeTab: "chat" | "pipeline" | "usage" | "logs";
   showAdvancedTabs: boolean;
 
   // Pipeline state

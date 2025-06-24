@@ -69,6 +69,21 @@
       {
         "command": "claude-runner.recheckClaude",
         "title": "Claude Runner: Recheck Claude Installation"
+      },
+      {
+        "command": "claude-runner.refreshCommands",
+        "title": "Refresh Commands",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "claude-runner.addGlobalCommand",
+        "title": "Add Global Command",
+        "icon": "$(add)"
+      },
+      {
+        "command": "claude-runner.addProjectCommand",
+        "title": "Add Project Command",
+        "icon": "$(add)"
       }
     ],
     "viewsContainers": {
@@ -88,6 +103,13 @@
           "name": "Claude Runner",
           "icon": "$(terminal)",
           "contextualTitle": "Claude Runner Control Panel"
+        },
+        {
+          "type": "webview",
+          "id": "claude-runner.commandsView",
+          "name": "Commands",
+          "icon": "$(symbol-keyword)",
+          "contextualTitle": "Claude Commands Manager"
         }
       ]
     },
@@ -184,6 +206,21 @@
           "command": "claude-runner.openInEditor",
           "when": "view == claude-runner.mainView",
           "group": "navigation@4"
+        },
+        {
+          "command": "claude-runner.refreshCommands",
+          "when": "view == claude-runner.commandsView",
+          "group": "navigation@1"
+        },
+        {
+          "command": "claude-runner.addGlobalCommand",
+          "when": "view == claude-runner.commandsView",
+          "group": "navigation@2"
+        },
+        {
+          "command": "claude-runner.addProjectCommand",
+          "when": "view == claude-runner.commandsView",
+          "group": "navigation@3"
         }
       ]
     }
@@ -263,6 +300,7 @@
     "@types/react-dom": "^18.2.0",
     "glob": "^10.3.10",
     "js-yaml": "^4.1.0",
+    "process": "^0.11.10",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "rxjs": "^7.8.2"

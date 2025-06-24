@@ -49,6 +49,9 @@ const webviewConfig = {
   },
   resolve: {
     extensions: [".ts", ".tsx", ".js", ".jsx"],
+    fallback: {
+      process: require.resolve("process/browser"),
+    },
   },
   module: {
     rules: [

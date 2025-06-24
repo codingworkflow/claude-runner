@@ -4,13 +4,289 @@ This file provides guidance to Claude Code when working with the Claude Runner V
 
 ## Build & Development Commands
 
+### Coding Guidelines
+
+#### VSCode Extension Architecture
+
+**VSCode-Specific Constraints:**
+
+- Use `vscode.WebviewViewProvider` pattern for UI panels, not standard web routing
+- All UI state must flow through extension host via `postMessage`/`onDidReceiveMessage`
+- Leverage VSCode's built-in theming system with `--vscode-*` CSS variables
+- Use `vscode.ExtensionContext` for state persistence, not localStorage or sessionStorage
+- Follow VSCode's lifecycle patterns: activation/deactivation with proper disposable cleanup
+
+**Extension Host Patterns:**
+
+- Services in `src/services/` handle all business logic and external APIs
+- Controllers in `src/controllers/` manage state and orchestrate services
+- Use Observable pattern (`rxjs`) for state management between extension and webview
+- Implement proper disposal pattern: all subscriptions must be disposed in cleanup
+
+#### React Component Architecture
+
+**State Management Rules:**
+
+- **No Local React State**: Components receive ALL state as props from extension host
+- **Controlled Components Only**: All form inputs controlled by extension state
+- **Single Source of Truth**: Extension host owns all application state
+- **Props-Down Pattern**: State flows down through props, events flow up through callbacks
+
+**Component Structure:**
+
+```
+src/components/
+├── common/          # Reusable UI components (Button, Input, Toggle)
+├── panels/          # Tab-specific panels (ChatPanel, PipelinePanel)
+├── hooks/           # Custom hooks (useVSCodeAPI for communication)
+└── styles.css      # Global styles using VSCode CSS variables
+```
+
+**Component Design Rules:**
+
+- Use `React.memo()` for all components to prevent unnecessary re-renders
+- Keep components pure: same props = same output
+- Use custom hook `useVSCodeAPI()` for all extension communication
+- Components should not make assumptions about data - validate props
+
+#### CSS and Theming
+
+**VSCode Theme Integration:**
+
+- **Primary Rule**: Use `--vscode-*` CSS variables exclusively for colors
+- **No Custom Colors**: Avoid hardcoded colors or external color schemes
+- **Theme Compatibility**: UI must work with all VSCode themes (light/dark/high-contrast)
+
+**CSS Architecture:**
+
+- Single stylesheet `src/components/styles.css` with component-specific classes
+- Use utility classes sparingly - prefer semantic component classes
+- CSS Grid/Flexbox for layouts, avoid positioning hacks
+- Responsive design within panel constraints (no fixed widths)
+
+**CSS Naming Convention:**
+
+```css
+/* Component-specific classes */
+.chat-panel {
+}
+.task-item {
+}
+.status-badge {
+}
+
+/* State-based classes */
+.status-running {
+}
+.task-item.current-task {
+}
+.button.disabled {
+}
+```
+
+#### Communication Patterns
+
+**Extension ↔ Webview:**
+
+- Use `MessageRouter` for structured command handling
+- All messages must be type-safe with interfaces
+- Handle errors gracefully - no UI freezing on failed commands
+- Use async/await for extension operations, handle timeouts
+
+**Service Layer:**
+
+- Services are stateless - state lives in controllers
+- One service per external concern (Claude API, Terminal, File System)
+- Services throw typed errors that controllers handle
+- Use dependency injection pattern in constructors
+
+#### Code Quality Rules
+
+**TypeScript Standards:**
+
+- Enable strict mode - no `any` types allowed
+- Use interfaces for all props and data structures
+- Prefer union types over enums for string constants
+- Use optional chaining (`?.`) and nullish coalescing (`??`)
+
+**Error Handling:**
+
+- Extension operations must handle all error cases
+- Show user-friendly error messages via `vscode.window.showErrorMessage`
+- Log technical details to console, not user-facing messages
+- Graceful degradation when services are unavailable
+
+**Performance Rules:**
+
+- Minimize webview re-renders: use React.memo and careful prop design
+- Debounce user input that triggers extension operations
+- Use observables to batch state updates
+- Lazy load services that aren't immediately needed
+
+#### File Organization
+
+**Naming Conventions:**
+
+- Components: PascalCase (e.g., `ChatPanel.tsx`)
+- Services: PascalCase with "Service" suffix (e.g., `ClaudeCodeService.ts`)
+- Types: PascalCase with descriptive names (e.g., `TaskItem`, `UIState`)
+- CSS classes: kebab-case (e.g., `.chat-panel`, `.status-running`)
+
+**Import Structure:**
+
+```typescript
+// External imports first
+import * as vscode from "vscode";
+import React from "react";
+
+// Internal imports by layer
+import { ClaudeCodeService } from "../services/ClaudeCodeService";
+import { UIState } from "../types/runner";
+import Button from "../common/Button";
+```
+
+#### Don't Do These
+
+**VSCode Extension Don'ts:**
+
+- Don't use standard web APIs (fetch, localStorage) - use VSCode APIs
+- Don't assume file system access - use VSCode workspace APIs
+- Don't create multiple webview instances - reuse existing panels
+- Don't bypass VSCode's security model
+
+**React Don'ts:**
+
+- Don't use React Router or browser navigation
+- Don't use React Context for state - use extension host
+- Don't make direct API calls from components
+- Don't use useEffect for side effects - use callbacks
+
+**CSS Don'ts:**
+
+- Don't override VSCode's base styles aggressively
+- Don't use CSS frameworks (Bootstrap, Tailwind)
+- Don't hardcode measurements - use relative units
+- Don't create complex CSS animations in extension UI
+
+## Strict Development Rules
+
+<coding>
+Don't add code comments unless asked. The enhancement will be automatically rejected like adding excessive logs.
+Logging must comply with overall project logging practice using proper error levels.
+Rules for modifying files are enforced and any breach will get modifications rejected.
+TypeScript – respect strict mode and ESLint configuration
+React (JSX/TSX) – respect functional components and hooks patterns
+CSS – use VSCode CSS variables exclusively, no custom styling
+VSCode Extension – follow extension lifecycle and webview patterns
+Keep the code DRY and organized
+Use proper file organization following src/ structure
+When doing refactoring never create _refactor, _fix, _integrate, _new, _temp files. Always fix the original target. REMEMBER this rule.
+Don't add fallbacks or keep functions as fallback if asked to remove them.
+When migrating code, don't try to leave fallbacks or add retro compatibility.
+All changes must pass linting and TypeScript compilation.
+</coding>
+
+### File Naming Rules
+
+**FORBIDDEN File Patterns:**
+
+- `_fix.*` - Never create fix files
+- `_refactor.*` - Never create refactor files
+- `_integrate.*` - Never create integration temp files
+- `_new.*` - Never create new temp files
+- `_temp.*` - Never create temp files
+- `_backup.*` - Never create backup files
+
+**Required Naming Conventions:**
+
+- Components: `PascalCase.tsx` (e.g., `ChatPanel.tsx`)
+- Services: `PascalCase.ts` with `Service` suffix (e.g., `ClaudeCodeService.ts`)
+- Types: `PascalCase.ts` (e.g., `WorkflowTypes.ts`)
+- Utilities: `camelCase.ts` (e.g., `detectParallelTasksCount.ts`)
+- Test files: `*.test.ts` alongside source files
+- CSS classes: `kebab-case` (e.g., `.chat-panel`, `.status-running`)
+
+### Testing Rules
+
+**Development Container:**
+
+- All tests run in devcontainer environment
+- Use `make test` for consistent testing across environments
+- VSCode extension tests require proper devcontainer setup
+
+**Mocking Rules:**
+
+- Mocks should NEVER cover core business logic
+- Don't rewrite the app in tests - use actual components/services
+- Mock only external dependencies (VSCode API, file system, processes)
+- Test from simplest to most complex scenarios
+- Use `src/test/__mocks__/` for shared mocks
+
+**Test Structure:**
+
+```typescript
+// Good: Testing component behavior, mocking VSCode API
+const mockVSCodeAPI = {
+  postMessage: jest.fn(),
+};
+
+// Bad: Reimplementing business logic in test
+const mockComplexBusinessLogic = {
+  // Don't recreate service logic here
+};
+```
+
+### Logging Rules
+
+**Error Levels (Strict):**
+
+- `console.error()` - Critical errors only (service failures, invalid state)
+- `console.warn()` - Warning conditions (deprecated usage, fallbacks)
+- `console.log()` - Essential information only (extension activation, command execution)
+- `console.debug()` - Development debugging (remove before commit)
+
+**Forbidden Logging:**
+
+```typescript
+// Don't add excessive logging
+console.log("Entering function X");
+console.log("Variable Y value:", y);
+console.log("Processing step 1, 2, 3...");
+
+// Use minimal, meaningful logging
+console.error("Claude Code CLI not found", error);
+console.log("Extension activated successfully");
+```
+
+### File Modification Rules
+
+**Use Targeted Edits:**
+
+- Use `file_edit` for modifications, not full file rewrites
+- Make compact, focused changes
+- Use `file_write` only for new files
+
+**File Organization:**
+
+- Keep files in proper `src/` structure
+- Don't create files everywhere - follow established patterns
+- All new/modified files MUST pass linting
+- TypeScript strict mode compliance required
+
+**Quality Gates:**
+
+- ESLint must pass without warnings
+- TypeScript compilation must succeed
+- Jest tests must pass
+- No dead code or unused imports
+
 ### Setup and Installation
+
+For installation instructions and prerequisites, see [README.md](README.md#installation).
 
 ```bash
 # Install dependencies
 make setup
-# or
-npm install
 ```
 
 ### Development
@@ -18,27 +294,22 @@ npm install
 ```bash
 # Start development environment
 make dev
-# or
-npm run watch
 
 # Build project
 make build
-# or
-npm run build
 ```
 
 ### Testing
 
 ```bash
-# Run all tests
+# Run all tests (Jest unit tests + VSCode integration tests)
 make test
-# or
-npm run test
 
-# Watch mode for tests
-make test-watch
-# or
-npm run test:watch
+# Run only Jest unit tests
+npm run test:unit
+
+# Unit test coverage
+npm run test:unit:coverage
 ```
 
 ### Code Quality
@@ -46,71 +317,12 @@ npm run test:watch
 ```bash
 # Run linter and fix issues
 make lint
-# or
-npm run lint
 
-# Run all validation (tests + linting) - Note: UI tests may fail in headless environments
+# Run all validation (tests + linting)
 make validate
-
-# Run SonarQube analysis
-make sonar
-
-# Scan for secrets in codebase
-make scan-secrets
-# or
-npm run scan-secrets      # Scan staged files
-npm run scan-secrets:all  # Scan all files
 ```
 
-#### SonarQube Configuration
-
-To use SonarQube analysis, create a `.sonar` file with your configuration:
-
-```bash
-# Create .sonar configuration file
-echo 'SONAR_HOST_URL=https://sonarqube.114.be.tn' > .sonar
-echo 'SONAR_LOGIN=your-sonar-token-here' >> .sonar
-
-# Run analysis
-make sonar
-```
-
-**Note**: The `.sonar` file is automatically added to `.gitignore` to protect sensitive tokens.
-
-#### Secrets Scanning
-
-The project includes automatic secrets scanning to prevent committing sensitive information:
-
-**Pre-commit Protection:**
-
-- Automatically scans staged files for secrets before each commit
-- Blocks commits containing critical or high-severity secrets
-- Runs as part of the Husky pre-commit hook
-
-**Manual Scanning:**
-
-```bash
-# Scan all files for secrets
-make scan-secrets
-npm run scan-secrets:all
-
-# Scan only staged files
-npm run scan-secrets
-```
-
-**Detected Secret Types:**
-
-- API Keys, Bearer Tokens, JWT Tokens
-- SonarQube, GitHub, AWS credentials
-- SSH Private Keys
-- Generic secrets and passwords
-
-**Security Features:**
-
-- Three severity levels: Critical, High, Medium
-- Smart file filtering (ignores node_modules, dist, etc.)
-- Context-aware detection (skips comments)
-- Clear remediation guidance
+See `Makefile` for additional commands including SonarQube analysis, secrets scanning, version management, and asset generation.
 
 ### Core Functionality Status
 
@@ -120,74 +332,7 @@ npm run scan-secrets
 - ✅ **Code Simplified**: Removed dead code and overcomplicated logic following DRY/KISS principles
 - ✅ **Task Feedback**: Tasks now show proper running/finished/error states with results display
 - ✅ **State Persistence**: Panel correctly restores mode, task status, and results when switching panels
-- ⚠️ **Tests**: Unit tests compile but UI tests require graphics libraries for VSCode integration
-
-### Recent Fixes (Latest Session)
-
-1. **Fixed broken UI**: Task input prompt now appears when switching to "Task" mode
-2. **Simplified App.tsx**: Reduced from 300+ lines to 200+ lines using DRY/KISS principles
-3. **Removed dead code**: Eliminated unused FinalApp.tsx and fixed import references
-4. **Fixed build issues**: Resolved TypeScript JSX configuration and StatusBar return path errors
-5. **Fixed test compilation**: Updated Mocha imports and TypeScript configuration for proper test builds
-6. **Fixed task completion feedback**: Added proper visual indicators for running/finished/error states with results display
-7. **Fixed state persistence**: Panel now properly restores mode selection, task status, and results when switching between panels
-8. **Fixed hanging task execution**: Improved process handling with proper stdin closure and timeout protection
-9. **Fixed JSON output parsing**: Extracts only the 'result' field from JSON responses instead of showing full JSON structure
-10. **UI Improvements**:
-    - Fixed Browse button size to be more compact with consistent width and proper padding (4px 10px)
-    - Reorganized Root Path component to appear at the top without label in both Chat and Pipeline panels
-    - Added Parallel Tasks Configuration below Chat panel for configuring parallelTasksCount (1-8)
-    - Fixed TypeScript errors in parallel tasks command execution
-    - Fixed input and button height alignment issues for consistent UI
-    - Added "Add Prompt" button in Chat panel that allows users to input an initial prompt (10 lines textarea)
-    - When prompt is provided, interactive session starts with `-p "prompt"` with proper shell escaping
-    - Improved overall UI consistency following DRY/KISS principles
-11. **Performance Optimizations**:
-    - Removed 500ms delay on UI initialization that was causing freeze/lag when switching views
-    - Eliminated double HTML setting in webview initialization
-    - Simplified webview message handling to reduce unnecessary state comparisons and re-renders
-    - Added React.memo to all components to prevent unnecessary re-renders
-    - Removed complex state tracking and simplified to direct prop passing
-    - Reduced webview-main.ts from 150+ lines to ~60 lines following KISS principle
-    - UI now loads instantly when switching to the extension view
-12. **State Management Overhaul**:
-    - Consolidated all UI state into a single `_uiState` object in ClaudeRunnerPanel as the single source of truth
-    - Fixed state loss issues when switching between Chat and Pipeline tabs
-    - Fixed "Allow All Tools" toggle state persistence
-    - Fixed chat prompt text being lost on tab switches
-    - Added proper state synchronization for all UI elements including:
-      - activeTab state to track current tab
-      - chatPrompt and showChatPrompt for the prompt feature
-      - parallelTasksCount integrated into main state flow
-    - Removed configuration-based state reads - UI state is now the source of truth
-    - Configuration is only updated when actions are performed (e.g., starting chat session)
-    - Fixed pipeline task duplication issue by properly maintaining tasks array state
-    - All components now receive state as props from extension, no local state conflicts
-13. **Fixed State Management Issues**:
-    - Implemented single source of truth for ALL UI state in extension (\_uiState)
-    - Removed all local React state - components are now fully controlled
-    - Fixed state loss when switching between Chat and Pipeline tabs
-    - Fixed "Allow All Tools" toggle state persistence
-    - Fixed chat prompt text persistence when switching tabs
-    - Fixed pipeline tasks duplication issue by maintaining consistent task array
-    - All state changes now flow unidirectionally: React -> Extension -> React
-    - Ensured tasks array is always initialized (never undefined) to prevent rendering issues
-    - Fixed task naming to generate unique sequential numbers even when tasks are added/removed
-14. **Critical Chat State Fix**:
-    - Moved model, rootPath, and allowAllTools from configuration to UI state
-    - Configuration is now only read on initialization and saved when actions are performed
-    - UI state is the single source of truth for all values shown in the UI
-    - Fixed issue where allowAllTools was being read from saved config instead of current UI state
-    - Configuration is only updated when user actually starts a chat/task, not on every UI change
-15. **Smart Shell Detection & Claude Installation Check**:
-    - Added unified multi-shell detection for Claude CLI across all services
-    - Created shared `ShellDetection` utility used by ClaudeVersionService, ClaudeCodeService, and ClaudeRunnerPanel
-    - Auto mode tries shells in order of likelihood: zsh → bash → fish (Homebrew) → fish (Apple Silicon) → sh
-    - Added shell selector in Claude installation error screen only (not in main UI)
-    - Enhanced recheck button with visual feedback: ⏳ Checking → ✅ Found / ❌ Not Found
-    - Fixed Claude detection for fish shell users and other non-bash shells
-    - Added proper logging and error handling for shell detection debugging
-    - Removed shell configuration from main settings (appears only when needed for troubleshooting)
+- ✅ **Tests**: Complete test suite with Jest unit tests and VSCode extension integration tests
 
 ### Version Management
 
@@ -208,20 +353,6 @@ npm run version:minor
 npm run version:major
 ```
 
-### Assets
-
-```bash
-# Generate extension icons from logo
-make generate-icons
-# or
-npm run generate-icons
-
-# Prepare marketplace assets and README
-make prepare-marketplace
-# or
-npm run prepare-marketplace
-```
-
 ### Building and Installation
 
 ```bash
@@ -240,156 +371,14 @@ make install-devcontainer
 make serve-vsix
 ```
 
-## Architecture Overview
+## Project Overview
 
-Claude Runner is a VSCode extension that provides a user-friendly interface for executing Claude Code commands directly within the development environment. It supports both interactive terminal sessions and programmatic task execution.
+For general project information including:
 
-### Key Components
+- Features and capabilities
+- Installation instructions
+- Usage examples and configuration
+- Model selection details
+- Troubleshooting guide
 
-1. **Extension Host** (`src/extension.ts`)
-
-   - Extension activation and command registration
-   - VSCode API integration and lifecycle management
-   - Terminal and process management coordination
-
-2. **Webview Panel** (`src/providers/ClaudeRunnerPanel.ts`)
-
-   - Main UI panel provider using VSCode webview API
-   - Message passing between extension and webview
-   - State management and persistence
-
-3. **Services Layer** (`src/services/`)
-
-   - `ClaudeCodeService`: Manages Claude Code command execution
-   - `TerminalService`: Handles terminal integration and session management
-   - `ConfigurationService`: Settings persistence and retrieval
-   - `ModelService`: Claude model metadata and selection logic
-
-4. **React UI** (`src/webview/`)
-   - React-based webview application with TypeScript
-   - Components for model selection, path configuration, and execution
-   - Tailwind CSS for consistent styling and responsive design
-
-### Data Flow
-
-1. User interacts with webview UI (model selection, path configuration, task input)
-2. Webview sends messages to extension host via VSCode message API
-3. Extension validates inputs and constructs Claude Code commands
-4. Commands executed via terminal integration or subprocess
-5. Results processed and displayed back to user through webview or terminal
-
-### Configuration System
-
-The extension supports multiple configuration layers:
-
-- User settings via VSCode settings API
-- Workspace-specific configurations
-- Session-based temporary settings
-- Model and tool permission presets
-
-## Code Quality Guidelines
-
-### TypeScript Standards
-
-- **Strict Mode**: All TypeScript files use strict mode with comprehensive type checking
-- **Interface Design**: Prefer interfaces over types for object shapes
-- **Error Handling**: Use Result/Either patterns for error-prone operations
-- **Null Safety**: Explicit null/undefined handling with optional chaining
-
-### React Component Guidelines
-
-- **Functional Components**: Use functional components with hooks exclusively
-- **Component Composition**: Prefer composition over inheritance
-- **State Management**: Use context for global state, local state for component-specific data
-- **Event Handling**: Implement proper event delegation and cleanup
-
-### VSCode Extension Best Practices
-
-- **Resource Management**: Proper disposal of disposables and event listeners
-- **API Usage**: Use appropriate VSCode APIs for the intended functionality
-- **Error Handling**: Graceful error handling with user-friendly messages
-- **Performance**: Lazy loading and efficient resource utilization
-
-### Command Execution Safety
-
-- **Input Validation**: Sanitize all user inputs before command construction
-- **Path Handling**: Use proper path resolution and validation
-- **Permission Checks**: Validate permissions before file system operations
-- **Command Injection**: Prevent command injection through proper escaping
-
-### UI/UX Standards
-
-- **Accessibility**: Follow WCAG guidelines for accessible UI components
-- **Responsiveness**: Ensure UI works across different panel sizes
-- **Loading States**: Provide clear feedback during long-running operations
-- **Error Display**: Clear, actionable error messages with recovery suggestions
-
-## Development Workflow
-
-### Local Development
-
-1. Use `make dev` to start watch mode during development
-2. Reload extension in VSCode using F5 or Command Palette
-3. Test with different Claude models and configurations
-4. Validate terminal integration across different shells
-
-### Testing Strategy
-
-- **Unit Tests**: Service layer and utility functions
-- **Integration Tests**: Extension activation and webview communication
-- **E2E Tests**: Full workflow testing with mock Claude Code responses
-- **Manual Testing**: Real Claude Code integration testing
-
-### Debugging
-
-- Use VSCode's extension debugging capabilities
-- Console logging in webview for UI debugging
-- Extension host debugging for service layer issues
-- Terminal output monitoring for command execution
-
-## Dependencies and Security
-
-### Core Dependencies
-
-- VSCode Extension API for platform integration
-- React and TypeScript for UI development
-- Node.js child_process for command execution
-- Path and file system utilities for safe file operations
-
-### Security Considerations
-
-- **Command Injection**: All user inputs are sanitized before command execution
-- **Path Traversal**: Path inputs are validated and normalized
-- **Permission Model**: Respect VSCode's security boundaries
-- **Sensitive Data**: No sensitive data stored in plain text
-
-### External Dependencies
-
-- Claude Code CLI must be installed and accessible in PATH
-- Git integration for workspace context (optional)
-- Terminal access for interactive mode functionality
-
-## Model Integration
-
-### Supported Models
-
-The extension supports all current Claude models:
-
-- Claude Opus 4 (most capable, highest cost)
-- Claude Sonnet 4 (balanced performance and cost)
-- Claude Sonnet 3.7 (good performance, moderate cost)
-- Claude Haiku 3.5 (fastest, lowest cost)
-
-### Model Selection Logic
-
-- Default to Claude Sonnet 4 for general use
-- Allow user override via dropdown selection
-- Persist user preferences per workspace
-- Validate model availability before execution
-
-### Command Construction
-
-- Use proper model flags based on Claude Code documentation
-- Handle model-specific capabilities and limitations
-- Provide fallbacks for deprecated model versions
-- Support both alias and full model names
+See [README.md](README.md) for complete user documentation.
