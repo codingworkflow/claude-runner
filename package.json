@@ -110,7 +110,7 @@
         {
           "type": "webview",
           "id": "claude-runner.mainView",
-          "name": "Claude Runner",
+          "name": "Chat & Pipeline",
           "icon": "$(terminal)",
           "contextualTitle": "Claude Runner Control Panel"
         },
