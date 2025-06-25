@@ -218,6 +218,13 @@ export const useVSCodeAPI = () => {
     [sendMessage],
   );
 
+  const openFile = useCallback(
+    (path: string) => {
+      sendMessage("openFile", { path });
+    },
+    [sendMessage],
+  );
+
   const editCommand = useCallback(
     (path: string) => {
       sendMessage("editCommand", { path });
@@ -266,6 +273,7 @@ export const useVSCodeAPI = () => {
     loadCommands,
     scanCommands,
     createCommand,
+    openFile,
     editCommand,
     updateCommand,
     deleteCommand,

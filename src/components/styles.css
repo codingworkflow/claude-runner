@@ -53,9 +53,10 @@ p {
 
 .usage-report-header {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
   margin-bottom: 20px;
+  padding-bottom: 8px;
 }
 
 .period-selector {
@@ -2868,4 +2869,31 @@ input.error {
   padding: 1px 3px;
   border-radius: 2px;
   font-family: var(--vscode-editor-font-family);
+}
+
+/* Commands App Styles */
+.commands-app {
+  width: 100%;
+}
+
+.commands-app .tab-content {
+  padding-top: 8px;
+}
+
+/* Usage & Logs App Styles */
+.usage-logs-app {
+  width: 100%;
+}
+
+.usage-logs-app .tab-content {
+  padding-top: 8px;
+}
+
+/* Panel Actions (Commands panels) */
+.panel-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-bottom: 16px;
+  padding-bottom: 8px;
 }

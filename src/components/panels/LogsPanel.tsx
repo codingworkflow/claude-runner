@@ -387,17 +387,6 @@ const LogsPanel: React.FC<LogsPanelProps> = ({ disabled = false }) => {
           <div className="conversation-list-view">
             {/* Project Selection */}
             <div className="logs-section">
-              <div className="section-header">
-                <h4>Select Project</h4>
-                <button
-                  onClick={loadProjects}
-                  disabled={disabled || projectsLoading}
-                  className="button secondary"
-                >
-                  {projectsLoading ? "Loading..." : "Refresh"}
-                </button>
-              </div>
-
               {projectsError && (
                 <div className="error-message">Error: {projectsError}</div>
               )}
@@ -408,7 +397,11 @@ const LogsPanel: React.FC<LogsPanelProps> = ({ disabled = false }) => {
                 disabled={disabled || projectsLoading}
                 className="dropdown full-width"
               >
-                <option value="">Select a project...</option>
+                <option value="">
+                  {projectsLoading
+                    ? "Loading projects..."
+                    : "Select a project..."}
+                </option>
                 {projects.map((project) => (
                   <option key={project.name} value={project.name}>
                     {project.name} ({project.conversationCount} conversations)

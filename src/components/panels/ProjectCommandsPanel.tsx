@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import Button from "../common/Button";
 
 interface CommandFile {
@@ -10,73 +10,28 @@ interface CommandFile {
 
 interface ProjectCommandsPanelProps {
   disabled: boolean;
+  commands: CommandFile[];
+  loading: boolean;
+  onRefresh: () => void;
+  onOpenFile: (path: string) => void;
+  onCreateCommand: (name: string) => void;
+  onDeleteCommand: (path: string) => void;
 }
 
 const ProjectCommandsPanel: React.FC<ProjectCommandsPanelProps> = ({
   disabled,
+  commands,
+  loading,
+  onRefresh,
+  onOpenFile,
+  onCreateCommand,
+  onDeleteCommand,
 }) => {
-  const [projectCommands, setProjectCommands] = useState<CommandFile[]>([]);
-  const [loading, setLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
   const [newCommandName, setNewCommandName] = useState("");
-  const [rootPath, setRootPath] = useState("");
-
-  const loadCommands = async () => {
-    setLoading(true);
-    try {
-      // Send message to extension to scan for commands
-      if (window.vscodeApi) {
-        window.vscodeApi.postMessage({
-          type: "scanCommands",
-          rootPath: rootPath,
-        });
-      } else {
-        console.error("ProjectCommandsPanel: window.vscodeApi not available");
-        setProjectCommands([]);
-        setLoading(false);
-      }
-    } catch (error) {
-      console.error("Failed to scan project commands:", error);
-      setProjectCommands([]);
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    loadCommands();
-
-    // Listen for command scan results and root path updates
-    const handleMessage = (event: MessageEvent) => {
-      const message = event.data;
-      if (message.type === "commandScanResult") {
-        setProjectCommands(message.projectCommands || []);
-        setLoading(false);
-      } else if (message.type === "setRootPath") {
-        setRootPath(message.rootPath || "");
-        // Reload commands when root path changes
-        if (message.rootPath) {
-          setTimeout(() => {
-            loadCommands();
-          }, 100);
-        }
-      }
-    };
-
-    window.addEventListener("message", handleMessage);
-    return () => window.removeEventListener("message", handleMessage);
-  }, [rootPath]);
-
-  const handleRefresh = () => {
-    loadCommands();
-  };
 
   const handleEdit = (command: CommandFile) => {
-    if (window.vscodeApi) {
-      window.vscodeApi.postMessage({
-        type: "openFile",
-        path: command.path,
-      });
-    }
+    onOpenFile(command.path);
   };
 
   const handleAddCommand = () => {
@@ -84,23 +39,9 @@ const ProjectCommandsPanel: React.FC<ProjectCommandsPanelProps> = ({
       return;
     }
 
-    if (window.vscodeApi) {
-      window.vscodeApi.postMessage({
-        type: "createCommand",
-        name: newCommandName.trim(),
-        isGlobal: false,
-        rootPath: rootPath,
-      });
-    }
-
-    // Reset form
+    onCreateCommand(newCommandName.trim());
     setNewCommandName("");
     setShowAddForm(false);
-
-    // Refresh commands list
-    setTimeout(() => {
-      loadCommands();
-    }, 500);
   };
 
   const handleCancelAdd = () => {
@@ -109,17 +50,7 @@ const ProjectCommandsPanel: React.FC<ProjectCommandsPanelProps> = ({
   };
 
   const handleDeleteCommand = (command: CommandFile) => {
-    if (window.vscodeApi) {
-      window.vscodeApi.postMessage({
-        type: "deleteCommand",
-        path: command.path,
-      });
-
-      // Refresh commands list after a short delay to allow deletion to complete
-      setTimeout(() => {
-        loadCommands();
-      }, 1000);
-    }
+    onDeleteCommand(command.path);
   };
 
   if (loading) {
@@ -127,44 +58,30 @@ const ProjectCommandsPanel: React.FC<ProjectCommandsPanelProps> = ({
       <div className="project-commands-panel">
         <div className="scanning-status">
           <p>Scanning for project commands...</p>
-          <div className="scan-paths">
-            <div>
-              • Project:{" "}
-              <code>{rootPath || "No workspace"}/.claude/commands/</code>
-            </div>
-          </div>
         </div>
       </div>
     );
   }
 
-  const canAdd = !!rootPath;
-
   return (
     <div className="project-commands-panel">
-      {/* Panel Header */}
-      <div className="panel-header">
-        <h3>Project Commands</h3>
-        <div className="panel-actions">
-          {canAdd && (
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => setShowAddForm(true)}
-              disabled={disabled}
-            >
-              Add
-            </Button>
-          )}
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={handleRefresh}
-            disabled={disabled}
-          >
-            Refresh
-          </Button>
-        </div>
+      <div className="panel-actions">
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={() => setShowAddForm(true)}
+          disabled={disabled}
+        >
+          Add
+        </Button>
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={onRefresh}
+          disabled={disabled}
+        >
+          Refresh
+        </Button>
       </div>
 
       {/* Add Command Form */}
@@ -202,11 +119,9 @@ const ProjectCommandsPanel: React.FC<ProjectCommandsPanelProps> = ({
 
       {/* Commands List */}
       <div className="command-list-container">
-        {!rootPath ? (
-          <div className="no-workspace">No workspace selected</div>
-        ) : projectCommands.length > 0 ? (
+        {commands.length > 0 ? (
           <div className="command-list">
-            {projectCommands.map((cmd) => (
+            {commands.map((cmd) => (
               <div key={cmd.name} className="command-item">
                 <div className="command-info">
                   <span className="command-name">{cmd.name}</span>

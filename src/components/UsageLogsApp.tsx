@@ -7,8 +7,7 @@ const UsageLogsApp: React.FC = () => {
 
   return (
     <div className="usage-logs-app">
-      {/* Tab Navigation */}
-      <div className="tabs">
+      <div className="tab-navigation">
         <button
           className={`tab-button ${activeTab === "usage" ? "active" : ""}`}
           onClick={() => setActiveTab("usage")}

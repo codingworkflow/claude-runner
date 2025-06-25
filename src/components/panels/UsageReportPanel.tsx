@@ -191,8 +191,6 @@ const UsageReportPanel: React.FC<UsageReportPanelProps> = ({
     <div className="usage-report-panel">
       <Card>
         <div className="usage-report-header">
-          <h3>Usage Report</h3>
-
           <div className="period-selector">
             <label htmlFor="period-select">Period:</label>
             <select

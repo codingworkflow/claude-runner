@@ -21,12 +21,7 @@ export class CommandsWebviewProvider implements vscode.WebviewViewProvider {
       this.scanCommands();
     });
 
-    // Subscribe to root path changes from main panel
     this.subscribeToRootPathChanges((newRootPath: string) => {
-      console.log(
-        "CommandsWebviewProvider: Root path changed to:",
-        newRootPath,
-      );
       if (this._view) {
         this.handleScanCommands(newRootPath);
       }
@@ -42,18 +37,22 @@ export class CommandsWebviewProvider implements vscode.WebviewViewProvider {
 
     webviewView.webview.options = {
       enableScripts: true,
-      localResourceRoots: [this._extensionUri],
+      localResourceRoots: [
+        this._extensionUri,
+        vscode.Uri.joinPath(this._extensionUri, "dist"),
+      ],
     };
 
-    webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
+    webviewView.webview.html = this._getCommandsHtml(webviewView.webview);
 
     // Handle messages from webview
     webviewView.webview.onDidReceiveMessage((data) => {
-      switch (data.type) {
+      switch (data.command) {
         case "scanCommands":
           this.handleScanCommands(data.rootPath || this.getMainPanelRootPath());
           break;
         case "openFile":
+        case "editCommand":
           this.handleOpenFile(data.path);
           break;
         case "createCommand":
@@ -65,18 +64,11 @@ export class CommandsWebviewProvider implements vscode.WebviewViewProvider {
       }
     });
 
-    // Send current root path from main panel to webview first
     const rootPath = this.getMainPanelRootPath();
-    console.log(
-      "CommandsWebviewProvider: Initializing with rootPath from main panel:",
-      rootPath,
-    );
     this._view.webview.postMessage({
       type: "setRootPath",
       rootPath: rootPath,
     });
-
-    // Then do initial scan with that path
     this.handleScanCommands(rootPath);
   }
 
@@ -107,24 +99,9 @@ export class CommandsWebviewProvider implements vscode.WebviewViewProvider {
 
   private async handleScanCommands(rootPath: string) {
     try {
-      console.log(
-        "CommandsWebviewProvider: handleScanCommands called with rootPath:",
-        rootPath,
-      );
       this._commandsService.setRootPath(rootPath);
       const { globalCommands, projectCommands } =
         await this._commandsService.scanCommands();
-
-      console.log(
-        "CommandsWebviewProvider: Found",
-        globalCommands.length,
-        "global commands",
-      );
-      console.log(
-        "CommandsWebviewProvider: Found",
-        projectCommands.length,
-        "project commands",
-      );
 
       if (this._view) {
         this._view.webview.postMessage({
@@ -140,7 +117,6 @@ export class CommandsWebviewProvider implements vscode.WebviewViewProvider {
         });
       }
     } catch (error) {
-      console.error("Failed to scan commands:", error);
       if (this._view) {
         this._view.webview.postMessage({
           type: "commandScanResult",
@@ -195,491 +171,35 @@ export class CommandsWebviewProvider implements vscode.WebviewViewProvider {
     );
   }
 
-  private _getHtmlForWebview(webview: vscode.Webview) {
-    const nonce = this.getNonce();
+  private _getCommandsHtml(webview: vscode.Webview): string {
+    const scriptUri = webview.asWebviewUri(
+      vscode.Uri.joinPath(this._extensionUri, "dist", "webview.js"),
+    );
 
     return `<!DOCTYPE html>
       <html lang="en">
       <head>
         <meta charset="UTF-8">
-        <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}';">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Commands</title>
-        <style>
-          /* Native VSCode styling using CSS variables */
-          body {
-            font-family: var(--vscode-font-family);
-            font-size: var(--vscode-font-size);
-            color: var(--vscode-foreground);
-            background-color: var(--vscode-editor-background);
-            margin: 0;
-            padding: 16px;
-            line-height: 1.4;
-          }
-
-          /* Tab Navigation */
-          .tab-navigation {
-            display: flex;
-            border-bottom: 1px solid var(--vscode-widget-border);
-            margin-bottom: 16px;
-          }
-
-          .tab-button {
-            padding: 8px 16px;
-            background: transparent;
-            color: var(--vscode-foreground);
-            border: none;
-            border-bottom: 2px solid transparent;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            font-weight: 500;
-            font-size: 13px;
-          }
-
-          .tab-button:hover:not(.active) {
-            background-color: var(--vscode-list-hoverBackground);
-          }
-
-          .tab-button.active {
-            color: var(--vscode-button-foreground);
-            border-bottom-color: var(--vscode-button-background);
-            background-color: var(--vscode-input-background);
-          }
-
-          .tab-content {
-            position: relative;
-          }
-
-          .tab-pane {
-            display: none;
-          }
-
-          .tab-pane.active {
-            display: block;
-          }
-
-          .section {
-            margin-bottom: 24px;
-          }
-
-          .section-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 12px;
-            padding: 8px 0;
-            border-bottom: 1px solid var(--vscode-widget-border);
-          }
-
-          .section-title {
-            font-size: 14px;
-            font-weight: 600;
-            color: var(--vscode-foreground);
-            margin: 0;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-          }
-
-          .command-count {
-            font-size: 11px;
-            color: var(--vscode-descriptionForeground);
-            background-color: var(--vscode-badge-background);
-            color: var(--vscode-badge-foreground);
-            padding: 2px 6px;
-            border-radius: 10px;
-            min-width: 16px;
-            text-align: center;
-          }
-
-          .add-button {
-            background-color: var(--vscode-button-background);
-            color: var(--vscode-button-foreground);
-            border: none;
-            border-radius: 2px;
-            padding: 4px 8px;
-            font-size: 11px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 4px;
-          }
-
-          .add-button:hover {
-            background-color: var(--vscode-button-hoverBackground);
-          }
-
-          .command-list {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-          }
-
-          .command-item {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 8px 12px;
-            background-color: var(--vscode-list-hoverBackground);
-            border: 1px solid var(--vscode-widget-border);
-            border-radius: 4px;
-            transition: all 0.15s ease;
-          }
-
-          .command-item:hover {
-            background-color: var(--vscode-list-activeSelectionBackground);
-            border-color: var(--vscode-focusBorder);
-          }
-
-          .command-info {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            gap: 2px;
-          }
-
-          .command-name {
-            font-weight: 500;
-            color: var(--vscode-foreground);
-            font-size: 13px;
-          }
-
-          .command-description {
-            font-size: 11px;
-            color: var(--vscode-descriptionForeground);
-            opacity: 0.9;
-          }
-
-          .command-actions {
-            display: flex;
-            gap: 4px;
-          }
-
-          .action-button {
-            background: none;
-            border: 1px solid var(--vscode-widget-border);
-            color: var(--vscode-foreground);
-            border-radius: 2px;
-            padding: 4px 6px;
-            font-size: 11px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            transition: all 0.15s ease;
-          }
-
-          .action-button:hover {
-            background-color: var(--vscode-toolbar-hoverBackground);
-            border-color: var(--vscode-focusBorder);
-          }
-
-          .no-commands {
-            text-align: center;
-            padding: 20px;
-            color: var(--vscode-descriptionForeground);
-            font-style: italic;
-            font-size: 12px;
-          }
-
-          .loading {
-            text-align: center;
-            padding: 20px;
-            color: var(--vscode-descriptionForeground);
-            font-style: italic;
-            font-size: 12px;
-          }
-
-          .add-form {
-            display: none;
-            flex-direction: column;
-            gap: 8px;
-            padding: 12px;
-            background-color: var(--vscode-editor-inactiveSelectionBackground);
-            border: 1px solid var(--vscode-widget-border);
-            border-radius: 4px;
-            margin-bottom: 12px;
-          }
-
-          .add-form.visible {
-            display: flex;
-          }
-
-          .form-input {
-            width: 100%;
-            padding: 6px 8px;
-            background-color: var(--vscode-input-background);
-            color: var(--vscode-input-foreground);
-            border: 1px solid var(--vscode-input-border);
-            border-radius: 2px;
-            font-size: var(--vscode-font-size);
-            font-family: var(--vscode-font-family);
-          }
-
-          .form-input:focus {
-            outline: 1px solid var(--vscode-focusBorder);
-            border-color: var(--vscode-focusBorder);
-          }
-
-          .form-buttons {
-            display: flex;
-            gap: 8px;
-            justify-content: flex-end;
-          }
-
-          .primary-button {
-            background-color: var(--vscode-button-background);
-            color: var(--vscode-button-foreground);
-            border: none;
-            border-radius: 2px;
-            padding: 6px 12px;
-            font-size: 12px;
-            cursor: pointer;
-          }
-
-          .primary-button:hover {
-            background-color: var(--vscode-button-hoverBackground);
-          }
-
-          .primary-button:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-          }
-
-          .secondary-button {
-            background: none;
-            border: 1px solid var(--vscode-widget-border);
-            color: var(--vscode-foreground);
-            border-radius: 2px;
-            padding: 6px 12px;
-            font-size: 12px;
-            cursor: pointer;
-          }
-
-          .secondary-button:hover {
-            background-color: var(--vscode-toolbar-hoverBackground);
-          }
-        </style>
       </head>
       <body>
-        <div id="app">
-          <!-- Tab Navigation -->
-          <div class="tab-navigation">
-            <button class="tab-button active" id="globalTab" data-tab="global">
-              Global
-            </button>
-            <button class="tab-button" id="projectTab" data-tab="project">
-              Project
-            </button>
-          </div>
-
-          <!-- Tab Content -->
-          <div class="tab-content">
-            <!-- Global Commands Tab -->
-            <div class="tab-pane active" id="globalPane">
-              <div class="section-header">
-                <h3 class="section-title">
-                  Global Commands
-                  <span class="command-count" id="globalCount">0</span>
-                </h3>
-                <button class="add-button" id="addGlobalBtn">
-                  Add Global
-                </button>
-              </div>
-              
-              <div class="add-form" id="globalAddForm">
-                <input type="text" class="form-input" id="globalCommandName" placeholder="Enter command name" />
-                <div class="form-buttons">
-                  <button class="primary-button" id="createGlobalBtn">Create</button>
-                  <button class="secondary-button" id="cancelGlobalBtn">Cancel</button>
-                </div>
-              </div>
-
-              <div class="command-list" id="globalCommands">
-                <div class="loading">Scanning for global commands...</div>
-              </div>
-            </div>
-
-            <!-- Project Commands Tab -->
-            <div class="tab-pane" id="projectPane">
-              <div class="section-header">
-                <h3 class="section-title">
-                  Project Commands
-                  <span class="command-count" id="projectCount">0</span>
-                </h3>
-                <button class="add-button" id="addProjectBtn">
-                  Add Project
-                </button>
-              </div>
-              
-              <div class="add-form" id="projectAddForm">
-                <input type="text" class="form-input" id="projectCommandName" placeholder="Enter command name" />
-                <div class="form-buttons">
-                  <button class="primary-button" id="createProjectBtn">Create</button>
-                  <button class="secondary-button" id="cancelProjectBtn">Cancel</button>
-                </div>
-              </div>
-
-              <div class="command-list" id="projectCommands">
-                <div class="loading">Scanning for project commands...</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <script nonce="${nonce}">
-          const vscode = acquireVsCodeApi();
-          let currentRootPath = '';
-
-          // Wait for DOM to load
-          document.addEventListener('DOMContentLoaded', () => {
-            setupEventListeners();
-            // Get initial root path from extension
-            vscode.postMessage({ type: 'scanCommands', rootPath: '' });
-          });
-
-          function setupEventListeners() {
-            // Tab switching listeners
-            document.getElementById('globalTab').addEventListener('click', () => switchTab('global'));
-            document.getElementById('projectTab').addEventListener('click', () => switchTab('project'));
-            
-            // Add button listeners
-            document.getElementById('addGlobalBtn').addEventListener('click', () => showAddForm('global'));
-            document.getElementById('addProjectBtn').addEventListener('click', () => showAddForm('project'));
-            
-            // Create button listeners
-            document.getElementById('createGlobalBtn').addEventListener('click', () => createCommand('global'));
-            document.getElementById('createProjectBtn').addEventListener('click', () => createCommand('project'));
-            
-            // Cancel button listeners
-            document.getElementById('cancelGlobalBtn').addEventListener('click', () => hideAddForm('global'));
-            document.getElementById('cancelProjectBtn').addEventListener('click', () => hideAddForm('project'));
-            
-            // Enter key listeners for input fields
-            document.getElementById('globalCommandName').addEventListener('keydown', (e) => {
-              if (e.key === 'Enter') createCommand('global');
+        <div id="root"></div>
+        <script src="${scriptUri}"></script>
+        <script>
+          if (document.readyState === "loading") {
+            document.addEventListener("DOMContentLoaded", () => {
+              if (window.renderCommandsApp) {
+                window.renderCommandsApp();
+              }
             });
-            document.getElementById('projectCommandName').addEventListener('keydown', (e) => {
-              if (e.key === 'Enter') createCommand('project');
-            });
-          }
-
-          // Listen for messages from extension
-          window.addEventListener('message', event => {
-            const message = event.data;
-            
-            switch (message.type) {
-              case 'commandScanResult':
-                updateCommandLists(message.globalCommands, message.projectCommands);
-                break;
-              case 'showAddForm':
-                showAddForm(message.section);
-                break;
-              case 'setRootPath':
-                currentRootPath = message.rootPath;
-                break;
+          } else {
+            if (window.renderCommandsApp) {
+              window.renderCommandsApp();
             }
-          });
-
-          function switchTab(tabName) {
-            // Remove active class from all tabs and panes
-            document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
-            document.querySelectorAll('.tab-pane').forEach(pane => pane.classList.remove('active'));
-            
-            // Add active class to selected tab and pane
-            document.getElementById(tabName + 'Tab').classList.add('active');
-            document.getElementById(tabName + 'Pane').classList.add('active');
-          }
-
-          function updateCommandLists(globalCommands, projectCommands) {
-            updateCommandList('globalCommands', 'globalCount', globalCommands);
-            updateCommandList('projectCommands', 'projectCount', projectCommands);
-          }
-
-          function updateCommandList(containerId, countId, commands) {
-            const container = document.getElementById(containerId);
-            const countElement = document.getElementById(countId);
-            
-            countElement.textContent = commands.length;
-            
-            if (commands.length === 0) {
-              container.innerHTML = '<div class="no-commands">No commands found</div>';
-              return;
-            }
-
-            container.innerHTML = commands.map(cmd => {
-              const cmdId = 'cmd_' + Math.random().toString(36).substring(2);
-              return '<div class="command-item" data-cmd-id="' + cmdId + '">' +
-                '<div class="command-info">' +
-                  '<div class="command-name">' + escapeHtml(cmd.name) + '</div>' +
-                  (cmd.description ? '<div class="command-description">' + escapeHtml(cmd.description) + '</div>' : '') +
-                '</div>' +
-                '<div class="command-actions">' +
-                  '<button class="action-button edit-btn" data-path="' + escapeHtml(cmd.path) + '">Edit</button>' +
-                  '<button class="action-button delete-btn" data-path="' + escapeHtml(cmd.path) + '">Delete</button>' +
-                '</div>' +
-              '</div>';
-            }).join('');
-
-            // Add event listeners to action buttons
-            container.querySelectorAll('.edit-btn').forEach(btn => {
-              btn.addEventListener('click', () => editCommand(btn.dataset.path));
-            });
-            container.querySelectorAll('.delete-btn').forEach(btn => {
-              btn.addEventListener('click', () => deleteCommand(btn.dataset.path));
-            });
-          }
-
-          function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-          }
-
-          function showAddForm(section) {
-            document.getElementById(section + 'AddForm').classList.add('visible');
-            document.getElementById(section + 'CommandName').focus();
-          }
-
-          function hideAddForm(section) {
-            document.getElementById(section + 'AddForm').classList.remove('visible');
-            document.getElementById(section + 'CommandName').value = '';
-          }
-
-          function createCommand(section) {
-            const input = document.getElementById(section + 'CommandName');
-            const name = input.value.trim();
-            
-            if (!name) return;
-
-            vscode.postMessage({
-              type: 'createCommand',
-              name: name,
-              isGlobal: section === 'global',
-              rootPath: currentRootPath
-            });
-
-            hideAddForm(section);
-          }
-
-          function editCommand(path) {
-            vscode.postMessage({ type: 'openFile', path: path });
-          }
-
-          function deleteCommand(path) {
-            vscode.postMessage({ type: 'deleteCommand', path: path });
           }
         </script>
       </body>
       </html>`;
-  }
-
-  private getNonce() {
-    let text = "";
-    const possible =
-      "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-    for (let i = 0; i < 32; i++) {
-      text += possible.charAt(Math.floor(Math.random() * possible.length));
-    }
-    return text;
   }
 }
