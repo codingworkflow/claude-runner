@@ -39,7 +39,7 @@
     "@typescript-eslint/consistent-type-definitions": ["error", "interface"],
     "@typescript-eslint/prefer-readonly": "warn"
   },
-  "ignorePatterns": ["out", "dist", "**/*.d.ts"],
+  "ignorePatterns": ["out", "dist", "**/*.d.ts", "docs/**"],
   "env": {
     "node": true,
     "es6": true
