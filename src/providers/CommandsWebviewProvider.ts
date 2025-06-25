@@ -429,7 +429,7 @@ export class CommandsWebviewProvider implements vscode.WebviewViewProvider {
                 <span class="command-count" id="globalCount">0</span>
               </h3>
               <button class="add-button" id="addGlobalBtn">
-                + Add Global
+                Add Global
               </button>
             </div>
             
@@ -454,7 +454,7 @@ export class CommandsWebviewProvider implements vscode.WebviewViewProvider {
                 <span class="command-count" id="projectCount">0</span>
               </h3>
               <button class="add-button" id="addProjectBtn">
-                + Add Project
+                Add Project
               </button>
             </div>
             

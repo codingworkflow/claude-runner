@@ -2,6 +2,7 @@
 import * as React from "react";
 import * as ReactDOM from "react-dom/client";
 import App, { initialState } from "../App";
+import UsageLogsApp from "../UsageLogsApp";
 import "../styles.css";
 
 // Setup global VS Code API
@@ -11,6 +12,7 @@ declare global {
       postMessage: (message: Record<string, unknown>) => void;
     };
     vscodeApi: { postMessage: (message: Record<string, unknown>) => void };
+    renderUsageLogsApp: () => void;
   }
 }
 
@@ -85,3 +87,24 @@ if (document.readyState === "loading") {
 } else {
   initializeApp();
 }
+
+// Function to render Usage & Logs app in separate panel
+window.renderUsageLogsApp = function () {
+  const container = document.getElementById("root");
+  if (!container) {
+    console.error("Root element not found");
+    return;
+  }
+
+  // Store vscode API reference if not already set
+  if (
+    typeof window.vscodeApi === "undefined" &&
+    typeof window.acquireVsCodeApi === "function"
+  ) {
+    window.vscodeApi = window.acquireVsCodeApi();
+  }
+
+  // Create React root and render Usage & Logs app
+  const usageLogsRoot = ReactDOM.createRoot(container);
+  usageLogsRoot.render(React.createElement(UsageLogsApp));
+};

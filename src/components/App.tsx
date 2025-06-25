@@ -1,8 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import ChatPanel from "./panels/ChatPanel";
 import PipelinePanel from "./panels/PipelinePanel";
-import UsageReportPanel from "./panels/UsageReportPanel";
-import LogsPanel from "./panels/LogsPanel";
 import ShellSelector from "./common/ShellSelector";
 import { useVSCodeAPI } from "./hooks/useVSCodeAPI";
 import { getModelIds } from "../models/ClaudeModels";
@@ -30,8 +28,7 @@ export interface AppProps {
   status: "stopped" | "running" | "starting" | "stopping";
 
   // UI state - all controlled by extension
-  activeTab: "chat" | "pipeline" | "usage" | "logs";
-  showAdvancedTabs: boolean;
+  activeTab: "chat" | "pipeline";
   outputFormat: "text" | "json";
   tasks: TaskItem[];
   currentTaskIndex?: number;
@@ -62,7 +59,6 @@ const App: React.FC<AppProps> = ({
   parallelTasksCount = 1,
   status,
   activeTab = "chat",
-  showAdvancedTabs = false,
   outputFormat = "json",
   tasks = [],
   currentTaskIndex,
@@ -196,24 +192,6 @@ const App: React.FC<AppProps> = ({
         >
           ⚡ Pipeline
         </button>
-        {(showAdvancedTabs ||
-          activeTab === "usage" ||
-          activeTab === "logs") && (
-          <>
-            <button
-              className={`tab-button ${activeTab === "usage" ? "active" : ""}`}
-              onClick={() => updateActiveTab("usage")}
-            >
-              📊 Usage
-            </button>
-            <button
-              className={`tab-button ${activeTab === "logs" ? "active" : ""}`}
-              onClick={() => updateActiveTab("logs")}
-            >
-              📋 Logs
-            </button>
-          </>
-        )}
       </div>
 
       {/* Tab Content */}
@@ -265,18 +243,6 @@ const App: React.FC<AppProps> = ({
             currentTaskIndex={currentTaskIndex}
           />
         )}
-
-        {activeTab === "usage" && (
-          <UsageReportPanel
-            disabled={status === "starting" || status === "stopping"}
-          />
-        )}
-
-        {activeTab === "logs" && (
-          <LogsPanel
-            disabled={status === "starting" || status === "stopping"}
-          />
-        )}
       </div>
     </div>
   );
@@ -290,7 +256,6 @@ export const initialState: AppProps = {
   parallelTasksCount: 1,
   status: "stopped",
   activeTab: "chat", // Default to chat
-  showAdvancedTabs: false,
   outputFormat: "json",
   tasks: [],
   currentTaskIndex: undefined,

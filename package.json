@@ -84,6 +84,16 @@
         "command": "claude-runner.addProjectCommand",
         "title": "Add Project Command",
         "icon": "$(add)"
+      },
+      {
+        "command": "claude-runner.refreshUsageReport",
+        "title": "Refresh Usage Report",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "claude-runner.refreshLogs",
+        "title": "Refresh Logs",
+        "icon": "$(refresh)"
       }
     ],
     "viewsContainers": {
@@ -110,6 +120,13 @@
           "name": "Commands",
           "icon": "$(symbol-keyword)",
           "contextualTitle": "Claude Commands Manager"
+        },
+        {
+          "type": "webview",
+          "id": "claude-runner.usageLogsView",
+          "name": "Usage & Logs",
+          "icon": "$(graph)",
+          "contextualTitle": "Usage Reports & Conversation Logs"
         }
       ]
     },
@@ -221,6 +238,16 @@
           "command": "claude-runner.addProjectCommand",
           "when": "view == claude-runner.commandsView",
           "group": "navigation@3"
+        },
+        {
+          "command": "claude-runner.refreshUsageReport",
+          "when": "view == claude-runner.usageLogsView",
+          "group": "navigation@1"
+        },
+        {
+          "command": "claude-runner.refreshLogs",
+          "when": "view == claude-runner.usageLogsView",
+          "group": "navigation@2"
         }
       ]
     }

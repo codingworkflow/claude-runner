@@ -1,17 +1,23 @@
 import * as vscode from "vscode";
 import { ClaudeRunnerPanel } from "./providers/ClaudeRunnerPanel";
 import { CommandsWebviewProvider } from "./providers/CommandsWebviewProvider";
+import { UsageLogsWebviewProvider } from "./providers/UsageLogsWebviewProvider";
 import { ClaudeCodeService } from "./services/ClaudeCodeService";
 import { TerminalService } from "./services/TerminalService";
 import { ConfigurationService } from "./services/ConfigurationService";
 import { ClaudeDetectionService } from "./services/ClaudeDetectionService";
+import { UsageReportService } from "./services/UsageReportService";
+import { LogsService } from "./services/LogsService";
 import { detectParallelTasksCount } from "./utils/detectParallelTasksCount";
 
 let claudeRunnerPanel: ClaudeRunnerPanel | undefined;
 let commandsWebviewProvider: CommandsWebviewProvider | undefined;
+let usageLogsWebviewProvider: UsageLogsWebviewProvider | undefined;
 let claudeCodeService: ClaudeCodeService;
 let terminalService: TerminalService;
 let configurationService: ConfigurationService;
+let usageReportService: UsageReportService;
+let logsService: LogsService;
 
 export async function activate(context: vscode.ExtensionContext) {
   // Clear ALL cached state to prevent corruption
@@ -36,6 +42,10 @@ export async function activate(context: vscode.ExtensionContext) {
     claudeCodeService = new ClaudeCodeService(configurationService);
     terminalService = new TerminalService(configurationService);
   }
+
+  // Initialize Usage and Logs services (these work without Claude)
+  usageReportService = new UsageReportService();
+  logsService = new LogsService();
 
   // Register commands (some will show error messages if Claude not installed)
   const commands = [
@@ -95,16 +105,12 @@ export async function activate(context: vscode.ExtensionContext) {
       // This command is registered to appear in package.json but actual logic is in the panel
     }),
 
-    vscode.commands.registerCommand("claude-runner.refreshCommands", () => {
-      commandsWebviewProvider?.scanCommands();
+    vscode.commands.registerCommand("claude-runner.refreshUsageReport", () => {
+      usageLogsWebviewProvider?.refreshUsageReport();
     }),
 
-    vscode.commands.registerCommand("claude-runner.addGlobalCommand", () => {
-      commandsWebviewProvider?.addGlobalCommand();
-    }),
-
-    vscode.commands.registerCommand("claude-runner.addProjectCommand", () => {
-      commandsWebviewProvider?.addProjectCommand();
+    vscode.commands.registerCommand("claude-runner.refreshLogs", () => {
+      usageLogsWebviewProvider?.refreshLogs();
     }),
   ];
 
@@ -138,6 +144,14 @@ export async function activate(context: vscode.ExtensionContext) {
     },
   );
 
+  // Create Usage & Logs webview provider
+  usageLogsWebviewProvider = new UsageLogsWebviewProvider(
+    context.extensionUri,
+    context,
+    usageReportService,
+    logsService,
+  );
+
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider(
       "claude-runner.mainView",
@@ -146,6 +160,11 @@ export async function activate(context: vscode.ExtensionContext) {
     vscode.window.registerWebviewViewProvider(
       CommandsWebviewProvider.viewType,
       commandsWebviewProvider,
+      { webviewOptions: { retainContextWhenHidden: true } },
+    ),
+    vscode.window.registerWebviewViewProvider(
+      UsageLogsWebviewProvider.viewType,
+      usageLogsWebviewProvider,
       { webviewOptions: { retainContextWhenHidden: true } },
     ),
   );
