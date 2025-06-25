@@ -184,13 +184,13 @@ const App: React.FC<AppProps> = ({
           className={`tab-button ${activeTab === "chat" ? "active" : ""}`}
           onClick={() => updateActiveTab("chat")}
         >
-          💬 Chat
+          Chat
         </button>
         <button
           className={`tab-button ${activeTab === "pipeline" ? "active" : ""}`}
           onClick={() => updateActiveTab("pipeline")}
         >
-          ⚡ Pipeline
+          Pipeline
         </button>
       </div>
 
@@ -216,7 +216,6 @@ const App: React.FC<AppProps> = ({
             onUpdateChatPrompt={updateChatPrompt}
             onUpdateShowChatPrompt={updateShowChatPrompt}
             onUpdateParallelTasksCount={updateParallelTasksCount}
-            onShowUsageAndLogs={() => updateActiveTab("usage")}
             disabled={status === "starting" || status === "stopping"}
           />
         )}

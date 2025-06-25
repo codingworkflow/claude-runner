@@ -13,13 +13,13 @@ const CommandsApp: React.FC = () => {
           className={`tab-button ${activeTab === "global" ? "active" : ""}`}
           onClick={() => setActiveTab("global")}
         >
-          🌐 Global
+          Global
         </button>
         <button
           className={`tab-button ${activeTab === "project" ? "active" : ""}`}
           onClick={() => setActiveTab("project")}
         >
-          📁 Project
+          Project
         </button>
       </div>
 

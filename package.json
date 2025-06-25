@@ -205,48 +205,13 @@
       ],
       "view/title": [
         {
-          "command": "claude-runner.runInteractive",
-          "when": "view == claude-runner.mainView",
-          "group": "navigation@1"
-        },
-        {
-          "command": "claude-runner.toggleAdvancedTabs",
-          "when": "view == claude-runner.mainView",
-          "group": "navigation@2"
-        },
-        {
           "command": "claude-runner.openSettings",
           "when": "view == claude-runner.mainView",
-          "group": "navigation@3"
+          "group": "navigation@1"
         },
         {
           "command": "claude-runner.openInEditor",
           "when": "view == claude-runner.mainView",
-          "group": "navigation@4"
-        },
-        {
-          "command": "claude-runner.refreshCommands",
-          "when": "view == claude-runner.commandsView",
-          "group": "navigation@1"
-        },
-        {
-          "command": "claude-runner.addGlobalCommand",
-          "when": "view == claude-runner.commandsView",
-          "group": "navigation@2"
-        },
-        {
-          "command": "claude-runner.addProjectCommand",
-          "when": "view == claude-runner.commandsView",
-          "group": "navigation@3"
-        },
-        {
-          "command": "claude-runner.refreshUsageReport",
-          "when": "view == claude-runner.usageLogsView",
-          "group": "navigation@1"
-        },
-        {
-          "command": "claude-runner.refreshLogs",
-          "when": "view == claude-runner.usageLogsView",
           "group": "navigation@2"
         }
       ]

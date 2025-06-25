@@ -217,6 +217,47 @@ export class CommandsWebviewProvider implements vscode.WebviewViewProvider {
             line-height: 1.4;
           }
 
+          /* Tab Navigation */
+          .tab-navigation {
+            display: flex;
+            border-bottom: 1px solid var(--vscode-widget-border);
+            margin-bottom: 16px;
+          }
+
+          .tab-button {
+            padding: 8px 16px;
+            background: transparent;
+            color: var(--vscode-foreground);
+            border: none;
+            border-bottom: 2px solid transparent;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-weight: 500;
+            font-size: 13px;
+          }
+
+          .tab-button:hover:not(.active) {
+            background-color: var(--vscode-list-hoverBackground);
+          }
+
+          .tab-button.active {
+            color: var(--vscode-button-foreground);
+            border-bottom-color: var(--vscode-button-background);
+            background-color: var(--vscode-input-background);
+          }
+
+          .tab-content {
+            position: relative;
+          }
+
+          .tab-pane {
+            display: none;
+          }
+
+          .tab-pane.active {
+            display: block;
+          }
+
           .section {
             margin-bottom: 24px;
           }
@@ -421,53 +462,66 @@ export class CommandsWebviewProvider implements vscode.WebviewViewProvider {
       </head>
       <body>
         <div id="app">
-          <!-- Global Commands Section -->
-          <div class="section">
-            <div class="section-header">
-              <h3 class="section-title">
-                Global Commands
-                <span class="command-count" id="globalCount">0</span>
-              </h3>
-              <button class="add-button" id="addGlobalBtn">
-                Add Global
-              </button>
-            </div>
-            
-            <div class="add-form" id="globalAddForm">
-              <input type="text" class="form-input" id="globalCommandName" placeholder="Enter command name" />
-              <div class="form-buttons">
-                <button class="primary-button" id="createGlobalBtn">Create</button>
-                <button class="secondary-button" id="cancelGlobalBtn">Cancel</button>
-              </div>
-            </div>
-
-            <div class="command-list" id="globalCommands">
-              <div class="loading">Scanning for global commands...</div>
-            </div>
+          <!-- Tab Navigation -->
+          <div class="tab-navigation">
+            <button class="tab-button active" id="globalTab" data-tab="global">
+              Global
+            </button>
+            <button class="tab-button" id="projectTab" data-tab="project">
+              Project
+            </button>
           </div>
 
-          <!-- Project Commands Section -->
-          <div class="section">
-            <div class="section-header">
-              <h3 class="section-title">
-                Project Commands
-                <span class="command-count" id="projectCount">0</span>
-              </h3>
-              <button class="add-button" id="addProjectBtn">
-                Add Project
-              </button>
-            </div>
-            
-            <div class="add-form" id="projectAddForm">
-              <input type="text" class="form-input" id="projectCommandName" placeholder="Enter command name" />
-              <div class="form-buttons">
-                <button class="primary-button" id="createProjectBtn">Create</button>
-                <button class="secondary-button" id="cancelProjectBtn">Cancel</button>
+          <!-- Tab Content -->
+          <div class="tab-content">
+            <!-- Global Commands Tab -->
+            <div class="tab-pane active" id="globalPane">
+              <div class="section-header">
+                <h3 class="section-title">
+                  Global Commands
+                  <span class="command-count" id="globalCount">0</span>
+                </h3>
+                <button class="add-button" id="addGlobalBtn">
+                  Add Global
+                </button>
+              </div>
+              
+              <div class="add-form" id="globalAddForm">
+                <input type="text" class="form-input" id="globalCommandName" placeholder="Enter command name" />
+                <div class="form-buttons">
+                  <button class="primary-button" id="createGlobalBtn">Create</button>
+                  <button class="secondary-button" id="cancelGlobalBtn">Cancel</button>
+                </div>
+              </div>
+
+              <div class="command-list" id="globalCommands">
+                <div class="loading">Scanning for global commands...</div>
               </div>
             </div>
 
-            <div class="command-list" id="projectCommands">
-              <div class="loading">Scanning for project commands...</div>
+            <!-- Project Commands Tab -->
+            <div class="tab-pane" id="projectPane">
+              <div class="section-header">
+                <h3 class="section-title">
+                  Project Commands
+                  <span class="command-count" id="projectCount">0</span>
+                </h3>
+                <button class="add-button" id="addProjectBtn">
+                  Add Project
+                </button>
+              </div>
+              
+              <div class="add-form" id="projectAddForm">
+                <input type="text" class="form-input" id="projectCommandName" placeholder="Enter command name" />
+                <div class="form-buttons">
+                  <button class="primary-button" id="createProjectBtn">Create</button>
+                  <button class="secondary-button" id="cancelProjectBtn">Cancel</button>
+                </div>
+              </div>
+
+              <div class="command-list" id="projectCommands">
+                <div class="loading">Scanning for project commands...</div>
+              </div>
             </div>
           </div>
         </div>
@@ -484,6 +538,10 @@ export class CommandsWebviewProvider implements vscode.WebviewViewProvider {
           });
 
           function setupEventListeners() {
+            // Tab switching listeners
+            document.getElementById('globalTab').addEventListener('click', () => switchTab('global'));
+            document.getElementById('projectTab').addEventListener('click', () => switchTab('project'));
+            
             // Add button listeners
             document.getElementById('addGlobalBtn').addEventListener('click', () => showAddForm('global'));
             document.getElementById('addProjectBtn').addEventListener('click', () => showAddForm('project'));
@@ -521,6 +579,16 @@ export class CommandsWebviewProvider implements vscode.WebviewViewProvider {
                 break;
             }
           });
+
+          function switchTab(tabName) {
+            // Remove active class from all tabs and panes
+            document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-pane').forEach(pane => pane.classList.remove('active'));
+            
+            // Add active class to selected tab and pane
+            document.getElementById(tabName + 'Tab').classList.add('active');
+            document.getElementById(tabName + 'Pane').classList.add('active');
+          }
 
           function updateCommandLists(globalCommands, projectCommands) {
             updateCommandList('globalCommands', 'globalCount', globalCommands);
@@ -598,9 +666,7 @@ export class CommandsWebviewProvider implements vscode.WebviewViewProvider {
           }
 
           function deleteCommand(path) {
-            if (confirm('Are you sure you want to delete this command?')) {
-              vscode.postMessage({ type: 'deleteCommand', path: path });
-            }
+            vscode.postMessage({ type: 'deleteCommand', path: path });
           }
         </script>
       </body>

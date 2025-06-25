@@ -26,7 +26,6 @@ interface ChatPanelProps {
   onUpdateChatPrompt: (prompt: string) => void;
   onUpdateShowChatPrompt: (show: boolean) => void;
   onUpdateParallelTasksCount: (value: number) => void;
-  onShowUsageAndLogs: () => void;
   disabled: boolean;
 }
 
@@ -49,7 +48,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
   onUpdateChatPrompt,
   onUpdateShowChatPrompt,
   onUpdateParallelTasksCount,
-  onShowUsageAndLogs,
   disabled,
 }) => {
   const handleStartChat = () => {
@@ -155,22 +153,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
         onUpdateParallelTasksCount={onUpdateParallelTasksCount}
         disabled={disabled}
       />
-
-      {/* Usage & Logs Access */}
-      <Card title="Usage & Logs">
-        <div className="space-y-3">
-          <p className="text-sm opacity-80">
-            View usage reports and logs for your Claude sessions.
-          </p>
-          <Button
-            variant="secondary"
-            onClick={onShowUsageAndLogs}
-            disabled={disabled}
-          >
-            Show Usage & Logs
-          </Button>
-        </div>
-      </Card>
     </>
   );
 };
