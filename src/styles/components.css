@@ -1,0 +1,285 @@
+/* VSCode Native Button Styles - Minimal Override */
+button {
+  font-family: var(--vscode-font-family);
+  font-size: var(--vscode-font-size);
+  border: none;
+  border-radius: 2px;
+  cursor: pointer;
+  padding: 4px 10px;
+  background-color: var(--vscode-button-background);
+  color: var(--vscode-button-foreground);
+  min-height: 22px;
+  line-height: 1;
+}
+
+button:hover:not(:disabled) {
+  background-color: var(--vscode-button-hoverBackground);
+}
+
+button:focus {
+  outline: 1px solid var(--vscode-focusBorder);
+  outline-offset: -1px;
+}
+
+button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Button Variants */
+button.secondary {
+  background-color: var(--vscode-button-secondaryBackground);
+  color: var(--vscode-button-secondaryForeground);
+}
+
+button.secondary:hover:not(:disabled) {
+  background-color: var(--vscode-button-secondaryHoverBackground);
+}
+
+/* Inputs - VSCode Native */
+input[type="text"],
+input[type="number"],
+textarea,
+select {
+  font-family: var(--vscode-font-family);
+  font-size: var(--vscode-font-size);
+  padding: 4px 6px;
+  background-color: var(--vscode-input-background);
+  color: var(--vscode-input-foreground);
+  border: 1px solid var(--vscode-input-border);
+  border-radius: 2px;
+  min-height: 22px;
+}
+
+input[type="text"]:focus,
+input[type="number"]:focus,
+textarea:focus,
+select:focus {
+  outline: 1px solid var(--vscode-focusBorder);
+  outline-offset: -1px;
+}
+
+/* Form groups - minimal */
+.form-group {
+  margin-bottom: 8px;
+}
+
+.form-label {
+  display: block;
+  margin-bottom: 2px;
+  font-size: 0.9em;
+  color: var(--vscode-foreground);
+}
+
+/* Toggle switch - simplified */
+.toggle-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.toggle-switch {
+  position: relative;
+  width: 28px;
+  height: 16px;
+  background-color: var(--vscode-input-background);
+  border: 1px solid var(--vscode-input-border);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.toggle-switch.checked {
+  background-color: var(--vscode-button-background);
+}
+
+.toggle-slider {
+  position: absolute;
+  top: 1px;
+  left: 1px;
+  width: 12px;
+  height: 12px;
+  background-color: var(--vscode-foreground);
+  border-radius: 50%;
+  transition: transform 0.2s ease;
+}
+
+.toggle-switch.checked .toggle-slider {
+  transform: translateX(12px);
+  background-color: var(--vscode-button-foreground);
+}
+
+/* Tab Navigation - VSCode native */
+.tab-navigation {
+  display: flex;
+  border-bottom: 1px solid var(--vscode-tab-border);
+  margin-bottom: 12px;
+}
+
+.tab-button {
+  padding: 6px 12px;
+  background: transparent;
+  color: var(--vscode-tab-inactiveForeground);
+  border: none;
+  cursor: pointer;
+  font-size: 0.9em;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+}
+
+.tab-button:hover:not(:disabled) {
+  color: var(--vscode-tab-activeForeground);
+}
+
+.tab-button.active {
+  color: var(--vscode-tab-activeForeground);
+  border-bottom-color: var(
+    --vscode-tab-activeBorder,
+    var(--vscode-focusBorder)
+  );
+}
+
+.tab-content {
+  margin-top: 8px;
+}
+
+/* Loading spinner */
+.loading-spinner {
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--vscode-input-border);
+  border-top-color: var(--vscode-button-background);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-right: 4px;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Card Component */
+.card {
+  margin-bottom: 12px;
+}
+
+.card-header {
+  margin-bottom: 8px;
+}
+
+.card-title {
+  font-size: 1em;
+  font-weight: 600;
+  margin: 0;
+  color: var(--vscode-foreground);
+}
+
+/* Chat Panel Specific */
+.chat-info {
+  margin-bottom: 8px;
+}
+
+.chat-info p {
+  margin: 0;
+  color: var(--vscode-descriptionForeground);
+  font-size: 0.9em;
+}
+
+.chat-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.prompt-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.prompt-textarea {
+  width: 100%;
+  min-height: 120px;
+  resize: vertical;
+  font-family: var(--vscode-font-family);
+  font-size: var(--vscode-font-size);
+  padding: 6px 8px;
+  background-color: var(--vscode-input-background);
+  color: var(--vscode-input-foreground);
+  border: 1px solid var(--vscode-input-border);
+  border-radius: 2px;
+}
+
+.prompt-textarea:focus {
+  outline: 1px solid var(--vscode-focusBorder);
+  outline-offset: -1px;
+}
+
+/* Size variants for buttons */
+button.sm {
+  padding: 2px 8px;
+  font-size: 0.9em;
+  min-height: 20px;
+}
+
+button.md {
+  padding: 4px 10px;
+  min-height: 22px;
+}
+
+/* Button layout consistency */
+.button-group {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+/* Path Selector */
+.path-selector {
+  margin-bottom: 8px;
+}
+
+.path-selector .browse-button {
+  white-space: nowrap;
+}
+
+/* Model Selector */
+.model-selector {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.model-selector label {
+  font-size: 0.9em;
+  color: var(--vscode-foreground);
+  min-width: 80px;
+}
+
+/* Input component */
+.input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.input-group.full-width {
+  width: 100%;
+  flex: 1;
+}
+
+.input-group label {
+  font-size: 0.9em;
+  color: var(--vscode-foreground);
+}
+
+.input-group input {
+  width: 100%;
+}
+
+.input-error {
+  font-size: 0.85em;
+  color: var(--vscode-errorForeground);
+  margin-top: 2px;
+}

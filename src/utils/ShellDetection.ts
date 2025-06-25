@@ -58,38 +58,36 @@ export class ShellDetection {
       }
     }
 
-    // Auto mode: try multiple shells in order of likelihood
+    // Auto mode: try multiple shells in parallel
     const shellsToTry = [
-      { name: "zsh", path: "/bin/zsh" }, // Most common on macOS
-      { name: "bash", path: "/bin/bash" }, // Common default
+      { name: "bash", path: "/bin/bash" }, // Common default on Linux
+      { name: "zsh", path: "/bin/zsh" }, // Common on macOS
       { name: "fish", path: "/usr/local/bin/fish" }, // Fish via Homebrew
       { name: "fish", path: "/opt/homebrew/bin/fish" }, // Fish via Apple Silicon Homebrew
       { name: "sh", path: "/bin/sh" }, // Fallback
     ];
 
-    for (const shell of shellsToTry) {
-      try {
-        const { stdout } = await execAsync(command, {
-          timeout,
-          env: process.env,
-          shell: shell.path,
-        });
+    const promises = shellsToTry.map((shell) =>
+      execAsync(command, {
+        timeout,
+        env: process.env,
+        shell: shell.path,
+      }).then((result) => ({
+        success: true,
+        output: result.stdout.trim(),
+        shellUsed: `${shell.name} (${shell.path})`,
+      })),
+    );
 
-        // Command succeeded with auto-detected shell
-        return {
-          success: true,
-          output: stdout.trim(),
-          shellUsed: `${shell.name} (${shell.path})`,
-        };
-      } catch (error) {
-        // Command failed with shell
-      }
+    try {
+      const result = await Promise.race(promises);
+      return result;
+    } catch (error) {
+      return {
+        success: false,
+        error: "Command failed with all available shells",
+      };
     }
-
-    return {
-      success: false,
-      error: "Command failed with all available shells",
-    };
   }
 
   /**
@@ -115,7 +113,7 @@ export class ShellDetection {
     return this.runCommand({
       command: "claude --version",
       preferredShell,
-      timeout: 5000,
+      timeout: 2000,
     });
   }
 }

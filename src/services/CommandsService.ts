@@ -23,7 +23,6 @@ export class CommandsService {
    * Set the root path for command scanning
    */
   setRootPath(rootPath: string): void {
-    console.log("CommandsService: setRootPath called with:", rootPath);
     this.rootPath = rootPath;
   }
 
@@ -50,16 +49,8 @@ export class CommandsService {
           ".claude",
           "commands",
         );
-        console.log(
-          "CommandsService: Scanning project commands in:",
-          projectCommandsPath,
-        );
         projectCommands.push(
           ...(await this.scanCommandsInDirectory(projectCommandsPath, true)),
-        );
-      } else {
-        console.log(
-          "CommandsService: No rootPath set, skipping project commands scan",
         );
       }
 
@@ -84,18 +75,14 @@ export class CommandsService {
     isProject: boolean,
   ): Promise<CommandFile[]> {
     try {
-      console.log(`Scanning commands directory: ${dirPath}`);
-
       // Check if directory exists
       try {
         await fs.access(dirPath);
       } catch {
-        console.log(`Directory does not exist: ${dirPath}`);
         return [];
       }
 
       const files = await fs.readdir(dirPath);
-      console.log(`Found files in ${dirPath}:`, files);
 
       const commands: CommandFile[] = [];
 
@@ -118,10 +105,6 @@ export class CommandsService {
             console.warn(`Could not read command file ${fullPath}:`, readError);
           }
 
-          console.log(
-            `Found command: ${name} at ${fullPath} with description: ${description}`,
-          );
-
           commands.push({
             name,
             path: fullPath,
@@ -131,7 +114,6 @@ export class CommandsService {
         }
       }
 
-      console.log(`Returning ${commands.length} commands from ${dirPath}`);
       return commands;
     } catch (error) {
       console.error(`Error scanning commands directory ${dirPath}:`, error);

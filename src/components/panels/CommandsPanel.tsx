@@ -1,92 +1,31 @@
 import React, { useState, useEffect } from "react";
 import Button from "../common/Button";
-
-interface CommandFile {
-  name: string;
-  path: string;
-  description?: string;
-  isProject: boolean;
-}
+import { useExtension } from "../../contexts/ExtensionContext";
+import { CommandFile } from "../../contexts/ExtensionContext";
 
 interface CommandsPanelProps {
-  rootPath: string;
   disabled: boolean;
 }
 
-const CommandsPanel: React.FC<CommandsPanelProps> = ({
-  rootPath,
-  disabled,
-}) => {
-  const [globalCommands, setGlobalCommands] = useState<CommandFile[]>([]);
-  const [projectCommands, setProjectCommands] = useState<CommandFile[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<"global" | "project">("global");
+const CommandsPanel: React.FC<CommandsPanelProps> = ({ disabled }) => {
+  const { state, actions } = useExtension();
+  const { commands } = state;
+  const { activeTab, globalCommands, projectCommands, loading, rootPath } =
+    commands;
+
   const [showAddForm, setShowAddForm] = useState(false);
   const [newCommandName, setNewCommandName] = useState("");
 
-  const loadCommands = async () => {
-    setLoading(true);
-    try {
-      // Send message to extension to scan for commands
-      if (window.vscodeApi) {
-        console.log(
-          "CommandsPanel: Sending scanCommands message with rootPath:",
-          rootPath,
-        );
-        window.vscodeApi.postMessage({
-          command: "scanCommands",
-          rootPath: rootPath,
-        });
-      } else {
-        console.error("CommandsPanel: window.vscodeApi not available");
-        setGlobalCommands([]);
-        setProjectCommands([]);
-        setLoading(false);
-      }
-    } catch (error) {
-      console.error("Failed to scan commands:", error);
-      // Fallback to empty arrays
-      setGlobalCommands([]);
-      setProjectCommands([]);
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    loadCommands();
-
-    // Listen for command scan results
-    const handleMessage = (event: MessageEvent) => {
-      const message = event.data;
-      console.log("CommandsPanel: Received message:", message);
-      if (message.type === "commandScanResult") {
-        console.log("CommandsPanel: Processing commandScanResult message");
-        console.log("CommandsPanel: Global commands:", message.globalCommands);
-        console.log(
-          "CommandsPanel: Project commands:",
-          message.projectCommands,
-        );
-        setGlobalCommands(message.globalCommands || []);
-        setProjectCommands(message.projectCommands || []);
-        setLoading(false);
-      }
-    };
-
-    window.addEventListener("message", handleMessage);
-    return () => window.removeEventListener("message", handleMessage);
+    actions.scanCommands(rootPath);
   }, [rootPath]);
 
   const handleRefresh = () => {
-    loadCommands();
+    actions.scanCommands(rootPath);
   };
 
   const handleEdit = (command: CommandFile) => {
-    if (window.vscodeApi) {
-      window.vscodeApi.postMessage({
-        command: "openFile",
-        path: command.path,
-      });
-    }
+    actions.openFile(command.path);
   };
 
   const handleAddCommand = () => {
@@ -95,24 +34,11 @@ const CommandsPanel: React.FC<CommandsPanelProps> = ({
     }
 
     const isGlobal = activeTab === "global";
-
-    if (window.vscodeApi) {
-      window.vscodeApi.postMessage({
-        command: "createCommand",
-        name: newCommandName.trim(),
-        isGlobal: isGlobal,
-        rootPath: rootPath,
-      });
-    }
+    actions.createCommand(newCommandName.trim(), isGlobal, rootPath);
 
     // Reset form
     setNewCommandName("");
     setShowAddForm(false);
-
-    // Refresh commands list
-    setTimeout(() => {
-      loadCommands();
-    }, 500);
   };
 
   const handleCancelAdd = () => {
@@ -121,17 +47,7 @@ const CommandsPanel: React.FC<CommandsPanelProps> = ({
   };
 
   const handleDeleteCommand = (command: CommandFile) => {
-    if (window.vscodeApi) {
-      window.vscodeApi.postMessage({
-        command: "deleteCommand",
-        path: command.path,
-      });
-
-      // Refresh commands list after a short delay to allow deletion to complete
-      setTimeout(() => {
-        loadCommands();
-      }, 1000);
-    }
+    actions.deleteCommand(command.path);
   };
 
   if (loading) {
@@ -163,14 +79,14 @@ const CommandsPanel: React.FC<CommandsPanelProps> = ({
       <div className="commands-tabs">
         <button
           className={`tab-button ${activeTab === "global" ? "active" : ""}`}
-          onClick={() => setActiveTab("global")}
+          onClick={() => actions.updateCommandsState({ activeTab: "global" })}
           disabled={disabled}
         >
           Global
         </button>
         <button
           className={`tab-button ${activeTab === "project" ? "active" : ""}`}
-          onClick={() => setActiveTab("project")}
+          onClick={() => actions.updateCommandsState({ activeTab: "project" })}
           disabled={disabled}
         >
           Project

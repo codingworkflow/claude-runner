@@ -131,8 +131,8 @@ export async function activate(context: vscode.ExtensionContext) {
     context.extensionUri,
     context,
     () =>
-      claudeRunnerPanel?.getCurrentRootPath() ||
-      getCurrentWorkspacePath() ||
+      claudeRunnerPanel?.getCurrentRootPath() ??
+      getCurrentWorkspacePath() ??
       "",
     (callback: (newPath: string) => void) => {
       // Subscribe to root path changes from the main panel's controller

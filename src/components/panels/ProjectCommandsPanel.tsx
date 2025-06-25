@@ -1,37 +1,51 @@
 import React, { useState } from "react";
 import Button from "../common/Button";
-
-interface CommandFile {
-  name: string;
-  path: string;
-  description?: string;
-  isProject: boolean;
-}
+import { useExtension, CommandFile } from "../../contexts/ExtensionContext";
 
 interface ProjectCommandsPanelProps {
   disabled: boolean;
-  commands: CommandFile[];
-  loading: boolean;
-  onRefresh: () => void;
-  onOpenFile: (path: string) => void;
-  onCreateCommand: (name: string) => void;
-  onDeleteCommand: (path: string) => void;
+  commands?: CommandFile[];
+  loading?: boolean;
+  onRefresh?: () => void;
+  onOpenFile?: (path: string) => void;
+  onCreateCommand?: (name: string) => void;
+  onDeleteCommand?: (path: string) => void;
 }
 
 const ProjectCommandsPanel: React.FC<ProjectCommandsPanelProps> = ({
   disabled,
-  commands,
-  loading,
+  commands: propCommands,
+  loading: propLoading,
   onRefresh,
   onOpenFile,
   onCreateCommand,
   onDeleteCommand,
 }) => {
+  const { state, actions } = useExtension();
+  const { commands: commandsState } = state;
+  const { projectCommands, loading: stateLoading, rootPath } = commandsState;
+
+  // Use props if provided, otherwise fallback to state
+  const commands = propCommands ?? projectCommands;
+  const loading = propLoading ?? stateLoading;
+
   const [showAddForm, setShowAddForm] = useState(false);
   const [newCommandName, setNewCommandName] = useState("");
 
+  const handleRefresh = () => {
+    if (onRefresh) {
+      onRefresh();
+    } else {
+      actions.scanCommands(rootPath);
+    }
+  };
+
   const handleEdit = (command: CommandFile) => {
-    onOpenFile(command.path);
+    if (onOpenFile) {
+      onOpenFile(command.path);
+    } else {
+      actions.openFile(command.path);
+    }
   };
 
   const handleAddCommand = () => {
@@ -39,7 +53,11 @@ const ProjectCommandsPanel: React.FC<ProjectCommandsPanelProps> = ({
       return;
     }
 
-    onCreateCommand(newCommandName.trim());
+    if (onCreateCommand) {
+      onCreateCommand(newCommandName.trim());
+    } else {
+      actions.createCommand(newCommandName.trim(), false, rootPath);
+    }
     setNewCommandName("");
     setShowAddForm(false);
   };
@@ -50,7 +68,11 @@ const ProjectCommandsPanel: React.FC<ProjectCommandsPanelProps> = ({
   };
 
   const handleDeleteCommand = (command: CommandFile) => {
-    onDeleteCommand(command.path);
+    if (onDeleteCommand) {
+      onDeleteCommand(command.path);
+    } else {
+      actions.deleteCommand(command.path);
+    }
   };
 
   if (loading) {
@@ -77,7 +99,7 @@ const ProjectCommandsPanel: React.FC<ProjectCommandsPanelProps> = ({
         <Button
           variant="secondary"
           size="sm"
-          onClick={onRefresh}
+          onClick={handleRefresh}
           disabled={disabled}
         >
           Refresh
@@ -161,4 +183,4 @@ const ProjectCommandsPanel: React.FC<ProjectCommandsPanelProps> = ({
   );
 };
 
-export default ProjectCommandsPanel;
+export default React.memo(ProjectCommandsPanel);

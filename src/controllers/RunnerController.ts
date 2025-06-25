@@ -139,10 +139,6 @@ export class RunnerController implements EventBus {
         void this.recheckClaude(cmd.shell);
         break;
       case "scanCommands":
-        console.log(
-          "RunnerController: Received scanCommands command with rootPath:",
-          cmd.rootPath,
-        );
         void this.scanCommands(cmd.rootPath);
         break;
       case "openFile":
@@ -768,26 +764,13 @@ export class RunnerController implements EventBus {
 
   private async scanCommands(rootPath: string): Promise<void> {
     try {
-      console.log(
-        "RunnerController.scanCommands: Starting scan with rootPath:",
-        rootPath,
-      );
-
       // Update commands service with current root path
       this.commandsService.setRootPath(rootPath);
 
       // Scan commands using the service
-      console.log(
-        "RunnerController.scanCommands: Calling service.scanCommands()",
-      );
       const result = await this.commandsService.scanCommands();
 
-      console.log("RunnerController.scanCommands: Service returned:", result);
-
       // Send results back to webview
-      console.log(
-        "RunnerController.scanCommands: Calling callback with result",
-      );
       this.callbacks.onCommandScanResult?.(result);
     } catch (error) {
       console.error(
@@ -813,6 +796,7 @@ export class RunnerController implements EventBus {
     // Update commands service with current root path
     this.commandsService.setRootPath(rootPath);
     await this.commandsService.createCommand(name, isGlobal);
+    await this.scanCommands(rootPath);
   }
 
   private async deleteCommand(filePath: string): Promise<void> {
@@ -825,6 +809,8 @@ export class RunnerController implements EventBus {
 
     if (confirmed === "Delete") {
       await this.commandsService.deleteCommand(filePath);
+      const currentState = this.state$.value;
+      await this.scanCommands(currentState.rootPath);
     }
   }
 }

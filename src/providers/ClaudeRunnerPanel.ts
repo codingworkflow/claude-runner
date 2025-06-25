@@ -93,13 +93,15 @@ export class ClaudeRunnerPanel implements vscode.WebviewViewProvider {
     webviewView.webview.html = getWebviewHtml(
       webviewView.webview,
       this.context.extensionUri,
+      "main",
     );
 
     // Handle messages from the webview
     webviewView.webview.onDidReceiveMessage(
       async (message) => {
         try {
-          const command = MessageRouter.fromLegacyMessage(message);
+          const messageRouter = new MessageRouter();
+          const command = messageRouter.fromLegacyMessage(message);
           this.controller.send(command);
         } catch (error) {
           console.error("[ClaudeRunner] Unhandled message error:", error);
@@ -152,13 +154,15 @@ export class ClaudeRunnerPanel implements vscode.WebviewViewProvider {
     webviewPanel.webview.html = getWebviewHtml(
       webviewPanel.webview,
       this.context.extensionUri,
+      "main",
     );
 
     // Handle messages from the webview
     webviewPanel.webview.onDidReceiveMessage(
       async (message) => {
         try {
-          const command = MessageRouter.fromLegacyMessage(message);
+          const messageRouter = new MessageRouter();
+          const command = messageRouter.fromLegacyMessage(message);
           this.controller.send(command);
         } catch (error) {
           console.error("[ClaudeRunner] Unhandled message error:", error);
@@ -264,18 +268,11 @@ export class ClaudeRunnerPanel implements vscode.WebviewViewProvider {
     globalCommands: CommandFile[];
     projectCommands: CommandFile[];
   }): void {
-    console.log(
-      "ClaudeRunnerPanel.handleCommandScanResult: Received data:",
-      data,
-    );
     this.postMessage({
       type: "commandScanResult",
       globalCommands: data.globalCommands,
       projectCommands: data.projectCommands,
     });
-    console.log(
-      "ClaudeRunnerPanel.handleCommandScanResult: Posted message to webview",
-    );
   }
 
   public toggleAdvancedTabs(): void {

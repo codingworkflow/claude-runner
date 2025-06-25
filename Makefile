@@ -1,4 +1,4 @@
-.PHONY: setup build build-vsix watch package clean test lint dev install-local install-devcontainer serve-vsix help validate dev-prepare dev-install uninstall-extension get-extension-id version-patch version-minor version-major sync-version sonar scan-secrets generate-icons prepare-marketplace
+.PHONY: setup build build-vsix watch package clean test lint dev install-local install-devcontainer help validate dev-prepare dev-install uninstall-extension get-extension-id version-patch version-minor version-major sync-version sonar scan-secrets generate-icons prepare-marketplace
 
 # Default target - show help
 help:
@@ -16,7 +16,6 @@ help:
 	@echo "  make validate      - Run tests and linting"
 	@echo "  make install-local - Build and install extension locally"
 	@echo "  make install-devcontainer - Install in devcontainer environment"
-	@echo "  make serve-vsix    - Serve VSIX file via HTTP for download"
 	@echo "  make dev-prepare   - Step 1: Uninstall extension and build VSIX"
 	@echo "  make dev-install   - Step 2: Install extension only (manual reload required)"
 	@echo ""
@@ -50,7 +49,7 @@ build:
 	@echo "✅ Extension compiled successfully"
 
 # Build and package the VSIX file
-build-vsix: clean build
+build-vsix: clean
 	@echo "🔨 Building Claude Runner VS Code Extension..."
 	@echo "============================================"
 	@echo ""
@@ -159,29 +158,13 @@ install-devcontainer: build-vsix
 		echo "  3. Navigate to /workspaces/vsix/claude-runner/dist/"; \
 		echo "  4. Select: claude-runner-$$(node -p "require('./package.json').version").vsix"; \
 		echo ""; \
-		echo "Option 2: Download via web server"; \
-		echo "  Run: make serve-vsix"; \
-		echo "  Then download from the provided URL"; \
-		echo ""; \
-		echo "Option 3: Copy to host and install"; \
+		echo "Option 2: Copy to host and install"; \
 		echo "  Use VS Code's Explorer to download the VSIX file"; \
 		echo "  Then install it in your local VS Code"; \
 	else \
 		echo "❌ Not in a devcontainer environment"; \
 		echo "Use 'make install-local' instead"; \
 	fi
-
-# Serve VSIX file via HTTP for easy download
-serve-vsix: build-vsix
-	@echo "🌐 Starting HTTP server to serve VSIX file..."
-	@echo ""
-	@echo "📦 VSIX file available at:"
-	@echo "   http://localhost:8080/claude-runner-$$(node -p "require('./package.json').version").vsix"
-	@echo ""
-	@echo "🔗 If running in devcontainer/Codespaces, use the forwarded port URL"
-	@echo ""
-	@echo "Press Ctrl+C to stop the server"
-	@cd dist && python3 -m http.server 8080 || python -m SimpleHTTPServer 8080
 
 # Get extension ID for uninstall
 get-extension-id:
@@ -203,12 +186,7 @@ uninstall-extension:
 	code --uninstall-extension $$EXTENSION_ID 2>/dev/null || echo "⚠️  Extension not currently installed"
 
 # Development step 1: uninstall and build
-dev-prepare: 
-	@echo "🛠️  Development Step 1: Prepare new build..."
-	@echo "==========================================="
-	@$(MAKE) -s uninstall-extension
-	@echo ""
-	@$(MAKE) -s build-vsix
+dev-prepare: uninstall-extension build-vsix
 	@echo ""
 	@echo "✅ Extension uninstalled and VSIX built."
 	@echo "📝 Next step: Run 'make dev-install' to install the new version"
@@ -268,20 +246,6 @@ version-major:
 
 # SonarQube Analysis
 sonar:
-	@echo "🔍 Running SonarQube analysis..."
-	@if [ ! -f .sonar ]; then \
-		echo "❌ Error: .sonar configuration file not found"; \
-		echo ""; \
-		echo "Please create .sonar file with the following format:"; \
-		echo "SONAR_HOST_URL=https://sonarqube.114.be.tn"; \
-		echo "SONAR_LOGIN=your-sonar-token"; \
-		echo ""; \
-		echo "Example:"; \
-		echo "  echo 'SONAR_HOST_URL=https://sonarqube.114.be.tn' > .sonar"; \
-		echo "  echo 'SONAR_LOGIN=your-token-here' >> .sonar"; \
-		echo ""; \
-		exit 1; \
-	fi
 	@echo "📋 Loading SonarQube configuration..."
 	@export $$(cat .sonar | xargs) && \
 	sonar-scanner \
@@ -297,12 +261,6 @@ scan-secrets:
 	@echo "🔍 Scanning for secrets in codebase..."
 	@node scripts/scan-secrets.js --all
 	@echo "✅ Secrets scan completed"
-
-# Generate Extension Icons
-generate-icons:
-	@echo "🎨 Generating VSCode extension icons..."
-	@node scripts/generate-icons.js
-	@echo "✅ Icons generated successfully"
 
 # Prepare Marketplace Assets
 prepare-marketplace:

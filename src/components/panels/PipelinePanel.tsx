@@ -1,77 +1,39 @@
 import React, { useState } from "react";
-import Button from "../common/Button";
 import PathSelector from "../common/PathSelector";
 import { getModelIds, DEFAULT_MODEL } from "../../models/ClaudeModels";
-
-interface TaskItem {
-  id: string;
-  name?: string;
-  prompt: string;
-  resumePrevious: boolean;
-  status: "pending" | "running" | "completed" | "error";
-  results?: string;
-  sessionId?: string;
-  model?: string;
-  dependsOn?: string[];
-  continueFrom?: string | null;
-}
+import { useExtension } from "../../contexts/ExtensionContext";
+import { TaskItem } from "../../services/ClaudeCodeService";
+import TaskList from "../pipeline/TaskList";
+import PipelineControls from "../pipeline/PipelineControls";
+import ProgressTracker from "../pipeline/ProgressTracker";
+import PipelineDialog from "../pipeline/PipelineDialog";
 
 interface PipelinePanelProps {
-  onRunTasks: (tasks: TaskItem[], outputFormat: "text" | "json") => void;
-  onCancelTasks: () => void;
-  onSavePipeline?: (
-    name: string,
-    description: string,
-    tasks: TaskItem[],
-  ) => void;
-  onLoadPipeline?: (name: string) => void;
-  onPipelineAddTask: (newTask: TaskItem) => void;
-  onPipelineRemoveTask: (taskId: string) => void;
-  onPipelineUpdateTaskField: (
-    taskId: string,
-    field: keyof TaskItem,
-    value: unknown,
-  ) => void;
-  availablePipelines?: string[];
-  availableModels?: string[];
-  defaultModel?: string;
-  rootPath: string;
-  outputFormat: "text" | "json";
-  onOutputFormatChange?: (format: "text" | "json") => void;
-  onUpdateRootPath: (path: string) => void;
-  tasks?: TaskItem[];
   disabled: boolean;
-  isTasksRunning: boolean;
-  currentTaskIndex?: number;
 }
 
-const PipelinePanel: React.FC<PipelinePanelProps> = ({
-  onRunTasks,
-  onCancelTasks,
-  onSavePipeline,
-  onLoadPipeline,
-  onPipelineAddTask,
-  onPipelineRemoveTask,
-  onPipelineUpdateTaskField,
-  availablePipelines = [],
-  availableModels = getModelIds(),
-  defaultModel = DEFAULT_MODEL,
-  rootPath,
-  outputFormat,
-  onOutputFormatChange: _onOutputFormatChange,
-  onUpdateRootPath,
-  tasks = [],
-  disabled,
-  isTasksRunning,
-  currentTaskIndex,
-}) => {
+const PipelinePanel: React.FC<PipelinePanelProps> = ({ disabled }) => {
+  const { state, actions } = useExtension();
+  const { main } = state;
+  const {
+    tasks = [],
+    rootPath,
+    outputFormat,
+    availablePipelines = [],
+    availableModels = getModelIds(),
+    model: defaultModel = DEFAULT_MODEL,
+    status,
+    currentTaskIndex,
+  } = main;
+
+  const isTasksRunning = status === "running";
+
   const [showPipelineDialog, setShowPipelineDialog] = useState(false);
   const [pipelineName, setPipelineName] = useState("");
   const [pipelineDescription, setPipelineDescription] = useState("");
   const [selectedPipeline, setSelectedPipeline] = useState("");
 
   const addTask = () => {
-    // Generate a unique task number based on existing task names
     const existingNumbers = tasks
       .map((t) => {
         const match = t.name?.match(/^Task (\d+)$/);
@@ -92,13 +54,13 @@ const PipelinePanel: React.FC<PipelinePanelProps> = ({
       status: "pending" as const,
       model: defaultModel,
     };
-    onPipelineAddTask(newTask);
+    actions.pipelineAddTask(newTask);
   };
 
   const handleSavePipeline = () => {
-    if (pipelineName.trim() && onSavePipeline) {
+    if (pipelineName.trim()) {
       const validTasks = tasks.filter((task) => task.prompt.trim());
-      onSavePipeline(
+      actions.savePipeline(
         pipelineName.trim(),
         pipelineDescription.trim(),
         validTasks,
@@ -110,15 +72,15 @@ const PipelinePanel: React.FC<PipelinePanelProps> = ({
   };
 
   const handleLoadPipeline = () => {
-    if (selectedPipeline && onLoadPipeline) {
-      onLoadPipeline(selectedPipeline);
+    if (selectedPipeline) {
+      actions.loadPipeline(selectedPipeline);
       setSelectedPipeline("");
     }
   };
 
   const removeTask = (taskId: string) => {
     if (tasks.length > 1) {
-      onPipelineRemoveTask(taskId);
+      actions.pipelineRemoveTask(taskId);
     }
   };
 
@@ -127,13 +89,13 @@ const PipelinePanel: React.FC<PipelinePanelProps> = ({
     field: keyof TaskItem,
     value: string | boolean,
   ) => {
-    onPipelineUpdateTaskField(taskId, field, value);
+    actions.pipelineUpdateTaskField(taskId, field, value);
   };
 
   const handleRunTasks = () => {
     const validTasks = tasks.filter((task) => task.prompt.trim());
     if (validTasks.length > 0) {
-      onRunTasks(validTasks, outputFormat);
+      actions.runTasks(validTasks, outputFormat);
     }
   };
 
@@ -141,270 +103,54 @@ const PipelinePanel: React.FC<PipelinePanelProps> = ({
     tasks.some((task) => task.prompt.trim()) && !isTasksRunning;
 
   return (
-    <div className="space-y-4">
-      {/* Root Path */}
+    <div className="pipeline-panel">
       <PathSelector
         rootPath={rootPath}
-        onUpdateRootPath={onUpdateRootPath}
+        onUpdateRootPath={actions.updateRootPath}
         disabled={isTasksRunning}
       />
 
-      {/* Pipeline Tasks */}
-      <div className="tasks-container">
-        {tasks.map((task, index) => (
-          <div key={task.id} className="task-item">
-            <div className="task-header">
-              <input
-                type="text"
-                key={`${task.id}-name`}
-                defaultValue={task.name ?? ""}
-                onBlur={(e) => updateTask(task.id, "name", e.target.value)}
-                className="task-name-input"
-                placeholder={`Task ${index + 1}`}
-                disabled={isTasksRunning}
-              />
-              {tasks.length > 1 && (
-                <Button
-                  variant="error"
-                  size="sm"
-                  onClick={() => removeTask(task.id)}
-                  disabled={isTasksRunning}
-                >
-                  Remove
-                </Button>
-              )}
-            </div>
+      <TaskList
+        tasks={tasks}
+        isTasksRunning={isTasksRunning}
+        defaultModel={defaultModel}
+        availableModels={availableModels}
+        updateTask={updateTask}
+        removeTask={removeTask}
+      />
 
-            <div className="task-model-group">
-              <label>Model:</label>
-              <select
-                value={task.model ?? defaultModel}
-                onChange={(e) => updateTask(task.id, "model", e.target.value)}
-                disabled={isTasksRunning}
-                className="model-select"
-              >
-                {availableModels.map((model) => (
-                  <option key={model} value={model}>
-                    {model}
-                  </option>
-                ))}
-              </select>
-            </div>
+      <PipelineControls
+        isTasksRunning={isTasksRunning}
+        canRunTasks={canRunTasks}
+        disabled={disabled}
+        addTask={addTask}
+        cancelTask={actions.cancelTask}
+        handleRunTasks={handleRunTasks}
+        setShowPipelineDialog={setShowPipelineDialog}
+        availablePipelines={availablePipelines}
+        selectedPipeline={selectedPipeline}
+        setSelectedPipeline={setSelectedPipeline}
+        handleLoadPipeline={handleLoadPipeline}
+      />
 
-            <div className="input-group">
-              <textarea
-                key={task.id}
-                defaultValue={task.prompt}
-                onBlur={(e) => updateTask(task.id, "prompt", e.target.value)}
-                placeholder="Enter your task or prompt for Claude..."
-                rows={3}
-                className="task-textarea"
-                disabled={isTasksRunning}
-              />
-            </div>
-
-            {index > 0 && (
-              <div className="checkbox-group">
-                <label>
-                  <input
-                    type="checkbox"
-                    checked={!!task.resumePrevious}
-                    onChange={(e) =>
-                      updateTask(task.id, "resumePrevious", e.target.checked)
-                    }
-                    disabled={isTasksRunning}
-                  />
-                  Resume previous session
-                </label>
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
-
-      <div className="task-controls">
-        <div className="control-buttons">
-          <Button
-            variant="secondary"
-            onClick={addTask}
-            disabled={isTasksRunning}
-          >
-            Add Task
-          </Button>
-
-          {isTasksRunning ? (
-            <Button variant="error" onClick={onCancelTasks} disabled={disabled}>
-              Cancel Pipeline
-            </Button>
-          ) : (
-            <Button
-              variant="primary"
-              onClick={handleRunTasks}
-              disabled={disabled || !canRunTasks}
-            >
-              Run Pipeline
-            </Button>
-          )}
-        </div>
-
-        {!isTasksRunning && (
-          <div className="save-pipeline-controls" style={{ marginTop: "24px" }}>
-            <Button
-              variant="secondary"
-              onClick={() => setShowPipelineDialog(true)}
-              disabled={disabled || !canRunTasks}
-            >
-              Save as Pipeline
-            </Button>
-          </div>
-        )}
-
-        {availablePipelines.length > 0 && !isTasksRunning && (
-          <div className="pipeline-controls">
-            <select
-              value={selectedPipeline}
-              onChange={(e) => setSelectedPipeline(e.target.value)}
-              className="pipeline-select"
-            >
-              <option value="">Select a pipeline...</option>
-              {availablePipelines.map((pipeline) => (
-                <option key={pipeline} value={pipeline}>
-                  {pipeline}
-                </option>
-              ))}
-            </select>
-            <Button
-              variant="secondary"
-              onClick={handleLoadPipeline}
-              disabled={!selectedPipeline}
-            >
-              Load Pipeline
-            </Button>
-          </div>
-        )}
-      </div>
-
-      {showPipelineDialog && (
-        <div className="pipeline-dialog-overlay">
-          <div className="pipeline-dialog">
-            <h3>Save Pipeline</h3>
-            <div className="dialog-content">
-              <div className="input-group">
-                <label>Pipeline Name:</label>
-                <input
-                  type="text"
-                  value={pipelineName}
-                  onChange={(e) => setPipelineName(e.target.value)}
-                  placeholder="e.g., tests, build-and-deploy"
-                  className="pipeline-name-input"
-                />
-              </div>
-              <div className="input-group">
-                <label>Description:</label>
-                <textarea
-                  value={pipelineDescription}
-                  onChange={(e) => setPipelineDescription(e.target.value)}
-                  placeholder="Describe what this pipeline does..."
-                  rows={3}
-                  className="pipeline-description-input"
-                />
-              </div>
-            </div>
-            <div className="dialog-actions">
-              <Button
-                variant="secondary"
-                onClick={() => {
-                  setShowPipelineDialog(false);
-                  setPipelineName("");
-                  setPipelineDescription("");
-                }}
-              >
-                Cancel
-              </Button>
-              <Button
-                variant="primary"
-                onClick={handleSavePipeline}
-                disabled={!pipelineName.trim()}
-              >
-                Save Pipeline
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+      <PipelineDialog
+        showPipelineDialog={showPipelineDialog}
+        pipelineName={pipelineName}
+        setPipelineName={setPipelineName}
+        pipelineDescription={pipelineDescription}
+        setPipelineDescription={setPipelineDescription}
+        handleSavePipeline={handleSavePipeline}
+        setShowPipelineDialog={setShowPipelineDialog}
+      />
 
       {(isTasksRunning ||
         tasks.some((t) => t.status === "completed" || t.status === "error")) &&
         tasks.some((t) => t.prompt.trim().length > 0) && (
-          <div className="pipeline-progress">
-            <h4>Pipeline Progress</h4>
-            {tasks.map((task, index) => {
-              const isCurrentTask = currentTaskIndex === index;
-              const hasContent = task.prompt.trim().length > 0;
-
-              if (!hasContent) {
-                return null;
-              }
-
-              return (
-                <div
-                  key={`progress-${task.id}`}
-                  className={`progress-task ${isCurrentTask ? "current" : ""}`}
-                >
-                  <div className="progress-header">
-                    <h5>
-                      {(task.name ?? task.name === "")
-                        ? task.name
-                        : `Task ${index + 1}`}
-                    </h5>
-                    <div className="progress-status">
-                      {task.status === "pending" && !isCurrentTask && (
-                        <span className="status-badge status-pending">
-                          ⏸️ Pending
-                        </span>
-                      )}
-                      {(task.status === "running" ||
-                        (isCurrentTask && isTasksRunning)) && (
-                        <span className="status-badge status-running">
-                          ⏳ Running...
-                        </span>
-                      )}
-                      {task.status === "completed" && (
-                        <span className="status-badge status-completed">
-                          ✅ Completed
-                        </span>
-                      )}
-                      {task.status === "error" && (
-                        <span className="status-badge status-error">
-                          ❌ Failed
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="progress-prompt">
-                    <span className="prompt-preview">
-                      {task.prompt.substring(0, 100)}
-                      {task.prompt.length > 100 ? "..." : ""}
-                    </span>
-                  </div>
-
-                  {task.results &&
-                    (task.status === "completed" ||
-                      task.status === "error") && (
-                      <div className="progress-results">
-                        <div className="results-header">
-                          <h6>Output:</h6>
-                        </div>
-                        <div className="results-container">
-                          <pre className="results-text">{task.results}</pre>
-                        </div>
-                      </div>
-                    )}
-                </div>
-              );
-            })}
-          </div>
+          <ProgressTracker
+            tasks={tasks}
+            isTasksRunning={isTasksRunning}
+            currentTaskIndex={currentTaskIndex}
+          />
         )}
     </div>
   );

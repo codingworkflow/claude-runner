@@ -1,109 +1,46 @@
-import React, { useState, useEffect, useRef } from "react";
-import { useVSCodeAPI } from "../hooks/useVSCodeAPI";
-
-interface ProjectInfo {
-  name: string;
-  path: string;
-  conversationCount: number;
-  lastModified: string;
-}
-
-interface ConversationInfo {
-  id: string;
-  sessionId: string;
-  fileName: string;
-  firstTimestamp: string;
-  lastTimestamp: string;
-  messageCount: number;
-  summary?: string;
-  filePath: string;
-}
-
-interface UsageInfo {
-  input_tokens: number;
-  cache_creation_input_tokens?: number;
-  cache_read_input_tokens?: number;
-  output_tokens: number;
-  service_tier?: string;
-}
-
-interface ContentItem {
-  type: string;
-  text?: string;
-  id?: string;
-  name?: string;
-  input?: Record<string, unknown>;
-  tool_use_id?: string;
-  content?: string | Record<string, unknown>[];
-  is_error?: boolean;
-  thinking?: string;
-}
-
-interface TranscriptEntry {
-  type: "user" | "assistant" | "summary";
-  timestamp: string;
-  sessionId?: string;
-  uuid: string;
-  message?: {
-    role: "user" | "assistant";
-    content: string | ContentItem[];
-    model?: string;
-    usage?: UsageInfo;
-  };
-  summary?: string;
-  leafUuid?: string;
-}
-
-interface ConversationData {
-  info: ConversationInfo;
-  entries: TranscriptEntry[];
-}
+import React, { useEffect } from "react";
+import {
+  useExtension,
+  TranscriptEntry,
+  ContentItem,
+} from "../../contexts/ExtensionContext";
 
 interface LogsPanelProps {
   disabled?: boolean;
 }
 
 const LogsPanel: React.FC<LogsPanelProps> = ({ disabled = false }) => {
-  const [projects, setProjects] = useState<ProjectInfo[]>([]);
-  const [selectedProject, setSelectedProject] = useState<string>("");
-  const [conversations, setConversations] = useState<ConversationInfo[]>([]);
-  const [selectedConversation, setSelectedConversation] = useState<string>("");
-  const [conversationData, setConversationData] =
-    useState<ConversationData | null>(null);
-
-  const [projectsLoading, setProjectsLoading] = useState(false);
-  const [conversationsLoading, setConversationsLoading] = useState(false);
-  const [conversationLoading, setConversationLoading] = useState(false);
-
-  const [projectsError, setProjectsError] = useState<string | null>(null);
-  const [conversationsError, setConversationsError] = useState<string | null>(
-    null,
-  );
-  const [conversationError, setConversationError] = useState<string | null>(
-    null,
-  );
-
-  const timeoutRef = useRef<number | null>(null);
-
+  const { state, actions } = useExtension();
+  const { usage } = state;
   const {
-    requestLogProjects,
-    requestLogConversations,
-    requestLogConversation,
-  } = useVSCodeAPI();
+    projects,
+    selectedProject,
+    conversations,
+    selectedConversation,
+    conversationData,
+    projectsLoading,
+    conversationsLoading,
+    conversationLoading,
+    projectsError,
+    conversationsError,
+    conversationError,
+  } = usage;
 
   // Load projects on component mount
   useEffect(() => {
-    loadProjects();
+    actions.requestLogProjects();
   }, []);
 
   // Load conversations when project changes
   useEffect(() => {
     if (selectedProject) {
-      loadConversations(selectedProject);
+      actions.requestLogConversations(selectedProject);
     } else {
-      setConversations([]);
-      setSelectedConversation("");
-      setConversationData(null);
+      actions.updateUsageState({
+        conversations: [],
+        selectedConversation: "",
+        conversationData: null,
+      });
     }
   }, [selectedProject]);
 
@@ -114,105 +51,12 @@ const LogsPanel: React.FC<LogsPanelProps> = ({ disabled = false }) => {
         (c) => c.id === selectedConversation,
       );
       if (conversation) {
-        loadConversation(conversation.filePath);
+        actions.requestLogConversation(conversation.filePath);
       }
     } else {
-      setConversationData(null);
+      actions.updateUsageState({ conversationData: null });
     }
   }, [selectedConversation, conversations]);
-
-  // Listen for responses from extension
-  useEffect(() => {
-    const handleMessage = (event: MessageEvent) => {
-      const message = event.data;
-
-      if (message.command === "logProjectsData") {
-        clearTimeout();
-        setProjectsLoading(false);
-        setProjects(message.data || []);
-        setProjectsError(null);
-      } else if (message.command === "logProjectsError") {
-        clearTimeout();
-        setProjectsLoading(false);
-        setProjectsError(message.error || "Failed to load projects");
-        setProjects([]);
-      } else if (message.command === "logConversationsData") {
-        clearTimeout();
-        setConversationsLoading(false);
-        setConversations(message.data || []);
-        setConversationsError(null);
-      } else if (message.command === "logConversationsError") {
-        clearTimeout();
-        setConversationsLoading(false);
-        setConversationsError(message.error || "Failed to load conversations");
-        setConversations([]);
-      } else if (message.command === "logConversationData") {
-        clearTimeout();
-        setConversationLoading(false);
-        setConversationData(message.data);
-        setConversationError(null);
-      } else if (message.command === "logConversationError") {
-        clearTimeout();
-        setConversationLoading(false);
-        setConversationError(message.error || "Failed to load conversation");
-        setConversationData(null);
-      }
-    };
-
-    window.addEventListener("message", handleMessage);
-    return () => window.removeEventListener("message", handleMessage);
-  }, []);
-
-  const clearTimeout = () => {
-    if (timeoutRef.current) {
-      window.clearTimeout(timeoutRef.current);
-      timeoutRef.current = null;
-    }
-  };
-
-  const loadProjects = () => {
-    setProjectsLoading(true);
-    setProjectsError(null);
-    clearTimeout();
-
-    requestLogProjects();
-
-    // Add timeout
-    timeoutRef.current = window.setTimeout(() => {
-      setProjectsLoading(false);
-      setProjectsError("Request timed out. Please try again.");
-    }, 30000);
-  };
-
-  const loadConversations = (projectName: string) => {
-    setConversationsLoading(true);
-    setConversationsError(null);
-    setSelectedConversation("");
-    setConversationData(null);
-    clearTimeout();
-
-    requestLogConversations(projectName);
-
-    // Add timeout
-    timeoutRef.current = window.setTimeout(() => {
-      setConversationsLoading(false);
-      setConversationsError("Request timed out. Please try again.");
-    }, 30000);
-  };
-
-  const loadConversation = (filePath: string) => {
-    setConversationLoading(true);
-    setConversationError(null);
-    clearTimeout();
-
-    requestLogConversation(filePath);
-
-    // Add timeout
-    timeoutRef.current = window.setTimeout(() => {
-      setConversationLoading(false);
-      setConversationError("Request timed out. Please try again.");
-    }, 30000);
-  };
 
   const formatTimestamp = (timestamp: string): string => {
     try {
@@ -328,7 +172,9 @@ const LogsPanel: React.FC<LogsPanelProps> = ({ disabled = false }) => {
           <div className="conversation-view">
             <div className="conversation-header-bar">
               <button
-                onClick={() => setSelectedConversation("")}
+                onClick={() =>
+                  actions.updateUsageState({ selectedConversation: "" })
+                }
                 className="button secondary back-button"
               >
                 ← Back to Conversations
@@ -393,7 +239,9 @@ const LogsPanel: React.FC<LogsPanelProps> = ({ disabled = false }) => {
 
               <select
                 value={selectedProject}
-                onChange={(e) => setSelectedProject(e.target.value)}
+                onChange={(e) =>
+                  actions.updateUsageState({ selectedProject: e.target.value })
+                }
                 disabled={disabled || projectsLoading}
                 className="dropdown full-width"
               >
@@ -433,7 +281,11 @@ const LogsPanel: React.FC<LogsPanelProps> = ({ disabled = false }) => {
                       <div
                         key={conversation.id}
                         className="conversation-item"
-                        onClick={() => setSelectedConversation(conversation.id)}
+                        onClick={() =>
+                          actions.updateUsageState({
+                            selectedConversation: conversation.id,
+                          })
+                        }
                       >
                         <div className="conversation-header">
                           <span className="conversation-date">

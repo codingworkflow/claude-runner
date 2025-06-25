@@ -3,49 +3,49 @@
     {
       "id": "1",
       "content": "PHASE 1.1: Consolidate Three Apps Architecture\n- Target: Replace App.tsx, CommandsApp.tsx, UsageLogsApp.tsx with single unified app\n- Files: src/components/App.tsx, src/components/CommandsApp.tsx, src/components/UsageLogsApp.tsx, src/components/webview/main.ts\n- Specs: Create docs/refactor_unified_app.md with detailed architecture\n- Definition of Done: Single App component with view routing, no window.renderXApp functions\n- Validation: All three views accessible through single entry point, existing functionality preserved",
-      "status": "in_progress",
+      "status": "completed",
       "created_at": "2025-06-25T13:00:04.754440747Z",
-      "updated_at": "2025-06-25T13:00:04.754440747Z"
+      "updated_at": "2025-06-25T13:13:09.064760064Z"
     },
     {
       "id": "2",
       "content": "PHASE 1.2: Extract TabNavigation Component\n- Target: Eliminate 3x duplicate tab navigation patterns\n- Files: src/components/common/TabNavigation.tsx, src/components/App.tsx, src/components/CommandsApp.tsx, src/components/UsageLogsApp.tsx\n- Specs: Create generic TabNavigation\u003cT\u003e with type-safe tab handling\n- Definition of Done: Single reusable component, all three apps use it, no code duplication\n- Validation: Tab switching works identically across all views, TypeScript strict mode passes",
-      "status": "pending",
+      "status": "completed",
       "created_at": "2025-06-25T13:00:30.731538734Z",
-      "updated_at": "2025-06-25T13:00:30.731538734Z"
+      "updated_at": "2025-06-25T13:16:31.201675445Z"
     },
     {
       "id": "3",
       "content": "PHASE 2.1: Eliminate Props Drilling\n- Target: Replace 30+ AppProps with Context API\n- Files: src/components/App.tsx, src/contexts/ExtensionContext.tsx, src/components/panels/*.tsx\n- Specs: Create docs/refactor_state_management.md with context structure\n- Definition of Done: Components receive only needed props, max 5 props per component\n- Validation: All panels work with context, no unused props, state updates correctly",
-      "status": "pending",
+      "status": "completed",
       "created_at": "2025-06-25T13:00:38.45286985Z",
-      "updated_at": "2025-06-25T13:00:38.45286985Z"
+      "updated_at": "2025-06-25T13:16:31.201675445Z"
     },
     {
       "id": "4",
-      "content": "PHASE 2.2: Break Down PipelinePanel Monolith\n- Target: Split 373-line PipelinePanel into smaller components\n- Files: src/components/panels/PipelinePanel.tsx, src/components/pipeline/*.tsx\n- Specs: Create TaskList, PipelineControls, ProgressTracker, PipelineDialog components\n- Definition of Done: PipelinePanel \u003c 100 lines, 4 sub-components \u003c 80 lines each\n- Validation: All pipeline functionality preserved, components are unit testable",
-      "status": "pending",
+      "content": "PHASE 2.2: Break Down PipelinePanel Monolith - Target: Split 373-line PipelinePanel into smaller components - Files: src/components/panels/PipelinePanel.tsx, src/components/pipeline/*.tsx - Specs: Create TaskList, PipelineControls, ProgressTracker, PipelineDialog components - Definition of Done: PipelinePanel < 100 lines, 4 sub-components < 80 lines each - Validation: All pipeline functionality preserved, components are unit testable",
+      "status": "completed",
       "created_at": "2025-06-25T13:00:45.263030577Z",
       "updated_at": "2025-06-25T13:00:45.263030577Z"
     },
     {
       "id": "5",
       "content": "PHASE 3.1: Modularize Monolithic CSS\n- Target: Break down 3500+ line styles.css into modular files\n- Files: src/components/styles.css, src/styles/base.css, src/styles/components.css, src/styles/panels.css\n- Specs: Create docs/refactor_css_architecture.md with modular structure\n- Definition of Done: No file \u003e 500 lines, eliminate 60%+ duplicate selectors\n- Validation: All styles work, no visual regressions, CSS validates",
-      "status": "pending",
+      "status": "completed",
       "created_at": "2025-06-25T13:00:51.967030776Z",
       "updated_at": "2025-06-25T13:00:51.967030776Z"
     },
     {
       "id": "6",
-      "content": "PHASE 3.2: Fix MessageRouter Type Safety\n- Target: Replace any/unknown casting with proper TypeScript types\n- Files: src/components/webview/MessageRouter.ts, src/types/runner.ts\n- Specs: Use discriminated unions, eliminate 50+ case statements\n- Definition of Done: No any/unknown types, MessageRouter \u003c 100 lines\n- Validation: TypeScript strict mode passes, message handling works correctly",
-      "status": "pending",
+      "content": "PHASE 3.2: Fix MessageRouter Type Safety\n- Target: Replace any/unknown casting with proper TypeScript types\n- Files: src/components/webview/MessageRouter.ts, src/types/runner.ts\n- Specs: Use discriminated unions, eliminate 50+ case statements\n- Definition of Done: No any/unknown types, MessageRouter < 100 lines\n- Validation: TypeScript strict mode passes, message handling works correctly",
+      "status": "completed",
       "created_at": "2025-06-25T13:00:58.356325053Z",
       "updated_at": "2025-06-25T13:00:58.356325053Z"
     },
     {
       "id": "7",
       "content": "PHASE 3.3: Standardize VSCode API Access\n- Target: Eliminate direct window.vscodeApi access across components\n- Files: src/components/hooks/useVSCodeAPI.ts, src/components/common/PathSelector.tsx, all components with window access\n- Specs: All components use useVSCodeAPI hook, no direct window access\n- Definition of Done: grep 'window.vscodeApi' returns 0 results in components/\n- Validation: All VSCode functionality works, components are mockable for testing",
-      "status": "pending",
+      "status": "completed",
       "created_at": "2025-06-25T13:01:07.341238562Z",
       "updated_at": "2025-06-25T13:01:07.341238562Z"
     },
@@ -58,5 +58,5 @@
     }
   ],
   "created_at": "2025-06-25T13:00:04.753539791Z",
-  "updated_at": "2025-06-25T13:01:14.591763931Z"
+  "updated_at": "2025-06-25T13:16:31.201696069Z"
 }

@@ -3,77 +3,49 @@ import Button from "../common/Button";
 import PathSelector from "../common/PathSelector";
 import ModelSelector from "../common/ModelSelector";
 import Card from "../common/Card";
-import {
-  ClaudeWorkflow,
-  WorkflowMetadata,
-  ClaudeStep,
-  isClaudeStep,
-} from "../../types/WorkflowTypes";
+import { useExtension } from "../../contexts/ExtensionContext";
+import { ClaudeStep, isClaudeStep } from "../../types/WorkflowTypes";
 import { WorkflowParser } from "../../services/WorkflowParser";
 
 interface WorkflowPanelProps {
-  workflows: WorkflowMetadata[];
-  currentWorkflow: ClaudeWorkflow | null;
-  workflowInputs: Record<string, string>;
-  executionStatus: "idle" | "running" | "completed" | "failed";
-  stepStatuses: Record<
-    string,
-    {
-      status: "pending" | "running" | "completed" | "failed";
-      output?: { result?: string; [key: string]: unknown };
-    }
-  >;
-  rootPath: string;
-  defaultModel: string;
-  availableModels: string[];
   disabled: boolean;
-  onLoadWorkflow: (workflowId: string) => void;
-  onSaveWorkflow: (workflowId: string, workflow: ClaudeWorkflow) => void;
-  onDeleteWorkflow: (workflowId: string) => void;
-  onUpdateWorkflowInputs: (inputs: Record<string, string>) => void;
-  onRunWorkflow: () => void;
-  onCancelWorkflow: () => void;
-  onUpdateRootPath: (path: string) => void;
-  onUpdateDefaultModel: (model: string) => void;
-  onCreateSampleWorkflow: () => void;
 }
 
-const WorkflowPanel: React.FC<WorkflowPanelProps> = ({
-  workflows,
-  currentWorkflow,
-  workflowInputs,
-  executionStatus,
-  stepStatuses,
-  rootPath,
-  defaultModel,
-  availableModels: _availableModels,
-  disabled,
-  onLoadWorkflow,
-  onSaveWorkflow,
-  onDeleteWorkflow,
-  onUpdateWorkflowInputs,
-  onRunWorkflow,
-  onCancelWorkflow,
-  onUpdateRootPath,
-  onUpdateDefaultModel,
-  onCreateSampleWorkflow,
-}) => {
+const WorkflowPanel: React.FC<WorkflowPanelProps> = ({ disabled }) => {
+  const { state, actions } = useExtension();
+  const { main } = state;
+  const {
+    workflows,
+    currentWorkflow,
+    workflowInputs,
+    executionStatus,
+    stepStatuses,
+    rootPath,
+    model: defaultModel,
+  } = main;
+
   const [selectedWorkflowId, setSelectedWorkflowId] = useState<string>("");
   const [workflowYaml, setWorkflowYaml] = useState<string>("");
   const [editMode, setEditMode] = useState<boolean>(false);
   const [parseError, setParseError] = useState<string>("");
 
   useEffect(() => {
+    actions.loadWorkflows();
+  }, []);
+
+  useEffect(() => {
     if (currentWorkflow) {
       setWorkflowYaml(WorkflowParser.toYaml(currentWorkflow));
       setParseError("");
+    } else {
+      setWorkflowYaml("");
     }
   }, [currentWorkflow]);
 
   const handleWorkflowSelect = (workflowId: string) => {
     setSelectedWorkflowId(workflowId);
     if (workflowId) {
-      onLoadWorkflow(workflowId);
+      actions.loadWorkflow(workflowId);
     }
   };
 
@@ -91,7 +63,7 @@ const WorkflowPanel: React.FC<WorkflowPanelProps> = ({
     try {
       const workflow = WorkflowParser.parseYaml(workflowYaml);
       const workflowId = selectedWorkflowId || `claude-workflow-${Date.now()}`;
-      onSaveWorkflow(workflowId, workflow);
+      actions.saveWorkflow(workflowId, workflow);
       setEditMode(false);
     } catch (error) {
       setParseError(
@@ -101,7 +73,7 @@ const WorkflowPanel: React.FC<WorkflowPanelProps> = ({
   };
 
   const handleInputChange = (inputName: string, value: string) => {
-    onUpdateWorkflowInputs({
+    actions.updateWorkflowInputs({
       ...workflowInputs,
       [inputName]: value,
     });
@@ -155,7 +127,7 @@ const WorkflowPanel: React.FC<WorkflowPanelProps> = ({
               ))}
             </select>
             <Button
-              onClick={onCreateSampleWorkflow}
+              onClick={actions.createSampleWorkflow}
               disabled={disabled || executionStatus === "running"}
             >
               Create Sample
@@ -183,7 +155,7 @@ const WorkflowPanel: React.FC<WorkflowPanelProps> = ({
                   if (
                     confirm("Are you sure you want to delete this workflow?")
                   ) {
-                    onDeleteWorkflow(selectedWorkflowId);
+                    actions.deleteWorkflow(selectedWorkflowId);
                     setSelectedWorkflowId("");
                   }
                 }}
@@ -204,12 +176,12 @@ const WorkflowPanel: React.FC<WorkflowPanelProps> = ({
             <div className="space-y-3">
               <PathSelector
                 rootPath={rootPath}
-                onUpdateRootPath={onUpdateRootPath}
+                onUpdateRootPath={actions.updateRootPath}
                 disabled={disabled || executionStatus === "running"}
               />
               <ModelSelector
                 model={defaultModel}
-                onUpdateModel={onUpdateDefaultModel}
+                onUpdateModel={actions.updateModel}
                 disabled={disabled || executionStatus === "running"}
               />
             </div>
@@ -335,13 +307,13 @@ const WorkflowPanel: React.FC<WorkflowPanelProps> = ({
           <Card title="Execution">
             <div className="flex gap-2">
               <Button
-                onClick={onRunWorkflow}
+                onClick={actions.runWorkflow}
                 disabled={disabled || executionStatus === "running" || editMode}
               >
                 Run Workflow
               </Button>
               {executionStatus === "running" && (
-                <Button onClick={onCancelWorkflow}>Cancel</Button>
+                <Button onClick={actions.cancelWorkflow}>Cancel</Button>
               )}
               <div className="flex-1 text-right">
                 {executionStatus === "running" && (

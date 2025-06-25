@@ -2,10 +2,12 @@ import { jest, describe, it, beforeEach, expect } from "@jest/globals";
 import { UsageReportService } from "../../services/UsageReportService";
 
 // Mock fetch for pricing data
-(global as any).fetch = jest.fn().mockResolvedValue({
-  ok: true,
-  json: () => Promise.resolve({}),
-});
+(global as any).fetch = jest.fn(() =>
+  Promise.resolve({
+    ok: true,
+    json: () => Promise.resolve({}),
+  }),
+);
 
 // Mock file system
 jest.mock(
@@ -54,7 +56,7 @@ describe("UsageReportService Aggregation", () => {
       expect(result).toContain("2025");
       expect(result).toContain("06");
       expect(result).toContain("20");
-      expect(result).toMatch(/2025[/\\]06[/\\]20$/);
+      expect(result).toMatch(/2025[\\/]06[\\/]20$/);
     });
 
     it("should create correct hourly filename with hour padding", () => {

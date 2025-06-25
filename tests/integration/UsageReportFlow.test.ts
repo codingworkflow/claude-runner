@@ -12,19 +12,29 @@ const mockContext = {
     update: jest.fn(),
   },
   extensionUri: { with: jest.fn(), fsPath: "/mock/path" },
-} as vscode.ExtensionContext;
+  subscriptions: [],
+} as unknown as vscode.ExtensionContext;
 
 const mockWebview = {
   postMessage: jest.fn(),
   asWebviewUri: jest.fn().mockReturnValue("mock://uri"),
   html: "",
   onDidReceiveMessage: jest.fn(),
-} as vscode.Webview;
+  options: {},
+  cspSource: "",
+} as unknown as vscode.Webview;
 
 const mockWebviewView = {
   webview: mockWebview,
   visible: true,
-} as vscode.WebviewView;
+  show: jest.fn(),
+  title: "Claude Runner",
+  description: "Claude Runner",
+  viewType: "claude-runner.mainView",
+  badge: undefined,
+  onDidDispose: jest.fn(),
+  onDidChangeVisibility: jest.fn(),
+} as unknown as vscode.WebviewView;
 
 // Mock services
 jest.mock("../../src/services/ClaudeCodeService");
@@ -32,12 +42,14 @@ jest.mock("../../src/services/TerminalService");
 jest.mock("../../src/services/ConfigurationService");
 jest.mock("../../src/services/UsageReportService");
 
-const mockClaudeCodeService =
-  new ClaudeCodeService() as jest.Mocked<ClaudeCodeService>;
-const mockTerminalService =
-  new TerminalService() as jest.Mocked<TerminalService>;
 const mockConfigService =
   new ConfigurationService() as jest.Mocked<ConfigurationService>;
+const mockClaudeCodeService = new ClaudeCodeService(
+  mockConfigService,
+) as jest.Mocked<ClaudeCodeService>;
+const mockTerminalService = new TerminalService(
+  mockConfigService,
+) as jest.Mocked<TerminalService>;
 
 describe("Usage Report Integration Flow", () => {
   let panel: ClaudeRunnerPanel;
@@ -47,7 +59,7 @@ describe("Usage Report Integration Flow", () => {
     jest.clearAllMocks();
 
     // Mock configuration
-    mockConfigService.getConfiguration.mockReturnValue({
+    (mockConfigService.getConfiguration as jest.Mock).mockReturnValue({
       defaultModel: "claude-sonnet-4-20250514",
       defaultRootPath: "/test/path",
       allowAllTools: false,
@@ -73,7 +85,9 @@ describe("Usage Report Integration Flow", () => {
     );
 
     // Capture the message handler
-    const onDidReceiveMessageCalls = mockWebview.onDidReceiveMessage.mock.calls;
+    const onDidReceiveMessageCalls = (
+      mockWebview.onDidReceiveMessage as jest.Mock
+    ).mock.calls;
     expect(onDidReceiveMessageCalls.length).toBeGreaterThan(0);
     messageHandler = onDidReceiveMessageCalls[0][0];
   });
@@ -122,7 +136,11 @@ describe("Usage Report Integration Flow", () => {
       });
 
       // Verify service was called
-      expect(mockInstance.generateReport).toHaveBeenCalledWith("today");
+      expect(mockInstance.generateReport).toHaveBeenCalledWith(
+        "today",
+        undefined,
+        undefined,
+      );
 
       // Verify response was sent
       expect(mockWebview.postMessage).toHaveBeenCalledWith({
@@ -149,7 +167,11 @@ describe("Usage Report Integration Flow", () => {
       });
 
       // Verify service was called
-      expect(mockInstance.generateReport).toHaveBeenCalledWith("week");
+      expect(mockInstance.generateReport).toHaveBeenCalledWith(
+        "week",
+        undefined,
+        undefined,
+      );
 
       // Verify error response was sent
       expect(mockWebview.postMessage).toHaveBeenCalledWith({
@@ -193,7 +215,11 @@ describe("Usage Report Integration Flow", () => {
           period,
         });
 
-        expect(mockInstance.generateReport).toHaveBeenCalledWith(period);
+        expect(mockInstance.generateReport).toHaveBeenCalledWith(
+          period,
+          undefined,
+          undefined,
+        );
         expect(mockWebview.postMessage).toHaveBeenCalledWith({
           command: "usageReportData",
           data: { ...emptyReport, period },

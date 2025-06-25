@@ -366,9 +366,6 @@ make install-local
 
 # Install in devcontainer
 make install-devcontainer
-
-# Serve VSIX via HTTP
-make serve-vsix
 ```
 
 ## Project Overview

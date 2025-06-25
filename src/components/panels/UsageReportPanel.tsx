@@ -1,51 +1,27 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useEffect, useCallback } from "react";
 import Card from "../common/Card";
-import { useVSCodeAPI } from "../hooks/useVSCodeAPI";
+import { useExtension, Period } from "../../contexts/ExtensionContext";
 
 interface UsageReportPanelProps {
   disabled?: boolean;
 }
 
-type Period = "hourly" | "today" | "week" | "month";
-
-interface UsageReport {
-  date: string;
-  models: string[];
-  inputTokens: number;
-  outputTokens: number;
-  cacheCreateTokens: number;
-  cacheReadTokens: number;
-  totalTokens: number;
-  costUSD: number;
-}
-
-interface PeriodUsageReport {
-  period: Period;
-  startDate: string;
-  endDate: string;
-  dailyReports: UsageReport[];
-  totals: Omit<UsageReport, "date" | "models"> & { models: string[] };
-}
-
 const UsageReportPanel: React.FC<UsageReportPanelProps> = ({
   disabled = false,
 }) => {
-  const [selectedPeriod, setSelectedPeriod] = useState<Period>("today");
-  const [totalHours, setTotalHours] = useState<number>(5);
-  // Get UTC hour instead of local timezone hour
-  const [startHour, setStartHour] = useState<number>(new Date().getUTCHours());
-  const [limitType, setLimitType] = useState<"input" | "output" | "cost">(
-    "output",
-  );
-  const [limitValue, setLimitValue] = useState<number>(0);
-  const [autoRefresh, setAutoRefresh] = useState<boolean>(false);
-  const [report, setReport] = useState<PeriodUsageReport | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
-
-  const { requestUsageReport } = useVSCodeAPI();
+  const { state, actions } = useExtension();
+  const { usage } = state;
+  const {
+    selectedPeriod,
+    totalHours,
+    startHour,
+    limitType,
+    limitValue,
+    autoRefresh,
+    report,
+    loading,
+    error,
+  } = usage;
 
   const getCurrentValue = (): number => {
     if (!report) {
@@ -66,28 +42,16 @@ const UsageReportPanel: React.FC<UsageReportPanelProps> = ({
   const loadReport = useCallback(
     (period: Period, hours?: number, start?: number, silent = false) => {
       if (!silent) {
-        setLoading(true);
-      }
-      setError(null);
-
-      // Clear any existing timeout
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
+        actions.updateUsageState({ loading: true, error: null });
       }
 
       if (period === "hourly" && hours !== undefined && start !== undefined) {
-        requestUsageReport(period, hours, start);
+        actions.requestUsageReport(period, hours, start);
       } else {
-        requestUsageReport(period);
+        actions.requestUsageReport(period);
       }
-
-      // Add timeout to handle cases where extension doesn't respond
-      timeoutRef.current = setTimeout(() => {
-        setLoading(false);
-        setError("Request timed out. Please try again.");
-      }, 30000); // 30 second timeout
     },
-    [requestUsageReport],
+    [actions],
   );
 
   useEffect(() => {
@@ -100,8 +64,9 @@ const UsageReportPanel: React.FC<UsageReportPanelProps> = ({
 
   // Auto-refresh effect
   useEffect(() => {
+    let refreshInterval: NodeJS.Timeout | null = null;
     if (autoRefresh) {
-      refreshIntervalRef.current = setInterval(
+      refreshInterval = setInterval(
         () => {
           // Use silent mode for auto-refresh to avoid loading spinner
           if (selectedPeriod === "hourly") {
@@ -113,55 +78,24 @@ const UsageReportPanel: React.FC<UsageReportPanelProps> = ({
         5 * 60 * 1000,
       ); // 5 minutes
     } else {
-      if (refreshIntervalRef.current) {
-        clearInterval(refreshIntervalRef.current);
-        refreshIntervalRef.current = null;
+      if (refreshInterval) {
+        clearInterval(refreshInterval);
       }
     }
 
     return () => {
-      if (refreshIntervalRef.current) {
-        clearInterval(refreshIntervalRef.current);
+      if (refreshInterval) {
+        clearInterval(refreshInterval);
       }
     };
   }, [autoRefresh, selectedPeriod, totalHours, startHour, loadReport]);
-
-  // Listen for usage report data from extension
-  useEffect(() => {
-    const handleMessage = (event: MessageEvent) => {
-      const message = event.data;
-
-      if (message.command === "usageReportData") {
-        // Clear timeout
-        if (timeoutRef.current) {
-          clearTimeout(timeoutRef.current);
-          timeoutRef.current = null;
-        }
-        setLoading(false);
-        setReport(message.data);
-        setError(null);
-      } else if (message.command === "usageReportError") {
-        // Clear timeout
-        if (timeoutRef.current) {
-          clearTimeout(timeoutRef.current);
-          timeoutRef.current = null;
-        }
-        setLoading(false);
-        setError(message.error || "Failed to load usage report");
-        setReport(null);
-      }
-    };
-
-    window.addEventListener("message", handleMessage);
-    return () => window.removeEventListener("message", handleMessage);
-  }, []);
 
   const formatNumber = (num: number): string => {
     return num.toLocaleString();
   };
 
   const formatCurrency = (amount: number): string => {
-    return `$${amount.toFixed(2)}`;
+    return `${amount.toFixed(2)}`;
   };
 
   const getPeriodLabel = (period: Period): string => {
@@ -196,7 +130,11 @@ const UsageReportPanel: React.FC<UsageReportPanelProps> = ({
             <select
               id="period-select"
               value={selectedPeriod}
-              onChange={(e) => setSelectedPeriod(e.target.value as Period)}
+              onChange={(e) =>
+                actions.updateUsageState({
+                  selectedPeriod: e.target.value as Period,
+                })
+              }
               disabled={disabled || loading}
               className="dropdown"
             >
@@ -224,7 +162,7 @@ const UsageReportPanel: React.FC<UsageReportPanelProps> = ({
                       1,
                       Math.min(24, parseInt(e.target.value) || 1),
                     );
-                    setTotalHours(newValue);
+                    actions.updateUsageState({ totalHours: newValue });
                   }}
                   disabled={disabled || loading}
                   className="dropdown"
@@ -240,7 +178,11 @@ const UsageReportPanel: React.FC<UsageReportPanelProps> = ({
                 <select
                   id="start-hour"
                   value={startHour}
-                  onChange={(e) => setStartHour(parseInt(e.target.value))}
+                  onChange={(e) =>
+                    actions.updateUsageState({
+                      startHour: parseInt(e.target.value),
+                    })
+                  }
                   disabled={disabled || loading}
                   className="dropdown"
                   style={{ marginLeft: "8px", width: "70px" }}
@@ -267,7 +209,9 @@ const UsageReportPanel: React.FC<UsageReportPanelProps> = ({
                   id="limit-type"
                   value={limitType}
                   onChange={(e) =>
-                    setLimitType(e.target.value as "input" | "output" | "cost")
+                    actions.updateUsageState({
+                      limitType: e.target.value as "input" | "output" | "cost",
+                    })
                   }
                   disabled={disabled || loading}
                   className="dropdown"
@@ -285,7 +229,11 @@ const UsageReportPanel: React.FC<UsageReportPanelProps> = ({
                   type="number"
                   min="0"
                   value={limitValue}
-                  onChange={(e) => setLimitValue(parseInt(e.target.value) || 0)}
+                  onChange={(e) =>
+                    actions.updateUsageState({
+                      limitValue: parseInt(e.target.value) || 0,
+                    })
+                  }
                   disabled={disabled || loading}
                   className="dropdown"
                   style={{
@@ -308,7 +256,9 @@ const UsageReportPanel: React.FC<UsageReportPanelProps> = ({
                 id="auto-refresh"
                 type="checkbox"
                 checked={autoRefresh}
-                onChange={(e) => setAutoRefresh(e.target.checked)}
+                onChange={(e) =>
+                  actions.updateUsageState({ autoRefresh: e.target.checked })
+                }
                 disabled={disabled || loading}
               />
               <label htmlFor="auto-refresh" style={{ fontSize: "12px" }}>
@@ -323,7 +273,7 @@ const UsageReportPanel: React.FC<UsageReportPanelProps> = ({
                   {limitType === "output" &&
                     `Output tokens: ${report.totals.outputTokens} / ${limitValue}`}
                   {limitType === "cost" &&
-                    `Cost: $${report.totals.costUSD.toFixed(2)} / $${limitValue}`}
+                    `Cost: ${report.totals.costUSD.toFixed(2)} / ${limitValue}`}
                 </div>
                 <div
                   style={{

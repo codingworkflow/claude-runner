@@ -150,20 +150,10 @@ export class UsageLogsWebviewProvider implements vscode.WebviewViewProvider {
       </head>
       <body>
         <div id="root"></div>
-        <script src="${scriptUri}"></script>
         <script>
-          if (document.readyState === "loading") {
-            document.addEventListener("DOMContentLoaded", () => {
-              if (window.renderUsageLogsApp) {
-                window.renderUsageLogsApp();
-              }
-            });
-          } else {
-            if (window.renderUsageLogsApp) {
-              window.renderUsageLogsApp();
-            }
-          }
+          window.initialViewType = 'usage';
         </script>
+        <script src="${scriptUri}"></script>
       </body>
       </html>`;
   }

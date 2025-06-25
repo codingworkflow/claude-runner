@@ -1,0 +1,596 @@
+/* Panel Layout Styles - Leveraging VSCode's native styling */
+
+/* Main panel containers */
+.panel-container {
+  padding: 0;
+  height: 100%;
+  overflow-y: auto;
+}
+
+/* Consistent spacing for all panels */
+.chat-panel,
+.pipeline-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Commands Panel */
+.commands-app,
+.global-commands-panel,
+.project-commands-panel {
+  width: 100%;
+}
+
+.panel-actions {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.add-command-form {
+  padding: 8px;
+  background-color: var(--vscode-input-background);
+  border: 1px solid var(--vscode-input-border);
+  border-radius: 2px;
+  margin-bottom: 8px;
+}
+
+.form-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.scanning-status {
+  text-align: center;
+  padding: 20px;
+  color: var(--vscode-descriptionForeground);
+}
+
+.scan-paths {
+  margin-top: 8px;
+  font-size: 0.85em;
+  text-align: left;
+}
+
+.scan-paths code {
+  background-color: var(--vscode-textCodeBlock-background);
+  color: var(--vscode-textPreformat-foreground);
+  padding: 2px 4px;
+  border-radius: 2px;
+  font-family: var(--vscode-editor-font-family);
+}
+
+.command-list-container {
+  min-height: 120px;
+}
+
+.command-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.command-item {
+  border: 1px solid var(--vscode-list-inactiveSelectionBackground);
+  border-radius: 4px;
+  padding: 12px;
+  background-color: var(--vscode-list-inactiveSelectionBackground);
+  transition: all 0.2s ease;
+}
+
+.command-item:hover {
+  background-color: var(--vscode-list-hoverBackground);
+  border-color: var(--vscode-focusBorder);
+}
+
+.command-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.command-name {
+  font-weight: 600;
+  color: var(--vscode-foreground);
+  font-family: var(--vscode-editor-font-family);
+}
+
+.command-description {
+  font-size: 0.85em;
+  color: var(--vscode-descriptionForeground);
+  font-style: italic;
+}
+
+.command-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.no-commands {
+  text-align: center;
+  padding: 20px;
+  color: var(--vscode-descriptionForeground);
+  font-style: italic;
+}
+
+/* Task Pipeline Styles */
+.tasks-container {
+  margin-bottom: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.task-item {
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 2px;
+  padding: 12px;
+  margin-bottom: 8px;
+  background-color: var(--vscode-editor-background);
+}
+
+.task-item.current-task {
+  border-color: var(--vscode-button-background);
+  background-color: var(--vscode-input-background);
+}
+
+.task-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.task-header h4 {
+  margin: 0;
+  font-size: 1em;
+  font-weight: 600;
+  color: var(--vscode-foreground);
+}
+
+.task-results {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--vscode-panel-border);
+}
+
+.task-results h5 {
+  margin: 0 0 8px 0;
+  font-size: 0.9em;
+  font-weight: 600;
+  color: var(--vscode-foreground);
+}
+
+.results-text {
+  background-color: var(--vscode-textCodeBlock-background);
+  border: 1px solid var(--vscode-input-border);
+  border-radius: 3px;
+  padding: 8px;
+  max-height: 150px;
+  overflow-y: auto;
+  font-size: 0.85em;
+  font-family: var(--vscode-editor-font-family);
+  white-space: pre-wrap;
+}
+
+/* Status indicators */
+.status-indicator.status-pending {
+  color: var(--vscode-descriptionForeground);
+}
+
+.status-indicator.status-running {
+  color: var(--vscode-button-background);
+}
+
+.status-indicator.status-completed {
+  color: var(--vscode-testing-iconPassed);
+}
+
+.status-indicator.status-error {
+  color: var(--vscode-testing-iconFailed);
+}
+
+/* Usage and Logs Panels */
+.usage-report-panel,
+.logs-panel {
+  width: 100%;
+}
+
+.usage-report-header {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.period-selector {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.hourly-options {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.usage-report-content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.report-summary {
+  border-bottom: 1px solid var(--vscode-panel-border);
+  padding-bottom: 12px;
+}
+
+.date-range {
+  color: var(--vscode-descriptionForeground);
+  font-size: 0.85em;
+  margin: 4px 0 0 0;
+}
+
+.usage-totals {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.total-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 0;
+}
+
+.total-row.total-cost {
+  border-top: 1px solid var(--vscode-panel-border);
+  margin-top: 8px;
+  padding-top: 8px;
+  font-weight: 600;
+}
+
+.total-row .label {
+  font-weight: 500;
+  color: var(--vscode-foreground);
+}
+
+.total-row .value {
+  font-family: var(--vscode-editor-font-family);
+  color: var(--vscode-foreground);
+}
+
+.total-row .value.cost {
+  color: var(--vscode-charts-green);
+  font-weight: 600;
+}
+
+/* Pipeline Controls */
+.pipeline-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pipeline-controls .button-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.pipeline-selector {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.pipeline-selector select {
+  flex: 1;
+}
+
+/* Daily Breakdown Styles */
+.daily-breakdown {
+  border-top: 1px solid var(--vscode-panel-border);
+  padding-top: 12px;
+}
+
+.daily-breakdown h4 {
+  margin: 0 0 12px 0;
+  font-size: 1em;
+  font-weight: 600;
+  color: var(--vscode-foreground);
+}
+
+.daily-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.daily-item {
+  background-color: var(--vscode-input-background);
+  border: 1px solid var(--vscode-input-border);
+  border-radius: 4px;
+  padding: 12px;
+}
+
+.daily-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--vscode-panel-border);
+}
+
+.daily-date {
+  font-weight: 600;
+  color: var(--vscode-foreground);
+  font-size: 0.9em;
+}
+
+.daily-cost {
+  font-weight: 600;
+  color: var(--vscode-charts-green);
+  font-family: var(--vscode-editor-font-family);
+  font-size: 0.9em;
+}
+
+.daily-details {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.daily-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.daily-label {
+  font-weight: 500;
+  color: var(--vscode-foreground);
+  min-width: 60px;
+  font-size: 0.85em;
+}
+
+.daily-value {
+  color: var(--vscode-descriptionForeground);
+  text-align: right;
+  word-break: break-word;
+  font-size: 0.85em;
+}
+
+.daily-metrics {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.metric {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 3px 6px;
+  background-color: var(--vscode-editor-background);
+  border-radius: 2px;
+  border: 1px solid var(--vscode-panel-border);
+}
+
+.metric-label {
+  font-size: 0.8em;
+  color: var(--vscode-descriptionForeground);
+  font-weight: 500;
+}
+
+.metric-value {
+  font-family: var(--vscode-editor-font-family);
+  font-size: 0.8em;
+  color: var(--vscode-foreground);
+}
+
+.daily-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 6px;
+  padding: 6px 8px;
+  background-color: var(--vscode-editor-background);
+  border-radius: 2px;
+  border: 1px solid var(--vscode-panel-border);
+}
+
+.total-label {
+  font-weight: 600;
+  color: var(--vscode-foreground);
+  font-size: 0.85em;
+}
+
+.total-value {
+  font-family: var(--vscode-editor-font-family);
+  font-weight: 600;
+  color: var(--vscode-foreground);
+  font-size: 0.85em;
+}
+
+/* Logs specific styles */
+.logs-content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.logs-section {
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 4px;
+  padding: 12px;
+  background-color: var(--vscode-editor-background);
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--vscode-panel-border);
+}
+
+.section-header h4 {
+  margin: 0;
+  font-size: 0.95em;
+  font-weight: 600;
+  color: var(--vscode-foreground);
+}
+
+/* Project and conversation lists */
+.conversation-list-full {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.conversation-item {
+  border: 1px solid var(--vscode-input-border);
+  border-radius: 4px;
+  padding: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background-color: var(--vscode-input-background);
+}
+
+.conversation-item:hover {
+  background-color: var(--vscode-list-hoverBackground);
+  border-color: var(--vscode-focusBorder);
+}
+
+.conversation-item.selected {
+  background-color: var(--vscode-list-activeSelectionBackground);
+  border-color: var(--vscode-button-background);
+  color: var(--vscode-list-activeSelectionForeground);
+}
+
+.conversation-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.conversation-date {
+  font-weight: 600;
+  color: var(--vscode-foreground);
+  font-size: 0.9em;
+}
+
+.conversation-messages {
+  font-size: 0.85em;
+  color: var(--vscode-descriptionForeground);
+}
+
+.conversation-summary {
+  font-size: 0.85em;
+  color: var(--vscode-foreground);
+  line-height: 1.3;
+  margin-top: 6px;
+  font-style: italic;
+}
+
+/* Message entries in conversation view */
+.message-entry {
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 4px;
+  padding: 12px;
+  background-color: var(--vscode-editor-background);
+  margin-bottom: 8px;
+}
+
+.message-entry.user {
+  border-left: 3px solid var(--vscode-charts-blue);
+}
+
+.message-entry.assistant {
+  border-left: 3px solid var(--vscode-charts-green);
+}
+
+.message-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--vscode-panel-border);
+}
+
+.message-role {
+  font-weight: 600;
+  color: var(--vscode-foreground);
+  font-size: 0.9em;
+}
+
+.message-timestamp {
+  font-size: 0.8em;
+  color: var(--vscode-descriptionForeground);
+  font-family: var(--vscode-editor-font-family);
+}
+
+.message-content {
+  color: var(--vscode-foreground);
+  line-height: 1.4;
+  white-space: pre-wrap;
+}
+
+/* Claude installation message */
+.claude-not-installed {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--vscode-foreground);
+}
+
+.claude-not-installed h3 {
+  color: var(--vscode-errorForeground);
+  margin-bottom: 16px;
+}
+
+.claude-not-installed .install-command {
+  background-color: var(--vscode-textCodeBlock-background);
+  border: 1px solid var(--vscode-input-border);
+  border-radius: 4px;
+  padding: 12px;
+  margin: 16px 0;
+  font-family: var(--vscode-editor-font-family);
+}
+
+.claude-not-installed code {
+  color: var(--vscode-textPreformat-foreground);
+  font-weight: 600;
+}
+
+.recheck-button {
+  margin-top: 16px;
+}
+
+.recheck-button.recheck-checking {
+  background-color: var(--vscode-button-secondaryBackground);
+  color: var(--vscode-button-secondaryForeground);
+}
+
+.recheck-button.recheck-success {
+  background-color: var(--vscode-testing-iconPassed);
+  color: white;
+}
+
+.recheck-button.recheck-error {
+  background-color: var(--vscode-testing-iconFailed);
+  color: white;
+}

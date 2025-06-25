@@ -105,21 +105,21 @@ export class CommandsWebviewProvider implements vscode.WebviewViewProvider {
 
       if (this._view) {
         this._view.webview.postMessage({
-          type: "commandScanResult",
+          command: "commandScanResult",
           globalCommands,
           projectCommands,
         });
 
         // Also send the current root path to keep webview in sync
         this._view.webview.postMessage({
-          type: "setRootPath",
+          command: "setRootPath",
           rootPath: rootPath,
         });
       }
     } catch (error) {
       if (this._view) {
         this._view.webview.postMessage({
-          type: "commandScanResult",
+          command: "commandScanResult",
           globalCommands: [],
           projectCommands: [],
         });
@@ -185,20 +185,10 @@ export class CommandsWebviewProvider implements vscode.WebviewViewProvider {
       </head>
       <body>
         <div id="root"></div>
-        <script src="${scriptUri}"></script>
         <script>
-          if (document.readyState === "loading") {
-            document.addEventListener("DOMContentLoaded", () => {
-              if (window.renderCommandsApp) {
-                window.renderCommandsApp();
-              }
-            });
-          } else {
-            if (window.renderCommandsApp) {
-              window.renderCommandsApp();
-            }
-          }
+          window.initialViewType = 'commands';
         </script>
+        <script src="${scriptUri}"></script>
       </body>
       </html>`;
   }

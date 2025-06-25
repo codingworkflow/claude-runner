@@ -94,7 +94,7 @@ describe("Workflow Execution Integration", () => {
       assert.strictEqual(stepProgress[1].stepId, "task1");
       assert.strictEqual(stepProgress[1].status, "completed");
       assert.strictEqual(
-        stepProgress[1].output?.result,
+        (stepProgress[1].output as any).result,
         "Project analyzed successfully",
       );
 

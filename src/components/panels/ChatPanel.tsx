@@ -6,78 +6,45 @@ import PathSelector from "../common/PathSelector";
 import ModelSelector from "../common/ModelSelector";
 import ParallelTasksConfig from "../common/ParallelTasksConfig";
 import ClaudeVersionDisplay from "../common/ClaudeVersionDisplay";
+import { useExtension } from "../../contexts/ExtensionContext";
 
 interface ChatPanelProps {
-  model: string;
-  rootPath: string;
-  allowAllTools: boolean;
-  parallelTasksCount: number;
-  availableModels: string[];
-  chatPrompt: string;
-  showChatPrompt: boolean;
-  claudeVersion: string;
-  claudeVersionAvailable: boolean;
-  claudeVersionError?: string;
-  claudeVersionLoading: boolean;
-  onStartInteractive: (prompt?: string) => void;
-  onUpdateModel: (model: string) => void;
-  onUpdateRootPath: (path: string) => void;
-  onUpdateAllowAllTools: (allow: boolean) => void;
-  onUpdateChatPrompt: (prompt: string) => void;
-  onUpdateShowChatPrompt: (show: boolean) => void;
-  onUpdateParallelTasksCount: (value: number) => void;
   disabled: boolean;
 }
 
-const ChatPanel: React.FC<ChatPanelProps> = ({
-  model,
-  rootPath,
-  allowAllTools,
-  parallelTasksCount,
-  availableModels: _availableModels,
-  chatPrompt,
-  showChatPrompt,
-  claudeVersion,
-  claudeVersionAvailable,
-  claudeVersionError,
-  claudeVersionLoading,
-  onStartInteractive,
-  onUpdateModel,
-  onUpdateRootPath,
-  onUpdateAllowAllTools,
-  onUpdateChatPrompt,
-  onUpdateShowChatPrompt,
-  onUpdateParallelTasksCount,
-  disabled,
-}) => {
+const ChatPanel: React.FC<ChatPanelProps> = ({ disabled }) => {
+  const { state, actions } = useExtension();
+  const { main, claude } = state;
+
   const handleStartChat = () => {
-    if (showChatPrompt && chatPrompt.trim()) {
-      onStartInteractive(chatPrompt.trim());
+    if (main.showChatPrompt && main.chatPrompt.trim()) {
+      actions.startInteractive(main.chatPrompt.trim());
     } else {
-      onStartInteractive();
+      actions.startInteractive();
     }
   };
+
   return (
-    <>
+    <div className="chat-panel">
       {/* Claude Version Display - At the very top */}
       <ClaudeVersionDisplay
-        version={claudeVersion}
-        isAvailable={claudeVersionAvailable}
-        error={claudeVersionError}
-        isLoading={claudeVersionLoading}
+        version={claude.version}
+        isAvailable={claude.isAvailable}
+        error={claude.error}
+        isLoading={claude.loading}
       />
 
       {/* Root Path */}
       <PathSelector
-        rootPath={rootPath}
-        onUpdateRootPath={onUpdateRootPath}
+        rootPath={main.rootPath}
+        onUpdateRootPath={actions.updateRootPath}
         disabled={disabled}
       />
 
       <Card title="Interactive Chat Session">
-        <div className="space-y-4">
+        <div className="space-y-3">
           <div className="chat-info">
-            <p className="text-sm opacity-80 mb-3">
+            <p>
               Start an interactive Claude chat session in the VS Code terminal
               using the selected model and configuration.
             </p>
@@ -85,28 +52,26 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
 
           {/* Model Selection */}
           <ModelSelector
-            model={model}
-            onUpdateModel={onUpdateModel}
+            model={main.model}
+            onUpdateModel={actions.updateModel}
             disabled={disabled}
           />
 
           {/* Tool Permissions */}
-          <div className="mt-4">
-            <Toggle
-              checked={allowAllTools}
-              onChange={onUpdateAllowAllTools}
-              label="Allow All Tools (--dangerously-skip-permissions)"
-              disabled={disabled}
-            />
-          </div>
+          <Toggle
+            checked={main.allowAllTools}
+            onChange={actions.updateAllowAllTools}
+            label="Allow All Tools (--dangerously-skip-permissions)"
+            disabled={disabled}
+          />
 
           <div className="chat-actions">
             <div className="prompt-section">
-              {!showChatPrompt ? (
+              {!main.showChatPrompt ? (
                 <Button
                   variant="secondary"
                   size="sm"
-                  onClick={() => onUpdateShowChatPrompt(true)}
+                  onClick={() => actions.updateShowChatPrompt(true)}
                   disabled={disabled}
                 >
                   Add Prompt
@@ -117,8 +82,8 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
                     variant="secondary"
                     size="sm"
                     onClick={() => {
-                      onUpdateShowChatPrompt(false);
-                      onUpdateChatPrompt("");
+                      actions.updateShowChatPrompt(false);
+                      actions.updateChatPrompt("");
                     }}
                     disabled={disabled}
                   >
@@ -126,8 +91,8 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
                   </Button>
                   <textarea
                     className="prompt-textarea"
-                    value={chatPrompt}
-                    onChange={(e) => onUpdateChatPrompt(e.target.value)}
+                    value={main.chatPrompt}
+                    onChange={(e) => actions.updateChatPrompt(e.target.value)}
                     placeholder="Enter your initial prompt for Claude..."
                     rows={10}
                     disabled={disabled}
@@ -149,11 +114,11 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
 
       {/* Parallel Tasks Configuration */}
       <ParallelTasksConfig
-        parallelTasksCount={parallelTasksCount}
-        onUpdateParallelTasksCount={onUpdateParallelTasksCount}
+        parallelTasksCount={main.parallelTasksCount}
+        onUpdateParallelTasksCount={actions.updateParallelTasksCount}
         disabled={disabled}
       />
-    </>
+    </div>
   );
 };
 
