@@ -44,6 +44,12 @@ Create and execute sophisticated multi-step workflows:
 
 ![Save Pipeline](https://raw.githubusercontent.com/codingworkflow/claude-runner/main/assets/savepipeline.png)
 
+### **Access session logs**
+
+Edit and manage Claude Code /commands in Global or Per Project
+
+![Commands list](https://raw.githubusercontent.com/codingworkflow/claude-runner/main/assets/commands.png)
+
 ### **Usage Analytics & Cost Tracking**
 
 Monitor your Claude usage with detailed analytics:

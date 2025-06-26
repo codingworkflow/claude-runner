@@ -154,6 +154,110 @@
   color: var(--vscode-foreground);
 }
 
+.task-name-input {
+  font-family: var(--vscode-font-family);
+  font-size: var(--vscode-font-size);
+  padding: 4px 6px;
+  background-color: var(--vscode-input-background);
+  color: var(--vscode-input-foreground);
+  border: 1px solid var(--vscode-input-border);
+  border-radius: 2px;
+  line-height: 1.2;
+  flex: 1;
+  margin-right: 8px;
+}
+
+.task-name-input:focus {
+  outline: 1px solid var(--vscode-focusBorder);
+  outline-offset: -1px;
+}
+
+.task-model-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.task-model-group label {
+  font-size: var(--vscode-font-size);
+  color: var(--vscode-foreground);
+  min-width: 50px;
+  font-weight: 500;
+}
+
+.model-select {
+  font-family: var(--vscode-font-family);
+  font-size: var(--vscode-font-size);
+  padding: 4px 6px;
+  background-color: var(--vscode-input-background);
+  color: var(--vscode-input-foreground);
+  border: 1px solid var(--vscode-input-border);
+  border-radius: 2px;
+  line-height: 1.2;
+  flex: 1;
+}
+
+.model-select:focus {
+  outline: 1px solid var(--vscode-focusBorder);
+  outline-offset: -1px;
+}
+
+.task-textarea {
+  font-family: var(--vscode-font-family);
+  font-size: var(--vscode-font-size);
+  padding: 4px 6px;
+  background-color: var(--vscode-input-background);
+  color: var(--vscode-input-foreground);
+  border: 1px solid var(--vscode-input-border);
+  border-radius: 2px;
+  line-height: 1.2;
+  width: 100%;
+  resize: vertical;
+  min-height: 60px;
+}
+
+.task-textarea:focus {
+  outline: 1px solid var(--vscode-focusBorder);
+  outline-offset: -1px;
+}
+
+.checkbox-group {
+  margin-top: 8px;
+}
+
+.checkbox-group label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--vscode-font-size);
+  color: var(--vscode-foreground);
+  cursor: pointer;
+}
+
+.checkbox-group input[type="checkbox"] {
+  margin: 0;
+}
+
+.task-controls {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.control-buttons {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.save-pipeline-controls {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
 .task-results {
   margin-top: 8px;
   padding-top: 8px;
@@ -277,24 +381,27 @@
 /* Pipeline Controls */
 .pipeline-controls {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.pipeline-controls .button-row {
-  display: flex;
   gap: 6px;
   align-items: center;
+  margin-top: 8px;
 }
 
-.pipeline-selector {
-  display: flex;
-  gap: 6px;
-  align-items: center;
-}
-
-.pipeline-selector select {
+.pipeline-controls select {
+  font-family: var(--vscode-font-family);
+  font-size: var(--vscode-font-size);
+  padding: 4px 6px;
+  background-color: var(--vscode-input-background);
+  color: var(--vscode-input-foreground);
+  border: 1px solid var(--vscode-input-border);
+  border-radius: 2px;
+  line-height: 1.2;
   flex: 1;
+  margin-right: 6px;
+}
+
+.pipeline-controls select:focus {
+  outline: 1px solid var(--vscode-focusBorder);
+  outline-offset: -1px;
 }
 
 /* Daily Breakdown Styles */
