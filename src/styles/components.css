@@ -192,6 +192,14 @@ select:focus {
   gap: 8px;
 }
 
+.chat-actions .button-group {
+  display: flex;
+  flex-direction: row;
+  gap: 6px;
+  align-items: center;
+  align-self: flex-start;
+}
+
 .prompt-section {
   display: flex;
   flex-direction: column;

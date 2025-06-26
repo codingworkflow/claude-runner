@@ -1,0 +1,12 @@
+{
+  "hour": "2025-06-25T10:00:00.000Z",
+  "models": {
+    "claude-sonnet-4-20250514": {
+      "input": 1000,
+      "output": 500,
+      "cacheCreate": 100,
+      "cacheRead": 200,
+      "cost": 0.01
+    }
+  }
+}

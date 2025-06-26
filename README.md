@@ -233,5 +233,7 @@ See [CHANGELOG.md](CHANGELOG.md) for release history.
 ## Credit
 
 [Ccusage](https://github.com/ryoppippi/ccusage) for the idea of usage parsing.
+
 [Claaude code log](https://github.com/daaain/claude-code-log) for the idea of parsing conversations.
+
 [Anthropic team](https://docs.anthropic.com/en/docs/claude-code/sdk) for the great Claude code & the SDK.

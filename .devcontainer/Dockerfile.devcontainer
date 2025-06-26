@@ -1,0 +1,49 @@
+FROM mcr.microsoft.com/devcontainers/base:debian
+
+# Build arguments
+ARG USERNAME=vscode
+ARG USER_UID=1000
+ARG USER_GID=1000
+
+# Install essential development tools for VSCode extension development
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends \
+    wget \
+    curl \
+    make \
+    git \
+    build-essential \
+    bash-completion \
+    gnupg \
+    dirmngr \
+    unzip \
+ && rm -rf /var/lib/apt/lists/*
+
+# Create workspace directory if it doesn't exist
+RUN mkdir -p /workspace
+
+# Ensure proper permissions for the vscode user
+# The base image already creates the vscode user with UID 1000
+RUN if [ "$(getent passwd $USER_UID)" != "" ]; then \
+        if [ "$USERNAME" != "$(getent passwd $USER_UID | cut -d: -f1)" ]; then \
+            usermod -l $USERNAME $(getent passwd $USER_UID | cut -d: -f1); \
+            groupmod -n $USERNAME $(getent group $USER_GID | cut -d: -f1); \
+        fi; \
+    fi \
+    && chown -R $USERNAME:$USERNAME /workspace
+
+WORKDIR /workspace
+
+# SSH setup for development
+RUN mkdir -p /home/$USERNAME/.ssh \
+    && touch /home/$USERNAME/.ssh/known_hosts \
+    && chown -R $USERNAME:$USERNAME /home/$USERNAME/.ssh \
+    && chmod 700 /home/$USERNAME/.ssh \
+    && chmod 600 /home/$USERNAME/.ssh/known_hosts
+
+# Switch to non-root user
+USER $USERNAME
+
+# Environment variables for development
+ENV NODE_ENV=development \
+    SHELL=/bin/bash

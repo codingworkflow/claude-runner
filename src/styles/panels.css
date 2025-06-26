@@ -73,10 +73,10 @@
 }
 
 .command-item {
-  border: 1px solid var(--vscode-list-inactiveSelectionBackground);
+  border: 1px solid var(--vscode-input-border);
   border-radius: 4px;
   padding: 12px;
-  background-color: var(--vscode-list-inactiveSelectionBackground);
+  background-color: var(--vscode-input-background);
   transition: all 0.2s ease;
 }
 

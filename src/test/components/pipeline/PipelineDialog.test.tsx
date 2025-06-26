@@ -1,10 +1,11 @@
+import { describe, it, expect, jest } from "@jest/globals";
 import React from "react";
 import { render, fireEvent } from "@testing-library/react";
 import PipelineDialog from "../../../components/pipeline/PipelineDialog";
 
 describe("PipelineDialog", () => {
   it("renders the pipeline dialog", () => {
-    const { getByText } = render(
+    const { getByRole } = render(
       <PipelineDialog
         showPipelineDialog={true}
         pipelineName=""
@@ -16,12 +17,12 @@ describe("PipelineDialog", () => {
       />,
     );
 
-    expect(getByText("Save Pipeline")).toBeInTheDocument();
+    expect(getByRole("button", { name: "Save Pipeline" })).toBeTruthy();
   });
 
   it('calls handleSavePipeline when the "Save Pipeline" button is clicked', () => {
     const handleSavePipeline = jest.fn();
-    const { getByText } = render(
+    const { getByRole } = render(
       <PipelineDialog
         showPipelineDialog={true}
         pipelineName="Test Pipeline"
@@ -33,13 +34,13 @@ describe("PipelineDialog", () => {
       />,
     );
 
-    fireEvent.click(getByText("Save Pipeline"));
+    fireEvent.click(getByRole("button", { name: "Save Pipeline" }));
     expect(handleSavePipeline).toHaveBeenCalled();
   });
 
   it('calls setShowPipelineDialog when the "Cancel" button is clicked', () => {
     const setShowPipelineDialog = jest.fn();
-    const { getByText } = render(
+    const { getByRole } = render(
       <PipelineDialog
         showPipelineDialog={true}
         pipelineName=""
@@ -51,7 +52,7 @@ describe("PipelineDialog", () => {
       />,
     );
 
-    fireEvent.click(getByText("Cancel"));
+    fireEvent.click(getByRole("button", { name: "Cancel" }));
     expect(setShowPipelineDialog).toHaveBeenCalledWith(false);
   });
 });

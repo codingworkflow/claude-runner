@@ -5,53 +5,6 @@ All notable changes to the Claude Runner extension will be documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
-
-## [0.2.0] - 2025-05-28
-
-### Added
-
-- **Pipeline System**: Define and execute reusable task sequences
-  - Save task chains as named pipelines
-  - Load and modify existing pipelines
-  - Per-task model selection for optimization
-  - Session continuity between tasks
-  - Task dependencies and execution order
-  - Real-time progress tracking with status updates
-  - Comprehensive execution logging
-- **Task Improvements**:
-  - Fixed task state management (pending → running → completed)
-  - Live task status updates during execution
-  - Immediate result display after task completion
-  - Task naming for better organization
-  - Model selection per task
-- **UI Enhancements**:
-  - Pipeline save dialog with name and description
-  - Pipeline load dropdown with available pipelines
-  - Per-task model selection dropdown
-  - Task name input fields
-  - Improved task progress visualization
-  - Pipeline execution progress section
-- **Logging System**:
-  - Automatic logging of all pipeline executions
-  - Detailed metrics per task (timing, status, results)
-  - Session tracking for debugging
-  - JSON format for programmatic access
-
-### Fixed
-
-- Task status not updating during execution
-- Tasks staying in "pending" state until all complete
-- Missing task state propagation to UI
-
-### Technical
-
-- New PipelineService for pipeline management
-- Enhanced TaskItem interface with pipeline fields
-- Improved message handling in webview
-- Added pipeline-specific styles
-- Example pipelines in `examples/` directory
-
 ## [0.1.0] - 2025-05-26
 
 ### Added

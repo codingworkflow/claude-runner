@@ -1,4 +1,4 @@
-import * as assert from "assert";
+import { describe, it, expect } from "@jest/globals";
 import { WorkflowParser } from "../../services/WorkflowParser";
 import { ClaudeWorkflow } from "../../types/WorkflowTypes";
 
@@ -29,10 +29,10 @@ jobs:
           output_session: true
 `;
       const workflow = WorkflowParser.parseYaml(yaml);
-      assert.strictEqual(workflow.name, "Test Workflow");
-      assert.ok(workflow.jobs.develop);
-      assert.strictEqual(workflow.jobs.develop.steps.length, 1);
-      assert.strictEqual(workflow.jobs.develop.steps[0].id, "analyze");
+      expect(workflow.name).toBe("Test Workflow");
+      expect(workflow.jobs.develop).toBeDefined();
+      expect(workflow.jobs.develop.steps).toHaveLength(1);
+      expect(workflow.jobs.develop.steps[0].id).toBe("analyze");
     });
 
     it("should throw error for workflow without name", () => {
@@ -44,15 +44,14 @@ jobs:
         with:
           prompt: Test
 `;
-      assert.throws(() => WorkflowParser.parseYaml(yaml), /must have a name/);
+      expect(() => WorkflowParser.parseYaml(yaml)).toThrow(/must have a name/);
     });
 
     it("should throw error for workflow without jobs", () => {
       const yaml = `
 name: Test Workflow
 `;
-      assert.throws(
-        () => WorkflowParser.parseYaml(yaml),
+      expect(() => WorkflowParser.parseYaml(yaml)).toThrow(
         /must have at least one job/,
       );
     });
@@ -64,8 +63,7 @@ jobs:
   empty:
     name: Empty Job
 `;
-      assert.throws(
-        () => WorkflowParser.parseYaml(yaml),
+      expect(() => WorkflowParser.parseYaml(yaml)).toThrow(
         /must have at least one step/,
       );
     });
@@ -80,7 +78,9 @@ jobs:
         with:
           model: claude-3-5-sonnet-latest
 `;
-      assert.throws(() => WorkflowParser.parseYaml(yaml), /must have a prompt/);
+      expect(() => WorkflowParser.parseYaml(yaml)).toThrow(
+        /must have a prompt/,
+      );
     });
 
     it("should validate session references", () => {
@@ -101,7 +101,7 @@ jobs:
           resume_session: \${{ steps.first.outputs.session_id }}
 `;
       const workflow = WorkflowParser.parseYaml(yaml);
-      assert.strictEqual(workflow.jobs.test.steps.length, 2);
+      expect(workflow.jobs.test.steps.length).toBe(2);
     });
 
     it("should throw error for invalid session reference", () => {
@@ -120,8 +120,7 @@ jobs:
           prompt: Second step
           resume_session: \${{ steps.nonexistent.outputs.session_id }}
 `;
-      assert.throws(
-        () => WorkflowParser.parseYaml(yaml),
+      expect(() => WorkflowParser.parseYaml(yaml)).toThrow(
         /references unknown step/,
       );
     });
@@ -161,9 +160,9 @@ jobs:
       };
 
       const claudeSteps = WorkflowParser.extractClaudeSteps(workflow);
-      assert.strictEqual(claudeSteps.length, 2);
-      assert.strictEqual(claudeSteps[0].id, "claude1");
-      assert.strictEqual(claudeSteps[1].id, "claude2");
+      expect(claudeSteps.length).toBe(2);
+      expect(claudeSteps[0].id).toBe("claude1");
+      expect(claudeSteps[1].id).toBe("claude2");
     });
   });
 
@@ -177,7 +176,7 @@ jobs:
           language: "TypeScript",
         },
       });
-      assert.strictEqual(resolved, "Task: Refactor code in TypeScript");
+      expect(resolved).toBe("Task: Refactor code in TypeScript");
     });
 
     it("should resolve environment variables", () => {
@@ -188,7 +187,7 @@ jobs:
           NODE_VERSION: "18.x",
         },
       });
-      assert.strictEqual(resolved, "Running on Ubuntu with 18.x");
+      expect(resolved).toBe("Running on Ubuntu with 18.x");
     });
 
     it("should resolve step outputs", () => {
@@ -202,7 +201,7 @@ jobs:
           },
         },
       });
-      assert.strictEqual(resolved, "Resume from sess_123456");
+      expect(resolved).toBe("Resume from sess_123456");
     });
 
     it("should handle missing variables", () => {
@@ -210,7 +209,7 @@ jobs:
       const resolved = WorkflowParser.resolveVariables(template, {
         inputs: {},
       });
-      assert.strictEqual(resolved, "Value: ");
+      expect(resolved).toBe("Value: ");
     });
 
     it("should resolve multiple variables", () => {
@@ -227,7 +226,7 @@ jobs:
           },
         },
       });
-      assert.strictEqual(resolved, "Hello Developer, session: abc123");
+      expect(resolved).toBe("Hello Developer, session: abc123");
     });
   });
 
@@ -252,11 +251,11 @@ jobs:
       };
 
       const yaml = WorkflowParser.toYaml(workflow);
-      assert.ok(yaml.includes("name: Simple Workflow"));
-      assert.ok(yaml.includes("jobs:"));
-      assert.ok(yaml.includes("main:"));
-      assert.ok(yaml.includes("steps:"));
-      assert.ok(yaml.includes("prompt: Do something"));
+      expect(yaml.includes("name: Simple Workflow")).toBeTruthy();
+      expect(yaml.includes("jobs:")).toBeTruthy();
+      expect(yaml.includes("main:")).toBeTruthy();
+      expect(yaml.includes("steps:")).toBeTruthy();
+      expect(yaml.includes("prompt: Do something")).toBeTruthy();
     });
   });
 });

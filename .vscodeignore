@@ -36,3 +36,10 @@ coverage/**
 assets/README.md
 **/*.log
 .claude/
+.husky/
+.scannerwork/
+debug-commands.js
+debug-extension.js
+test-commands-service.js
+test-service-logic.js
+jest.config.js

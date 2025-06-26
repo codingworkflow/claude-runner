@@ -252,7 +252,7 @@ const LogsPanel: React.FC<LogsPanelProps> = ({ disabled = false }) => {
                 </option>
                 {projects.map((project) => (
                   <option key={project.name} value={project.name}>
-                    {project.name} ({project.conversationCount} conversations)
+                    {project.name}
                   </option>
                 ))}
               </select>

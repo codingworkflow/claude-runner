@@ -1,3 +1,4 @@
+import { describe, it, expect, jest } from "@jest/globals";
 import React from "react";
 import { render, fireEvent } from "@testing-library/react";
 import TaskList from "../../../components/pipeline/TaskList";
@@ -25,7 +26,7 @@ describe("TaskList", () => {
   ];
 
   it("renders a list of tasks", () => {
-    const { getByText } = render(
+    const { getByDisplayValue } = render(
       <TaskList
         tasks={tasks}
         isTasksRunning={false}
@@ -36,8 +37,8 @@ describe("TaskList", () => {
       />,
     );
 
-    expect(getByText("Task 1")).toBeInTheDocument();
-    expect(getByText("Task 2")).toBeInTheDocument();
+    expect(getByDisplayValue("Task 1")).toBeTruthy();
+    expect(getByDisplayValue("Task 2")).toBeTruthy();
   });
 
   it("calls updateTask when a task is modified", () => {

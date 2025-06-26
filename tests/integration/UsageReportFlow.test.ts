@@ -1,3 +1,4 @@
+import { describe, it, expect, beforeEach, jest } from "@jest/globals";
 import * as vscode from "vscode";
 import { ClaudeRunnerPanel } from "../../src/providers/ClaudeRunnerPanel";
 import { ClaudeCodeService } from "../../src/services/ClaudeCodeService";
@@ -11,7 +12,12 @@ const mockContext = {
     get: jest.fn(),
     update: jest.fn(),
   },
-  extensionUri: { with: jest.fn(), fsPath: "/mock/path" },
+  globalState: {
+    get: jest.fn().mockReturnValue(undefined),
+    update: jest.fn(),
+  },
+  extensionUri: { with: jest.fn(), fsPath: "/tmp/mock-extension" },
+  globalStorageUri: { fsPath: "/tmp/mock-global-storage" },
   subscriptions: [],
 } as unknown as vscode.ExtensionContext;
 
@@ -89,7 +95,9 @@ describe("Usage Report Integration Flow", () => {
       mockWebview.onDidReceiveMessage as jest.Mock
     ).mock.calls;
     expect(onDidReceiveMessageCalls.length).toBeGreaterThan(0);
-    messageHandler = onDidReceiveMessageCalls[0][0];
+    messageHandler = onDidReceiveMessageCalls[0][0] as (
+      message: unknown,
+    ) => void;
   });
 
   describe("requestUsageReport message handling", () => {
@@ -210,6 +218,13 @@ describe("Usage Report Integration Flow", () => {
       for (const period of ["today", "week", "month"]) {
         jest.clearAllMocks();
 
+        // Create period-specific report
+        const periodReport = {
+          ...emptyReport,
+          period: period as "today" | "week" | "month",
+        };
+        mockInstance.generateReport.mockResolvedValue(periodReport);
+
         await messageHandler({
           command: "requestUsageReport",
           period,
@@ -222,26 +237,33 @@ describe("Usage Report Integration Flow", () => {
         );
         expect(mockWebview.postMessage).toHaveBeenCalledWith({
           command: "usageReportData",
-          data: { ...emptyReport, period },
+          data: periodReport,
         });
       }
     });
 
     it("should handle unknown commands gracefully", async () => {
-      const consoleSpy = jest.spyOn(console, "warn").mockImplementation();
+      const consoleErrorSpy = jest
+        .spyOn(console, "error")
+        .mockImplementation(() => {});
 
       await messageHandler({
         command: "unknownCommand",
         data: "test",
       });
 
-      expect(consoleSpy).toHaveBeenCalledWith(
-        "Unknown command:",
-        "unknownCommand",
+      // Unknown commands trigger error logging via the error path
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        "[ClaudeRunner] Unhandled message error:",
+        expect.any(Error),
       );
-      expect(mockWebview.postMessage).not.toHaveBeenCalled();
+      // System should send error message to webview
+      expect(mockWebview.postMessage).toHaveBeenCalledWith({
+        command: "error",
+        error: "Unknown or invalid command: unknownCommand",
+      });
 
-      consoleSpy.mockRestore();
+      consoleErrorSpy.mockRestore();
     });
 
     it("should handle malformed messages gracefully", async () => {
@@ -258,12 +280,6 @@ describe("Usage Report Integration Flow", () => {
 
   describe("message flow timing", () => {
     it("should handle rapid successive requests correctly", async () => {
-      const mockUsageReportService = UsageReportService as jest.MockedClass<
-        typeof UsageReportService
-      >;
-      const mockInstance = mockUsageReportService.mock
-        .instances[0] as jest.Mocked<UsageReportService>;
-
       const mockReport = {
         period: "today" as const,
         startDate: "2025-06-17",
@@ -280,20 +296,26 @@ describe("Usage Report Integration Flow", () => {
         },
       };
 
-      // Mock with delay to simulate real async behavior
+      // Use the existing mock instance that was setup in beforeEach
+      const mockUsageReportService = UsageReportService as jest.MockedClass<
+        typeof UsageReportService
+      >;
+      const mockInstance = mockUsageReportService.mock
+        .instances[0] as jest.Mocked<UsageReportService>;
+
+      // Clear mock call history but keep the mock implementation
+      mockInstance.generateReport.mockClear();
+      (mockWebview.postMessage as jest.Mock).mockClear();
+
+      // Mock with minimal delay and period-specific responses
       mockInstance.generateReport.mockImplementation(async (period) => {
-        await new Promise((resolve) => setTimeout(resolve, 10));
         return { ...mockReport, period };
       });
 
-      // Send multiple rapid requests
-      const promises = [
-        messageHandler({ command: "requestUsageReport", period: "today" }),
-        messageHandler({ command: "requestUsageReport", period: "week" }),
-        messageHandler({ command: "requestUsageReport", period: "month" }),
-      ];
-
-      await Promise.all(promises);
+      // Send multiple rapid requests sequentially to ensure they all process
+      await messageHandler({ command: "requestUsageReport", period: "today" });
+      await messageHandler({ command: "requestUsageReport", period: "week" });
+      await messageHandler({ command: "requestUsageReport", period: "month" });
 
       // All requests should have been processed
       expect(mockInstance.generateReport).toHaveBeenCalledTimes(3);

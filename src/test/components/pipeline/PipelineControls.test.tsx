@@ -1,3 +1,4 @@
+import { describe, it, expect, jest } from "@jest/globals";
 import React from "react";
 import { render, fireEvent } from "@testing-library/react";
 import PipelineControls from "../../../components/pipeline/PipelineControls";
@@ -20,8 +21,8 @@ describe("PipelineControls", () => {
       />,
     );
 
-    expect(getByText("Add Task")).toBeInTheDocument();
-    expect(getByText("Run Pipeline")).toBeInTheDocument();
+    expect(getByText("Add Task")).toBeTruthy();
+    expect(getByText("Run Pipeline")).toBeTruthy();
   });
 
   it('calls addTask when the "Add Task" button is clicked', () => {

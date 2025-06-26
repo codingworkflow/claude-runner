@@ -20,11 +20,11 @@
     "vscode": "^1.85.0"
   },
   "screenshots": [
-    "./assets/marketplace/conversation.png",
-    "./assets/marketplace/usage.png",
-    "./assets/marketplace/logs.png",
-    "./assets/marketplace/pipeline.png",
-    "./assets/marketplace/savepipeline.png",
-    "./assets/marketplace/chat.png"
+    "./assets/conversation.png",
+    "./assets/usage.png",
+    "./assets/logs.png",
+    "./assets/pipeline.png",
+    "./assets/savepipeline.png",
+    "./assets/chat.png"
   ]
 }

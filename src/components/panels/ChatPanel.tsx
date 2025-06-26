@@ -68,27 +68,31 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ disabled }) => {
           <div className="chat-actions">
             <div className="prompt-section">
               {!main.showChatPrompt ? (
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => actions.updateShowChatPrompt(true)}
-                  disabled={disabled}
-                >
-                  Add Prompt
-                </Button>
-              ) : (
-                <>
+                <div className="button-group">
                   <Button
                     variant="secondary"
                     size="sm"
-                    onClick={() => {
-                      actions.updateShowChatPrompt(false);
-                      actions.updateChatPrompt("");
-                    }}
+                    onClick={() => actions.updateShowChatPrompt(true)}
                     disabled={disabled}
                   >
-                    Remove Prompt
+                    Add Prompt
                   </Button>
+                </div>
+              ) : (
+                <>
+                  <div className="button-group">
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => {
+                        actions.updateShowChatPrompt(false);
+                        actions.updateChatPrompt("");
+                      }}
+                      disabled={disabled}
+                    >
+                      Remove Prompt
+                    </Button>
+                  </div>
                   <textarea
                     className="prompt-textarea"
                     value={main.chatPrompt}
@@ -101,13 +105,15 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ disabled }) => {
               )}
             </div>
 
-            <Button
-              variant="primary"
-              onClick={handleStartChat}
-              disabled={disabled}
-            >
-              Start Chat Session
-            </Button>
+            <div className="button-group">
+              <Button
+                variant="primary"
+                onClick={handleStartChat}
+                disabled={disabled}
+              >
+                Start Chat Session
+              </Button>
+            </div>
           </div>
         </div>
       </Card>

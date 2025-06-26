@@ -1,4 +1,4 @@
-import * as assert from "assert";
+import { describe, it, expect, beforeAll, afterAll } from "@jest/globals";
 import * as vscode from "vscode";
 import * as path from "path";
 import * as fs from "fs/promises";
@@ -11,7 +11,7 @@ describe("PipelineService YAML Format", () => {
   let tempDir: string;
   let context: vscode.ExtensionContext;
 
-  before(async () => {
+  beforeAll(async () => {
     // Create a mock extension context
     tempDir = path.join("/tmp", "pipeline-test-" + Date.now());
     await fs.mkdir(tempDir, { recursive: true });
@@ -39,9 +39,11 @@ describe("PipelineService YAML Format", () => {
     };
 
     service = new PipelineService(context);
+    // Explicitly set the root path to our temp directory
+    service.setRootPath(tempDir);
   });
 
-  after(async () => {
+  afterAll(async () => {
     try {
       await fs.rm(tempDir, { recursive: true, force: true });
     } catch (error) {
@@ -76,6 +78,10 @@ describe("PipelineService YAML Format", () => {
         },
       ];
 
+      // Ensure the .github/workflows directory exists before saving
+      const workflowsDir = path.join(tempDir, ".github", "workflows");
+      await fs.mkdir(workflowsDir, { recursive: true });
+
       await service.savePipeline(
         "test-pipeline",
         "Test pipeline for unit tests",
@@ -95,42 +101,37 @@ describe("PipelineService YAML Format", () => {
         .access(workflowPath)
         .then(() => true)
         .catch(() => false);
-      assert.ok(exists, "Workflow file should exist");
+      expect(exists).toBeTruthy(); // Workflow file should exist
 
       // Read and parse the YAML
       const yamlContent = await fs.readFile(workflowPath, "utf-8");
       const workflow = WorkflowParser.parseYaml(yamlContent);
 
       // Verify workflow structure
-      assert.strictEqual(workflow.name, "test-pipeline");
-      assert.ok(workflow.on?.workflow_dispatch);
-      assert.ok(workflow.jobs.pipeline);
-      assert.strictEqual(workflow.jobs.pipeline.steps.length, 3);
+      expect(workflow.name).toBe("test-pipeline");
+      expect(workflow.on?.workflow_dispatch).toBeTruthy();
+      expect(workflow.jobs.pipeline).toBeTruthy();
+      expect(workflow.jobs.pipeline.steps.length).toBe(3);
 
       // Verify step details
       const steps = workflow.jobs.pipeline.steps;
-      assert.strictEqual(steps[0].id, "analyze");
-      assert.strictEqual(steps[0].name, "Analyze Code");
-      assert.strictEqual(
-        steps[0].with?.prompt,
-        "Analyze the codebase structure",
-      );
-      assert.strictEqual(steps[0].with?.output_session, true); // Should output session for next step
+      expect(steps[0].id).toBe("analyze");
+      expect(steps[0].name).toBe("Analyze Code");
+      expect(steps[0].with?.prompt).toBe("Analyze the codebase structure");
+      expect(steps[0].with?.output_session).toBe(true); // Should output session for next step
 
-      assert.strictEqual(steps[1].id, "implement");
-      assert.strictEqual(steps[1].with?.model, "claude-3-5-sonnet-latest");
-      assert.strictEqual(
-        steps[1].with?.resume_session,
+      expect(steps[1].id).toBe("implement");
+      expect(steps[1].with?.model).toBe("claude-3-5-sonnet-latest");
+      expect(steps[1].with?.resume_session).toBe(
         "${{ steps.analyze.outputs.session_id }}",
       );
-      assert.strictEqual(steps[1].with?.output_session, true);
+      expect(steps[1].with?.output_session).toBe(true);
 
-      assert.strictEqual(steps[2].id, "test");
-      assert.strictEqual(
-        steps[2].with?.resume_session,
+      expect(steps[2].id).toBe("test");
+      expect(steps[2].with?.resume_session).toBe(
         "${{ steps.implement.outputs.session_id }}",
       );
-      assert.ok(!steps[2].with?.output_session); // Last step shouldn't output session
+      expect(steps[2].with?.output_session).toBeFalsy(); // Last step shouldn't output session
     });
   });
 
@@ -157,15 +158,15 @@ describe("PipelineService YAML Format", () => {
 
       // Now load it
       const workflow = await service.loadPipeline("load-test");
-      assert.ok(workflow, "Should load workflow");
+      expect(workflow).toBeTruthy(); // Should load workflow
       if (workflow) {
-        assert.strictEqual(workflow.name, "load-test");
+        expect(workflow.name).toBe("load-test");
 
         // Convert back to tasks
         const loadedTasks = service.workflowToTaskItems(workflow);
-        assert.strictEqual(loadedTasks.length, 1);
-        assert.strictEqual(loadedTasks[0].id, "task1");
-        assert.strictEqual(loadedTasks[0].prompt, "Do something");
+        expect(loadedTasks.length).toBe(1);
+        expect(loadedTasks[0].id).toBe("task1");
+        expect(loadedTasks[0].prompt).toBe("Do something");
       }
     });
   });
@@ -197,12 +198,12 @@ describe("PipelineService YAML Format", () => {
         true,
       );
       const workflow = await service.loadPipeline("convert-test");
-      assert.ok(workflow);
+      expect(workflow).toBeTruthy();
       if (workflow) {
         const convertedTasks = service.workflowToTaskItems(workflow);
-        assert.strictEqual(convertedTasks.length, 2);
-        assert.strictEqual(convertedTasks[0].resumePrevious, false);
-        assert.strictEqual(convertedTasks[1].resumePrevious, true);
+        expect(convertedTasks.length).toBe(2);
+        expect(convertedTasks[0].resumePrevious).toBe(false);
+        expect(convertedTasks[1].resumePrevious).toBe(true);
       }
     });
   });
@@ -226,8 +227,8 @@ describe("PipelineService YAML Format", () => {
       );
 
       const pipelines = await service.listPipelines();
-      assert.ok(pipelines.includes("list test 1"));
-      assert.ok(pipelines.includes("list test 2"));
+      expect(pipelines.includes("list test 1")).toBeTruthy();
+      expect(pipelines.includes("list test 2")).toBeTruthy();
     });
   });
 });

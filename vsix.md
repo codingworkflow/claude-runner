@@ -28,7 +28,7 @@ Start conversations with Claude directly in your VS Code terminal:
 - Persistent conversation sessions
 - Smart working directory integration
 
-![Quick start chat](https://raw.githubusercontent.com/codingworkflow/claude-runner/main/assets/marketplace/chat.png)
+![Quick start chat](https://raw.githubusercontent.com/codingworkflow/claude-runner/main/assets/chat.png)
 
 ### **Pipeline Workflows**
 
@@ -40,9 +40,9 @@ Create and execute sophisticated multi-step workflows:
 - Save and reuse pipelines
 - Format similar to Claude Code Github action
 
-![Create Pipeline](https://raw.githubusercontent.com/codingworkflow/claude-runner/main/assets/marketplace/pipeline.png)
+![Create Pipeline](https://raw.githubusercontent.com/codingworkflow/claude-runner/main/assets/pipeline.png)
 
-![Save Pipeline](https://raw.githubusercontent.com/codingworkflow/claude-runner/main/assets/marketplace/savepipeline.png)
+![Save Pipeline](https://raw.githubusercontent.com/codingworkflow/claude-runner/main/assets/savepipeline.png)
 
 ### **Usage Analytics & Cost Tracking**
 
@@ -53,9 +53,9 @@ Monitor your Claude usage with detailed analytics:
 - Daily/weekly/monthly breakdowns
 - Estimate user per 5 hours, set start window, max output
 
-![Usage Tracking](https://raw.githubusercontent.com/codingworkflow/claude-runner/main/assets/marketplace/usage.png)
+![Usage Tracking](https://raw.githubusercontent.com/codingworkflow/claude-runner/main/assets/usage.png)
 
-![Current Usage](https://raw.githubusercontent.com/codingworkflow/claude-runner/main/assets/marketplace/currentuse.png)
+![Current Usage](https://raw.githubusercontent.com/codingworkflow/claude-runner/main/assets/currentuse.png)
 
 ### **Access session logs**
 
@@ -63,9 +63,9 @@ View in vscode previous Claude code chats:
 
 - Browse sessions history
 
-![Conversation list](https://raw.githubusercontent.com/codingworkflow/claude-runner/main/assets/marketplace/logs.png)
+![Conversation list](https://raw.githubusercontent.com/codingworkflow/claude-runner/main/assets/logs.png)
 
-![Claude code session](https://raw.githubusercontent.com/codingworkflow/claude-runner/main/assets/marketplace/conversation.png)
+![Claude code session](https://raw.githubusercontent.com/codingworkflow/claude-runner/main/assets/conversation.png)
 
 ## Quick Start
 

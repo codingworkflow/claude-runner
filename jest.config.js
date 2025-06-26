@@ -20,6 +20,7 @@ module.exports = {
   moduleNameMapper: {
     "\\.(css|less|scss|sass)$": "identity-obj-proxy",
     "^vscode$": "<rootDir>/src/test/__mocks__/vscode.js",
+    "^sinon$": "<rootDir>/node_modules/sinon/lib/sinon.js",
   },
   setupFilesAfterEnv: ["<rootDir>/src/test/setup.ts"],
   collectCoverageFrom: ["src/**/*.{ts,tsx}", "!src/**/*.d.ts", "!src/test/**"],

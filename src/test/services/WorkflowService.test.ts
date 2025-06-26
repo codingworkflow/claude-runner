@@ -1,4 +1,4 @@
-import * as assert from "assert";
+import { describe, it, expect, beforeAll, afterAll } from "@jest/globals";
 import * as vscode from "vscode";
 import * as path from "path";
 import * as fs from "fs/promises";
@@ -16,7 +16,7 @@ describe("WorkflowService", () => {
   let service: WorkflowService;
   let tempDir: string;
 
-  before(async () => {
+  beforeAll(async () => {
     // Create temporary directory for tests
     tempDir = path.join("/tmp", "workflow-test-" + Date.now());
     await fs.mkdir(tempDir, { recursive: true });
@@ -29,7 +29,7 @@ describe("WorkflowService", () => {
     service = new WorkflowService(testWorkspaceFolder);
   });
 
-  after(async () => {
+  afterAll(async () => {
     // Clean up temp directory
     try {
       await fs.rm(tempDir, { recursive: true, force: true });
@@ -41,7 +41,7 @@ describe("WorkflowService", () => {
   describe("listWorkflows", () => {
     it("should return empty array when no workflows exist", async () => {
       const workflows = await service.listWorkflows();
-      assert.strictEqual(workflows.length, 0);
+      expect(workflows.length).toBe(0);
     });
 
     it("should list Claude workflows", async () => {
@@ -71,9 +71,9 @@ jobs:
       );
 
       const workflows = await service.listWorkflows();
-      assert.strictEqual(workflows.length, 1);
-      assert.strictEqual(workflows[0].id, "claude-test");
-      assert.strictEqual(workflows[0].name, "Claude Test Workflow");
+      expect(workflows.length).toBe(1);
+      expect(workflows[0].id).toBe("claude-test");
+      expect(workflows[0].name).toBe("Claude Test Workflow");
     });
   });
 
@@ -101,8 +101,8 @@ jobs:
       await service.saveWorkflow("claude-save-test", workflow);
       const loaded = await service.loadWorkflow("claude-save-test");
 
-      assert.strictEqual(loaded.name, workflow.name);
-      assert.deepStrictEqual(loaded.jobs, workflow.jobs);
+      expect(loaded.name).toBe(workflow.name);
+      expect(loaded.jobs).toEqual(workflow.jobs);
     });
   });
 
@@ -126,14 +126,18 @@ jobs:
 
       // Verify it exists
       const beforeDelete = await service.listWorkflows();
-      assert.ok(beforeDelete.some((w) => w.id === "claude-delete-test"));
+      expect(
+        beforeDelete.some((w) => w.id === "claude-delete-test"),
+      ).toBeTruthy();
 
       // Delete it
       await service.deleteWorkflow("claude-delete-test");
 
       // Verify it's gone
       const afterDelete = await service.listWorkflows();
-      assert.ok(!afterDelete.some((w) => w.id === "claude-delete-test"));
+      expect(
+        afterDelete.some((w) => w.id === "claude-delete-test"),
+      ).toBeFalsy();
     });
   });
 
@@ -155,11 +159,11 @@ jobs:
 
       const execution = service.createExecution(workflow, { task: "test" });
 
-      assert.strictEqual(execution.workflow, workflow);
-      assert.deepStrictEqual(execution.inputs, { task: "test" });
-      assert.deepStrictEqual(execution.outputs, {});
-      assert.strictEqual(execution.currentStep, 0);
-      assert.strictEqual(execution.status, "pending");
+      expect(execution.workflow).toBe(workflow);
+      expect(execution.inputs).toEqual({ task: "test" });
+      expect(execution.outputs).toEqual({});
+      expect(execution.currentStep).toBe(0);
+      expect(execution.status).toBe("pending");
     });
   });
 
@@ -193,13 +197,13 @@ jobs:
 
       const steps = service.getExecutionSteps(workflow);
 
-      assert.strictEqual(steps.length, 2);
-      assert.strictEqual(steps[0].jobName, "prepare");
-      assert.strictEqual(steps[0].step.id, "analyze");
-      assert.strictEqual(steps[0].index, 1);
-      assert.strictEqual(steps[1].jobName, "execute");
-      assert.strictEqual(steps[1].step.id, "implement");
-      assert.strictEqual(steps[1].index, 0);
+      expect(steps.length).toBe(2);
+      expect(steps[0].jobName).toBe("prepare");
+      expect(steps[0].step.id).toBe("analyze");
+      expect(steps[0].index).toBe(1);
+      expect(steps[1].jobName).toBe("execute");
+      expect(steps[1].step.id).toBe("implement");
+      expect(steps[1].index).toBe(0);
     });
   });
 
@@ -224,7 +228,9 @@ jobs:
         inputs: { task: "Refactor code" },
         outputs: {
           prev: {
-            session_id: "sess_abc123",
+            outputs: {
+              session_id: "sess_abc123",
+            },
           },
         },
         currentStep: 0,
@@ -233,9 +239,9 @@ jobs:
 
       const resolved = service.resolveStepVariables(step, execution);
 
-      assert.strictEqual(resolved.with.prompt, "Task: Refactor code");
-      assert.strictEqual(resolved.with.working_directory, "/project");
-      assert.strictEqual(resolved.with.resume_session, "sess_abc123");
+      expect(resolved.with.prompt).toBe("Task: Refactor code");
+      expect(resolved.with.working_directory).toBe("/project");
+      expect(resolved.with.resume_session).toBe("sess_abc123");
     });
   });
 
@@ -254,7 +260,7 @@ jobs:
         result: "Step completed",
       });
 
-      assert.deepStrictEqual(execution.outputs.step1, {
+      expect(execution.outputs.step1).toEqual({
         session_id: "sess_123",
         result: "Step completed",
       });
@@ -265,23 +271,23 @@ jobs:
     it("should create a valid sample workflow", () => {
       const sample = WorkflowService.createSampleWorkflow();
 
-      assert.strictEqual(sample.name, "Claude Development Workflow");
-      assert.ok(sample.on?.workflow_dispatch?.inputs?.task_description);
-      assert.ok(sample.jobs.development);
-      assert.strictEqual(sample.jobs.development.steps.length, 3);
+      expect(sample.name).toBe("Claude Development Workflow");
+      expect(
+        sample.on?.workflow_dispatch?.inputs?.task_description,
+      ).toBeTruthy();
+      expect(sample.jobs.development).toBeTruthy();
+      expect(sample.jobs.development.steps.length).toBe(3);
 
       // Verify step chaining
       const steps = sample.jobs.development.steps;
-      assert.strictEqual(steps[0].id, "analyze");
-      assert.strictEqual(steps[0].with?.output_session, true);
-      assert.strictEqual(steps[1].id, "implement");
-      assert.strictEqual(
-        steps[1].with?.resume_session,
+      expect(steps[0].id).toBe("analyze");
+      expect(steps[0].with?.output_session).toBe(true);
+      expect(steps[1].id).toBe("implement");
+      expect(steps[1].with?.resume_session).toBe(
         "${{ steps.analyze.outputs.session_id }}",
       );
-      assert.strictEqual(steps[2].id, "test");
-      assert.strictEqual(
-        steps[2].with?.resume_session,
+      expect(steps[2].id).toBe("test");
+      expect(steps[2].with?.resume_session).toBe(
         "${{ steps.implement.outputs.session_id }}",
       );
     });

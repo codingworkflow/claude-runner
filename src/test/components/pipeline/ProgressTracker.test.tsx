@@ -1,3 +1,4 @@
+import { describe, it, expect } from "@jest/globals";
 import React from "react";
 import { render } from "@testing-library/react";
 import ProgressTracker from "../../../components/pipeline/ProgressTracker";
@@ -38,12 +39,12 @@ describe("ProgressTracker", () => {
       />,
     );
 
-    expect(getByText("Pipeline Progress")).toBeInTheDocument();
-    expect(getByText("Task 1")).toBeInTheDocument();
-    expect(getByText("Completed")).toBeInTheDocument();
-    expect(getByText("Task 2")).toBeInTheDocument();
-    expect(getByText("Running...")).toBeInTheDocument();
-    expect(getByText("Task 3")).toBeInTheDocument();
-    expect(getByText("Pending")).toBeInTheDocument();
+    expect(getByText("Pipeline Progress")).toBeTruthy();
+    expect(getByText("Task 1")).toBeTruthy();
+    expect(getByText("✅ Completed")).toBeTruthy();
+    expect(getByText("Task 2")).toBeTruthy();
+    expect(getByText("⏳ Running...")).toBeTruthy();
+    expect(getByText("Task 3")).toBeTruthy();
+    expect(getByText("⏸️ Pending")).toBeTruthy();
   });
 });

@@ -198,30 +198,29 @@ describe("UsageReportService Aggregation", () => {
 
   describe("Optimization Logic", () => {
     it("should distinguish between current day and past days", () => {
-      const testToday = new Date("2025-06-20T15:00:00.000Z");
-      const testYesterday = new Date("2025-06-19T15:00:00.000Z");
-      const testTomorrow = new Date("2025-06-21T15:00:00.000Z");
+      const mockNow = Date.now();
+      // const testToday = new Date(mockNow); // Unused in this test
 
-      jest.spyOn(Date, "now").mockReturnValue(testToday.getTime());
+      jest.spyOn(Date, "now").mockReturnValue(mockNow);
 
-      // Create mock today date for comparison
-      const today = new Date();
+      // Create comparison dates based on the mocked time
+      const today = new Date(mockNow);
       today.setUTCHours(0, 0, 0, 0);
 
-      const yesterdayComparison = new Date(testYesterday);
-      yesterdayComparison.setUTCHours(0, 0, 0, 0);
+      const yesterday = new Date(mockNow - 24 * 60 * 60 * 1000);
+      yesterday.setUTCHours(0, 0, 0, 0);
 
-      const tomorrowComparison = new Date(testTomorrow);
-      tomorrowComparison.setUTCHours(0, 0, 0, 0);
+      const tomorrow = new Date(mockNow + 24 * 60 * 60 * 1000);
+      tomorrow.setUTCHours(0, 0, 0, 0);
 
       // Yesterday should be considered past (use daily aggregation)
-      expect(yesterdayComparison.getTime()).toBeLessThan(today.getTime());
+      expect(yesterday.getTime()).toBeLessThan(today.getTime());
 
       // Today should be considered current (use hourly files)
       expect(today.getTime()).toBe(today.getTime());
 
       // Tomorrow should be considered future
-      expect(tomorrowComparison.getTime()).toBeGreaterThan(today.getTime());
+      expect(tomorrow.getTime()).toBeGreaterThan(today.getTime());
     });
   });
 });

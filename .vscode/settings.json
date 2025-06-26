@@ -1,0 +1,5 @@
+{
+  "claudeRunner.defaultRootPath": "/workspace",
+  "claudeRunner.allowAllTools": true,
+  "claudeRunner.defaultModel": "auto"
+}
