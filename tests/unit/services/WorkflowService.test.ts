@@ -21,6 +21,7 @@ describe("WorkflowService", () => {
 
   beforeAll(async () => {
     // Create temporary directory for tests
+    // NOSONAR: /tmp is safe in test context for isolated test directories
     tempDir = path.join("/tmp", "workflow-test-" + Date.now());
     await fs.mkdir(tempDir, { recursive: true });
 

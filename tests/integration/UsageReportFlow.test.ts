@@ -18,6 +18,7 @@ const mockContext = {
   },
   // NOSONAR: /tmp is safe in test context for VSCode extension mock data
   extensionUri: { with: jest.fn(), fsPath: "/tmp/mock-extension" },
+  // NOSONAR: /tmp is safe in test context for VSCode extension mock data
   globalStorageUri: { fsPath: "/tmp/mock-global-storage" },
   subscriptions: [],
 } as unknown as vscode.ExtensionContext;

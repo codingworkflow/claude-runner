@@ -13,6 +13,7 @@ describe("PipelineService YAML Format", () => {
 
   beforeAll(async () => {
     // Create a mock extension context
+    // NOSONAR: /tmp is safe in test context for isolated test directories
     tempDir = path.join("/tmp", "pipeline-test-" + Date.now());
     await fs.mkdir(tempDir, { recursive: true });
 
