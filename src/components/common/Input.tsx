@@ -14,7 +14,7 @@ const Input: React.FC<InputProps> = ({
   id,
   ...props
 }) => {
-  // NOSONAR: Math.random() is safe for non-cryptographic HTML element IDs in VSCode extension
+  // NOSONAR S2245 - Math.random() is safe for non-cryptographic HTML element IDs in VSCode extension
   const inputId = id ?? `input-${Math.random().toString(36).substring(2, 11)}`;
 
   return (

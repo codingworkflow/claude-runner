@@ -525,6 +525,7 @@ export class RunnerController implements EventBus {
 
     // Ensure unique ID
     if (!newTask.id || tasks.find((t) => t.id === newTask.id)) {
+      // NOSONAR S2245 - Math.random() is safe for non-cryptographic task IDs in VSCode extension
       newTask.id = `task_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     }
 

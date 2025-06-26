@@ -47,6 +47,7 @@ const PipelinePanel: React.FC<PipelinePanelProps> = ({ disabled }) => {
         : tasks.length + 1;
 
     const newTask: TaskItem = {
+      // NOSONAR S2245 - Math.random() is safe for non-cryptographic task IDs in VSCode extension
       id: `task_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       name: `Task ${nextNumber}`,
       prompt: "",
