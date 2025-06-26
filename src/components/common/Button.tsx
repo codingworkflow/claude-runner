@@ -2,21 +2,19 @@ import React from "react";
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: "primary" | "secondary" | "success" | "error";
-  size?: "sm" | "md";
   loading?: boolean;
   children: React.ReactNode;
 }
 
 const Button: React.FC<ButtonProps> = ({
   variant = "primary",
-  size = "md",
   loading = false,
   disabled,
   children,
   className = "",
   ...props
 }) => {
-  const classes = `${variant} ${size} ${className}`;
+  const classes = `${variant} ${className}`;
 
   return (
     <button className={classes} disabled={disabled ?? loading} {...props}>

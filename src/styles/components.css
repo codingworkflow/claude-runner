@@ -5,11 +5,10 @@ button {
   border: none;
   border-radius: 2px;
   cursor: pointer;
-  padding: 4px 10px;
+  padding: 4px 8px;
   background-color: var(--vscode-button-background);
   color: var(--vscode-button-foreground);
-  min-height: 22px;
-  line-height: 1;
+  line-height: 1.2;
 }
 
 button:hover:not(:disabled) {
@@ -48,7 +47,7 @@ select {
   color: var(--vscode-input-foreground);
   border: 1px solid var(--vscode-input-border);
   border-radius: 2px;
-  min-height: 22px;
+  line-height: 1.2;
 }
 
 input[type="text"]:focus,
@@ -66,8 +65,8 @@ select:focus {
 
 .form-label {
   display: block;
-  margin-bottom: 2px;
-  font-size: 0.9em;
+  margin-bottom: 4px;
+  font-size: var(--vscode-font-size);
   color: var(--vscode-foreground);
 }
 
@@ -212,28 +211,17 @@ select:focus {
   resize: vertical;
   font-family: var(--vscode-font-family);
   font-size: var(--vscode-font-size);
-  padding: 6px 8px;
+  padding: 4px 6px;
   background-color: var(--vscode-input-background);
   color: var(--vscode-input-foreground);
   border: 1px solid var(--vscode-input-border);
   border-radius: 2px;
+  line-height: 1.2;
 }
 
 .prompt-textarea:focus {
   outline: 1px solid var(--vscode-focusBorder);
   outline-offset: -1px;
-}
-
-/* Size variants for buttons */
-button.sm {
-  padding: 2px 8px;
-  font-size: 0.9em;
-  min-height: 20px;
-}
-
-button.md {
-  padding: 4px 10px;
-  min-height: 22px;
 }
 
 /* Button layout consistency */
@@ -278,7 +266,7 @@ button.md {
 }
 
 .input-group label {
-  font-size: 0.9em;
+  font-size: var(--vscode-font-size);
   color: var(--vscode-foreground);
 }
 
@@ -287,7 +275,7 @@ button.md {
 }
 
 .input-error {
-  font-size: 0.85em;
+  font-size: var(--vscode-font-size);
   color: var(--vscode-errorForeground);
   margin-top: 2px;
 }

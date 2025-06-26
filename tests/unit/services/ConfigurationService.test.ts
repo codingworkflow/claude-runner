@@ -1,7 +1,7 @@
 import { jest, describe, it, beforeEach, expect } from "@jest/globals";
-import { ConfigurationService } from "../../services/ConfigurationService";
+import { ConfigurationService } from "../../../src/services/ConfigurationService";
 
-// Mock vscode module
+// Mock vscode module with default config values
 jest.mock(
   "vscode",
   () => ({

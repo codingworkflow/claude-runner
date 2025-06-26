@@ -61,33 +61,21 @@ p {
   display: flex;
 }
 
-.flex-col {
-  flex-direction: column;
-}
-
 .items-center {
   align-items: center;
-}
-
-.justify-between {
-  justify-content: space-between;
 }
 
 .gap-2 {
   gap: 8px;
 }
 
-.gap-3 {
-  gap: 12px;
-}
-
 /* Text utilities */
 .text-sm {
-  font-size: 0.9em;
+  font-size: var(--vscode-font-size);
 }
 
 .text-xs {
-  font-size: 0.85em;
+  font-size: var(--vscode-font-size);
 }
 
 .font-medium {
@@ -111,14 +99,10 @@ p {
   margin-top: 12px;
 }
 
-.mt-3 {
-  margin-top: 8px;
-}
-
 /* Help text */
 .help-text {
   margin-top: 10px;
-  font-size: 0.9em;
+  font-size: var(--vscode-font-size);
   color: var(--vscode-descriptionForeground);
   line-height: 1.4;
 }
@@ -129,5 +113,5 @@ p {
   padding: 2px 4px;
   border-radius: 3px;
   font-family: var(--vscode-editor-font-family);
-  font-size: 0.85em;
+  font-size: var(--vscode-font-size);
 }

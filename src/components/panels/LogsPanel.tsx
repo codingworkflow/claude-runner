@@ -232,7 +232,7 @@ const LogsPanel: React.FC<LogsPanelProps> = ({ disabled = false }) => {
           /* Show project selection and conversation list when no conversation is selected */
           <div className="conversation-list-view">
             {/* Project Selection */}
-            <div className="logs-section">
+            <div className="project-selection">
               {projectsError && (
                 <div className="error-message">Error: {projectsError}</div>
               )}
@@ -260,7 +260,7 @@ const LogsPanel: React.FC<LogsPanelProps> = ({ disabled = false }) => {
 
             {/* Conversation List - Full height, no scroll box */}
             {selectedProject && (
-              <div className="logs-section">
+              <div className="conversations-section">
                 <div className="section-header">
                   <h4>Conversations</h4>
                 </div>

@@ -1,4 +1,4 @@
-.PHONY: setup build build-vsix watch package clean test lint dev install-local install-devcontainer help validate dev-prepare dev-install uninstall-extension get-extension-id version-patch version-minor version-major sync-version sonar scan-secrets generate-icons prepare-marketplace
+.PHONY: setup build build-vsix watch package clean test test-coverage lint dev install-local install-devcontainer help validate dev-prepare dev-install uninstall-extension get-extension-id version-patch version-minor version-major sync-version sonar scan-secrets generate-icons prepare-marketplace analyze-css cleanup-css cleanup-css-auto
 
 # Default target - show help
 help:
@@ -11,6 +11,7 @@ help:
 	@echo "  make dev           - Start development mode (alias for watch)"
 	@echo "  make clean         - Remove build artifacts"
 	@echo "  make test          - Run tests"
+	@echo "  make test-coverage - Run tests with coverage report"
 	@echo "  make test-watch    - Run tests in watch mode"
 	@echo "  make lint          - Run ESLint and fix issues"
 	@echo "  make validate      - Run tests and linting"
@@ -32,6 +33,11 @@ help:
 	@echo "Assets:"
 	@echo "  make generate-icons    - Generate VSCode extension icons from logo"
 	@echo "  make prepare-marketplace - Prepare assets and README for marketplace"
+	@echo ""
+	@echo "CSS Analysis:"
+	@echo "  make analyze-css       - Analyze CSS usage and detect unused styles"
+	@echo "  make cleanup-css       - Show CSS cleanup plan"
+	@echo "  make cleanup-css-auto  - Auto-remove safe unused CSS rules"
 
 # Install dependencies
 setup:
@@ -101,6 +107,11 @@ clean:
 test:
 	@echo "🧪 Running tests..."
 	@npm run test
+
+# Run tests with coverage
+test-coverage:
+	@echo "🧪 Running tests with coverage..."
+	@npm run test:unit:coverage
 
 # Run tests in watch mode
 test-watch:
@@ -246,15 +257,21 @@ version-major:
 
 # SonarQube Analysis
 sonar:
-	@echo "📋 Loading SonarQube configuration..."
+	@echo "📋 Running test coverage before SonarQube analysis..."
+	@npm run test:unit:coverage || true
+	@echo "📋 Starting SonarQube analysis with coverage data..."
+	@if [ ! -f coverage/lcov.info ]; then \
+		echo "⚠️  No coverage data found. Running tests again..."; \
+		npm run test:unit:coverage || true; \
+	fi
 	@export $$(cat .sonar | xargs) && \
+	PROJECT_VERSION=$$(cat VERSION) && \
 	sonar-scanner \
-		-Dsonar.projectKey=claude-runner \
-		-Dsonar.sources=. \
-		-Dsonar.exclusions="node_modules/**,dist/**,out/**,coverage/**,.vscode/**,.husky/**,scripts/**" \
+		-Dsonar.projectVersion=$$PROJECT_VERSION \
 		-Dsonar.host.url=$$SONAR_HOST_URL \
-		-Dsonar.login=$$SONAR_LOGIN
+		-Dsonar.token=$$SONAR_TOKEN
 	@echo "✅ SonarQube analysis completed"
+	@echo "📊 Coverage and code quality metrics sent to SonarQube"
 
 # Secrets Scanning
 scan-secrets:
@@ -267,3 +284,20 @@ prepare-marketplace:
 	@echo "📦 Preparing marketplace assets and README..."
 	@node scripts/prepare-marketplace.js
 	@echo "✅ Marketplace preparation completed"
+
+# CSS Analysis
+analyze-css:
+	@echo "🔍 Analyzing CSS usage and detecting unused styles..."
+	@npm run analyze-css
+	@echo "✅ CSS analysis completed"
+
+cleanup-css:
+	@echo "🧹 Generating CSS cleanup plan..."
+	@npm run cleanup-css
+	@echo "✅ CSS cleanup plan generated"
+
+cleanup-css-auto:
+	@echo "🧹 Auto-removing safe unused CSS rules..."
+	@npm run cleanup-css:auto
+	@echo "✅ Safe CSS cleanup completed"
+	@echo "📊 Run 'make analyze-css' to see updated results"

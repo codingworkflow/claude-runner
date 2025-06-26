@@ -9,7 +9,16 @@ import { PipelineService } from "../services/PipelineService";
 import { UsageReportService } from "../services/UsageReportService";
 import { ClaudeVersionService } from "../services/ClaudeVersionService";
 import { LogsService } from "../services/LogsService";
-import { MessageRouter, getWebviewHtml } from "../components/webview";
+import { MessageRouter } from "../components/webview";
+import {
+  setupWebviewHtml,
+  createWebviewCompatibleView,
+} from "../utils/webviewHelpers";
+import { handleUnexpectedError } from "../utils/errorHandlers";
+import {
+  createDataHandler,
+  createErrorHandler,
+} from "../utils/responseHandlers";
 
 interface CommandFile {
   name: string;
@@ -53,16 +62,38 @@ export class ClaudeRunnerPanel implements vscode.WebviewViewProvider {
 
     // Set up callbacks for data that needs to be sent back to webview
     this.controller.setCallbacks({
-      onUsageReportData: (data) => this.handleUsageReportResponse(data),
-      onUsageReportError: (error) => this.handleUsageReportError(error),
-      onLogProjectsData: (data) => this.handleLogProjectsResponse(data),
-      onLogProjectsError: (error) => this.handleLogProjectsError(error),
-      onLogConversationsData: (data) =>
-        this.handleLogConversationsResponse(data),
-      onLogConversationsError: (error) =>
-        this.handleLogConversationsError(error),
-      onLogConversationData: (data) => this.handleLogConversationResponse(data),
-      onLogConversationError: (error) => this.handleLogConversationError(error),
+      onUsageReportData: createDataHandler(
+        "usageReport",
+        this.postMessage.bind(this),
+      ),
+      onUsageReportError: createErrorHandler(
+        "usageReport",
+        this.postMessage.bind(this),
+      ),
+      onLogProjectsData: createDataHandler(
+        "logProjects",
+        this.postMessage.bind(this),
+      ),
+      onLogProjectsError: createErrorHandler(
+        "logProjects",
+        this.postMessage.bind(this),
+      ),
+      onLogConversationsData: createDataHandler(
+        "logConversations",
+        this.postMessage.bind(this),
+      ),
+      onLogConversationsError: createErrorHandler(
+        "logConversations",
+        this.postMessage.bind(this),
+      ),
+      onLogConversationData: createDataHandler(
+        "logConversation",
+        this.postMessage.bind(this),
+      ),
+      onLogConversationError: createErrorHandler(
+        "logConversation",
+        this.postMessage.bind(this),
+      ),
       onCommandScanResult: (data) => this.handleCommandScanResult(data),
     });
 
@@ -80,110 +111,47 @@ export class ClaudeRunnerPanel implements vscode.WebviewViewProvider {
     _context: vscode.WebviewViewResolveContext,
     _token: vscode.CancellationToken,
   ) {
-    this._view = webviewView;
-
-    webviewView.webview.options = {
-      enableScripts: true,
-      localResourceRoots: [
-        this.context.extensionUri,
-        vscode.Uri.joinPath(this.context.extensionUri, "dist"),
-      ],
-    };
-
-    webviewView.webview.html = getWebviewHtml(
-      webviewView.webview,
-      this.context.extensionUri,
-      "main",
-    );
-
-    // Handle messages from the webview
-    webviewView.webview.onDidReceiveMessage(
-      async (message) => {
-        try {
-          const messageRouter = new MessageRouter();
-          const command = messageRouter.fromLegacyMessage(message);
-          this.controller.send(command);
-        } catch (error) {
-          console.error("[ClaudeRunner] Unhandled message error:", error);
-          // Send error to webview to prevent UI freezing
-          this.postMessage({
-            command: "error",
-            error:
-              error instanceof Error ? error.message : "Unknown error occurred",
-          });
-
-          // Show notification to user
-          vscode.window.showErrorMessage(
-            `Claude Runner encountered an error: ${error instanceof Error ? error.message : "Unknown error"}`,
-          );
-        }
-      },
-      undefined,
-      this.context.subscriptions,
-    );
-
-    // Subscribe to state changes
-    this.stateSubscription = this.controller.state$.subscribe((state) => {
-      this.updateWebview(state);
-    });
+    this.setupWebview(webviewView);
   }
 
   public resolveWebviewPanel(webviewPanel: vscode.WebviewPanel) {
-    // Create a minimal WebviewView-compatible object to reuse existing logic
-    const webviewView = {
-      webview: webviewPanel.webview,
-      onDidChangeVisibility: webviewPanel.onDidChangeViewState,
-      onDidDispose: webviewPanel.onDidDispose,
-      visible: webviewPanel.visible,
-      show: () => webviewPanel.reveal(),
-      title: webviewPanel.title,
-      viewType: "claude-runner-editor",
-    } as unknown as vscode.WebviewView;
+    const webviewView = createWebviewCompatibleView(webviewPanel);
+    this.setupWebview(webviewView);
+  }
 
-    // Set up the webview using existing logic
+  private setupWebview(webviewView: vscode.WebviewView): void {
     this._view = webviewView;
 
-    webviewPanel.webview.options = {
-      enableScripts: true,
-      localResourceRoots: [
-        this.context.extensionUri,
-        vscode.Uri.joinPath(this.context.extensionUri, "dist"),
-      ],
-    };
+    setupWebviewHtml({
+      webview: webviewView.webview,
+      extensionUri: this.context.extensionUri,
+      viewType: "main",
+    });
 
-    webviewPanel.webview.html = getWebviewHtml(
-      webviewPanel.webview,
-      this.context.extensionUri,
-      "main",
-    );
+    this.setupMessageHandling(webviewView.webview);
+    this.subscribeToStateChanges();
+  }
 
-    // Handle messages from the webview
-    webviewPanel.webview.onDidReceiveMessage(
+  private setupMessageHandling(webview: vscode.Webview): void {
+    webview.onDidReceiveMessage(
       async (message) => {
         try {
           const messageRouter = new MessageRouter();
           const command = messageRouter.fromLegacyMessage(message);
           this.controller.send(command);
         } catch (error) {
-          console.error("[ClaudeRunner] Unhandled message error:", error);
-          // Send error to webview to prevent UI freezing
-          this.postMessage({
-            command: "error",
-            error:
-              error instanceof Error ? error.message : "Unknown error occurred",
+          handleUnexpectedError(error, {
+            source: "ClaudeRunner",
+            postMessage: this.postMessage.bind(this),
           });
-
-          // Show notification to user
-          vscode.window.showErrorMessage(
-            `Claude Runner encountered an error: ${error instanceof Error ? error.message : "Unknown error"}`,
-          );
         }
       },
       undefined,
       this.context.subscriptions,
     );
+  }
 
-    // Subscribe to state changes
+  private subscribeToStateChanges(): void {
     this.stateSubscription = this.controller.state$.subscribe((state) => {
       this.updateWebview(state);
     });
@@ -205,63 +173,6 @@ export class ClaudeRunnerPanel implements vscode.WebviewViewProvider {
 
   private postMessage(message: Record<string, unknown>): void {
     this._view?.webview.postMessage(message);
-  }
-
-  // Special handler for usage reports that need to send data back to webview
-  private handleUsageReportResponse(data: unknown): void {
-    this.postMessage({
-      command: "usageReportData",
-      data: data,
-    });
-  }
-
-  private handleUsageReportError(error: string): void {
-    this.postMessage({
-      command: "usageReportError",
-      error: error,
-    });
-  }
-
-  private handleLogProjectsResponse(data: unknown): void {
-    this.postMessage({
-      command: "logProjectsData",
-      data: data,
-    });
-  }
-
-  private handleLogProjectsError(error: string): void {
-    this.postMessage({
-      command: "logProjectsError",
-      error: error,
-    });
-  }
-
-  private handleLogConversationsResponse(data: unknown): void {
-    this.postMessage({
-      command: "logConversationsData",
-      data: data,
-    });
-  }
-
-  private handleLogConversationsError(error: string): void {
-    this.postMessage({
-      command: "logConversationsError",
-      error: error,
-    });
-  }
-
-  private handleLogConversationResponse(data: unknown): void {
-    this.postMessage({
-      command: "logConversationData",
-      data: data,
-    });
-  }
-
-  private handleLogConversationError(error: string): void {
-    this.postMessage({
-      command: "logConversationError",
-      error: error,
-    });
   }
 
   private handleCommandScanResult(data: {

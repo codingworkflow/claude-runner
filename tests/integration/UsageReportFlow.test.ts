@@ -16,6 +16,7 @@ const mockContext = {
     get: jest.fn().mockReturnValue(undefined),
     update: jest.fn(),
   },
+  // NOSONAR: /tmp is safe in test context for VSCode extension mock data
   extensionUri: { with: jest.fn(), fsPath: "/tmp/mock-extension" },
   globalStorageUri: { fsPath: "/tmp/mock-global-storage" },
   subscriptions: [],
@@ -254,7 +255,7 @@ describe("Usage Report Integration Flow", () => {
 
       // Unknown commands trigger error logging via the error path
       expect(consoleErrorSpy).toHaveBeenCalledWith(
-        "[ClaudeRunner] Unhandled message error:",
+        "[ClaudeRunner] Unhandled error:",
         expect.any(Error),
       );
       // System should send error message to webview

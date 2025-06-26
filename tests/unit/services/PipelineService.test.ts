@@ -2,9 +2,9 @@ import { describe, it, expect, beforeAll, afterAll } from "@jest/globals";
 import * as vscode from "vscode";
 import * as path from "path";
 import * as fs from "fs/promises";
-import { PipelineService } from "../../services/PipelineService";
-import { TaskItem } from "../../services/ClaudeCodeService";
-import { WorkflowParser } from "../../services/WorkflowParser";
+import { PipelineService } from "../../../src/services/PipelineService";
+import { TaskItem } from "../../../src/services/ClaudeCodeService";
+import { WorkflowParser } from "../../../src/services/WorkflowParser";
 
 describe("PipelineService YAML Format", () => {
   let service: PipelineService;

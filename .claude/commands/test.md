@@ -1,1 +1,8 @@
-Run unit tests and integration and ensure they pass.
+Run unit tests
+Use
+
+````
+make test
+```
+Ensure they pass.  Double check any error.
+````

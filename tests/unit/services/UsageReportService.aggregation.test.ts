@@ -1,5 +1,5 @@
 import { jest, describe, it, beforeEach, expect } from "@jest/globals";
-import { UsageReportService } from "../../services/UsageReportService";
+import { UsageReportService } from "../../../src/services/UsageReportService";
 
 // Mock fetch for pricing data
 (global as any).fetch = jest.fn(() =>

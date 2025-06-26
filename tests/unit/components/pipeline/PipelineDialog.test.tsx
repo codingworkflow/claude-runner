@@ -1,7 +1,7 @@
 import { describe, it, expect, jest } from "@jest/globals";
 import React from "react";
 import { render, fireEvent } from "@testing-library/react";
-import PipelineDialog from "../../../components/pipeline/PipelineDialog";
+import PipelineDialog from "../../../../src/components/pipeline/PipelineDialog";
 
 describe("PipelineDialog", () => {
   it("renders the pipeline dialog", () => {

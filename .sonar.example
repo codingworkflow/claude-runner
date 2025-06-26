@@ -1,4 +1,4 @@
 # SonarQube Configuration
 # Copy this file to .sonar and replace with your actual values
 SONAR_HOST_URL=https://sonarqube.114.be.tn
-SONAR_LOGIN=your-sonar-token-here
+SONAR_TOKEN=your-sonar-token-here

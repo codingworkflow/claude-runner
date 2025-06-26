@@ -52,7 +52,6 @@ const ParallelTasksConfig: React.FC<ParallelTasksConfigProps> = ({
           </select>
           <Button
             variant="secondary"
-            size="sm"
             onClick={handleUpdateParallelTasksCount}
             disabled={disabled || loading || localValue === parallelTasksCount}
             loading={loading}

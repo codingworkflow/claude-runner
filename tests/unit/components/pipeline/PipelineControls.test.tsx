@@ -1,7 +1,7 @@
 import { describe, it, expect, jest } from "@jest/globals";
 import React from "react";
 import { render, fireEvent } from "@testing-library/react";
-import PipelineControls from "../../../components/pipeline/PipelineControls";
+import PipelineControls from "../../../../src/components/pipeline/PipelineControls";
 
 describe("PipelineControls", () => {
   it("renders the pipeline controls", () => {

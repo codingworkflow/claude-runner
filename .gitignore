@@ -72,3 +72,6 @@ webview.css.map
 .scannerwork/
 .sonar
 !.vscode/settings.json
+
+# CSS Analysis Reports
+css-analysis-report.json

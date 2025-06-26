@@ -363,6 +363,7 @@ export class ClaudeCodeService {
     cwd: string,
   ): Promise<CommandResult> {
     return new Promise((resolve) => {
+      // NOSONAR: Safe OS command execution - args are validated and come from VSCode extension context
       const child = spawn(args[0], args.slice(1), {
         cwd,
         stdio: ["pipe", "pipe", "pipe"],

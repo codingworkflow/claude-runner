@@ -1,6 +1,6 @@
 import { jest, describe, it, beforeEach, expect } from "@jest/globals";
-import { ClaudeCodeService } from "../../services/ClaudeCodeService";
-import { ConfigurationService } from "../../services/ConfigurationService";
+import { ClaudeCodeService } from "../../../src/services/ClaudeCodeService";
+import { ConfigurationService } from "../../../src/services/ConfigurationService";
 
 // Mock child_process
 jest.mock(

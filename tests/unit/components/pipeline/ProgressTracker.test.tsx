@@ -1,8 +1,8 @@
 import { describe, it, expect } from "@jest/globals";
 import React from "react";
 import { render } from "@testing-library/react";
-import ProgressTracker from "../../../components/pipeline/ProgressTracker";
-import { TaskItem } from "../../../services/ClaudeCodeService";
+import ProgressTracker from "../../../../src/components/pipeline/ProgressTracker";
+import { TaskItem } from "../../../../src/services/ClaudeCodeService";
 
 describe("ProgressTracker", () => {
   const tasks: TaskItem[] = [

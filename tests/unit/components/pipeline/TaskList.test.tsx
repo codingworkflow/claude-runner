@@ -1,9 +1,12 @@
 import { describe, it, expect, jest } from "@jest/globals";
 import React from "react";
 import { render, fireEvent } from "@testing-library/react";
-import TaskList from "../../../components/pipeline/TaskList";
-import { TaskItem } from "../../../services/ClaudeCodeService";
-import { DEFAULT_MODEL, getModelIds } from "../../../models/ClaudeModels";
+import TaskList from "../../../../src/components/pipeline/TaskList";
+import { TaskItem } from "../../../../src/services/ClaudeCodeService";
+import {
+  DEFAULT_MODEL,
+  getModelIds,
+} from "../../../../src/models/ClaudeModels";
 
 describe("TaskList", () => {
   const tasks: TaskItem[] = [

@@ -1,6 +1,6 @@
 import { describe, it, expect } from "@jest/globals";
-import { WorkflowParser } from "../../services/WorkflowParser";
-import { ClaudeWorkflow } from "../../types/WorkflowTypes";
+import { WorkflowParser } from "../../../src/services/WorkflowParser";
+import { ClaudeWorkflow } from "../../../src/types/WorkflowTypes";
 
 describe("WorkflowParser", () => {
   describe("parseYaml", () => {

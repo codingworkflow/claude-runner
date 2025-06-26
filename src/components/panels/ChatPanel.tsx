@@ -71,7 +71,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ disabled }) => {
                 <div className="button-group">
                   <Button
                     variant="secondary"
-                    size="sm"
                     onClick={() => actions.updateShowChatPrompt(true)}
                     disabled={disabled}
                   >
@@ -83,7 +82,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ disabled }) => {
                   <div className="button-group">
                     <Button
                       variant="secondary"
-                      size="sm"
                       onClick={() => {
                         actions.updateShowChatPrompt(false);
                         actions.updateChatPrompt("");

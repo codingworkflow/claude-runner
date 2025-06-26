@@ -2,8 +2,11 @@ import { describe, it, expect, beforeAll, afterAll } from "@jest/globals";
 import * as vscode from "vscode";
 import * as path from "path";
 import * as fs from "fs/promises";
-import { WorkflowService } from "../../services/WorkflowService";
-import { ClaudeWorkflow, WorkflowExecution } from "../../types/WorkflowTypes";
+import { WorkflowService } from "../../../src/services/WorkflowService";
+import {
+  ClaudeWorkflow,
+  WorkflowExecution,
+} from "../../../src/types/WorkflowTypes";
 
 // Mock workspace folder
 const mockWorkspaceFolder: vscode.WorkspaceFolder = {

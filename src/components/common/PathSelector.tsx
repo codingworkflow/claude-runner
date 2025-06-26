@@ -38,7 +38,6 @@ const PathSelector: React.FC<PathSelectorProps> = ({
         />
         <Button
           variant="secondary"
-          size="sm"
           onClick={handleBrowseFolder}
           disabled={disabled}
           className="browse-button"

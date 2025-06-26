@@ -85,29 +85,31 @@
   border-color: var(--vscode-focusBorder);
 }
 
-.command-info {
+.command-header {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
-  flex: 1;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
 }
 
 .command-name {
   font-weight: 600;
   color: var(--vscode-foreground);
   font-family: var(--vscode-editor-font-family);
+  flex: 1;
 }
 
 .command-description {
   font-size: 0.85em;
   color: var(--vscode-descriptionForeground);
   font-style: italic;
+  margin-top: 4px;
 }
 
 .command-actions {
   display: flex;
   gap: 6px;
-  margin-top: 8px;
+  flex-shrink: 0;
 }
 
 .no-commands {
@@ -430,11 +432,12 @@
   gap: 16px;
 }
 
-.logs-section {
-  border: 1px solid var(--vscode-panel-border);
-  border-radius: 4px;
-  padding: 12px;
-  background-color: var(--vscode-editor-background);
+.project-selection {
+  margin-bottom: 16px;
+}
+
+.conversations-section {
+  /* No border or background - clean layout */
 }
 
 .section-header {

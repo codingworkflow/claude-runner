@@ -1,7 +1,9 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect } from "react";
 import Button from "../common/Button";
-import { useExtension } from "../../contexts/ExtensionContext";
-import { CommandFile } from "../../contexts/ExtensionContext";
+import CommandForm from "../common/CommandForm";
+import CommandList from "../common/CommandList";
+import { useExtension, CommandFile } from "../../contexts/ExtensionContext";
+import { useCommandForm } from "../../hooks/useCommandForm";
 
 interface CommandsPanelProps {
   disabled: boolean;
@@ -13,8 +15,12 @@ const CommandsPanel: React.FC<CommandsPanelProps> = ({ disabled }) => {
   const { activeTab, globalCommands, projectCommands, loading, rootPath } =
     commands;
 
-  const [showAddForm, setShowAddForm] = useState(false);
-  const [newCommandName, setNewCommandName] = useState("");
+  const commandForm = useCommandForm({
+    onSubmit: (name) => {
+      const isGlobal = activeTab === "global";
+      actions.createCommand(name, isGlobal, rootPath);
+    },
+  });
 
   useEffect(() => {
     actions.scanCommands(rootPath);
@@ -26,24 +32,6 @@ const CommandsPanel: React.FC<CommandsPanelProps> = ({ disabled }) => {
 
   const handleEdit = (command: CommandFile) => {
     actions.openFile(command.path);
-  };
-
-  const handleAddCommand = () => {
-    if (!newCommandName.trim()) {
-      return;
-    }
-
-    const isGlobal = activeTab === "global";
-    actions.createCommand(newCommandName.trim(), isGlobal, rootPath);
-
-    // Reset form
-    setNewCommandName("");
-    setShowAddForm(false);
-  };
-
-  const handleCancelAdd = () => {
-    setNewCommandName("");
-    setShowAddForm(false);
   };
 
   const handleDeleteCommand = (command: CommandFile) => {
@@ -95,8 +83,7 @@ const CommandsPanel: React.FC<CommandsPanelProps> = ({ disabled }) => {
           {canAdd && (
             <Button
               variant="secondary"
-              size="sm"
-              onClick={() => setShowAddForm(true)}
+              onClick={commandForm.showAddForm}
               disabled={disabled}
             >
               Add
@@ -104,7 +91,6 @@ const CommandsPanel: React.FC<CommandsPanelProps> = ({ disabled }) => {
           )}
           <Button
             variant="secondary"
-            size="sm"
             onClick={handleRefresh}
             disabled={disabled}
           >
@@ -114,78 +100,29 @@ const CommandsPanel: React.FC<CommandsPanelProps> = ({ disabled }) => {
       </div>
 
       {/* Add Command Form */}
-      {showAddForm && (
-        <div className="add-command-form">
-          <input
-            type="text"
-            placeholder="Enter command name"
-            value={newCommandName}
-            onChange={(e) => setNewCommandName(e.target.value)}
-            onKeyPress={(e) => e.key === "Enter" && handleAddCommand()}
-            disabled={disabled}
-            autoFocus
-          />
-          <div className="form-actions">
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={handleAddCommand}
-              disabled={disabled || !newCommandName.trim()}
-            >
-              Create
-            </Button>
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={handleCancelAdd}
-              disabled={disabled}
-            >
-              Cancel
-            </Button>
-          </div>
-        </div>
+      {commandForm.showForm && (
+        <CommandForm
+          value={commandForm.commandName}
+          onChange={commandForm.setCommandName}
+          onSubmit={commandForm.handleSubmit}
+          onCancel={commandForm.handleCancel}
+          disabled={disabled}
+          placeholder="Enter command name"
+        />
       )}
 
       {/* Commands List */}
       <div className="command-list-container">
         {activeTab === "project" && !rootPath ? (
           <div className="no-workspace">No workspace selected</div>
-        ) : currentCommands.length > 0 ? (
-          <div className="command-list">
-            {currentCommands.map((cmd) => (
-              <div key={cmd.name} className="command-item">
-                <div className="command-info">
-                  <span className="command-name">{cmd.name}</span>
-                  {cmd.description && (
-                    <span className="command-description">
-                      {cmd.description}
-                    </span>
-                  )}
-                </div>
-                <div className="command-actions">
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => handleEdit(cmd)}
-                    disabled={disabled}
-                  >
-                    Edit
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => handleDeleteCommand(cmd)}
-                    disabled={disabled}
-                    title="Delete command"
-                  >
-                    🗑️
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </div>
         ) : (
-          <div className="no-commands">No {activeTab} commands found</div>
+          <CommandList
+            commands={currentCommands}
+            onEdit={handleEdit}
+            onDelete={handleDeleteCommand}
+            disabled={disabled}
+            emptyMessage={`No ${activeTab} commands found`}
+          />
         )}
       </div>
     </div>
