@@ -121,17 +121,20 @@ suite("Main Window Load Test", () => {
       for (const tab of group.tabs) {
         // eslint-disable-next-line no-console
         console.log(
-          `  Tab: "${tab.label}", input type: ${(tab.input as any)?.constructor?.name}`,
+          `  Tab: "${tab.label}", input type: ${(tab.input as { constructor?: { name: string } })?.constructor?.name}`,
         );
 
         // Check for Claude Runner in different ways
         if (
           tab.label?.includes("Claude Runner") ||
           tab.label?.includes("claude-runner") ||
-          (tab.input as any)?.viewType === "claude-runner.mainView" ||
-          (tab.input as any)?.viewId === "claude-runner.mainView"
+          (tab.input as { viewType?: string })?.viewType ===
+            "claude-runner.mainView" ||
+          (tab.input as { viewId?: string })?.viewId ===
+            "claude-runner.mainView"
         ) {
           claudePanelFound = true;
+          // eslint-disable-next-line no-console
           console.log(`✓ Found Claude Runner panel: ${tab.label}`);
           break;
         }

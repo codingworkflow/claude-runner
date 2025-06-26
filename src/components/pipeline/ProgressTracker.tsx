@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { TaskItem } from "../../services/ClaudeCodeService";
 
 interface ProgressTrackerProps {
@@ -6,6 +6,32 @@ interface ProgressTrackerProps {
   isTasksRunning: boolean;
   currentTaskIndex?: number;
 }
+
+const CountdownTimer: React.FC<{ targetTime: number }> = ({ targetTime }) => {
+  const [timeLeft, setTimeLeft] = useState<string>("");
+
+  useEffect(() => {
+    const updateCountdown = () => {
+      const now = Date.now();
+      const diff = targetTime - now;
+
+      if (diff <= 0) {
+        setTimeLeft("Ready to resume");
+        return;
+      }
+
+      const minutes = Math.floor(diff / 60000);
+      const seconds = Math.floor((diff % 60000) / 1000);
+      setTimeLeft(`${minutes}m ${seconds}s`);
+    };
+
+    updateCountdown();
+    const interval = setInterval(updateCountdown, 1000);
+    return () => clearInterval(interval);
+  }, [targetTime]);
+
+  return <span>{timeLeft}</span>;
+};
 
 const ProgressTracker: React.FC<ProgressTrackerProps> = ({
   tasks,
@@ -54,6 +80,14 @@ const ProgressTracker: React.FC<ProgressTrackerProps> = ({
                 {task.status === "error" && (
                   <span className="status-badge status-error">❌ Failed</span>
                 )}
+                {task.status === "paused" && (
+                  <span className="status-badge status-paused">
+                    ⏸️ Paused{" "}
+                    {task.pausedUntil && (
+                      <CountdownTimer targetTime={task.pausedUntil} />
+                    )}
+                  </span>
+                )}
               </div>
             </div>
 
@@ -65,7 +99,9 @@ const ProgressTracker: React.FC<ProgressTrackerProps> = ({
             </div>
 
             {task.results &&
-              (task.status === "completed" || task.status === "error") && (
+              (task.status === "completed" ||
+                task.status === "error" ||
+                task.status === "paused") && (
                 <div className="progress-results">
                   <div className="results-header">
                     <h6>Output:</h6>

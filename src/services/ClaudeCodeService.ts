@@ -37,12 +37,13 @@ export interface TaskItem {
   name?: string;
   prompt: string;
   resumePrevious: boolean;
-  status: "pending" | "running" | "completed" | "error";
+  status: "pending" | "running" | "completed" | "error" | "paused";
   results?: string;
   sessionId?: string;
   model?: string;
   dependsOn?: string[];
   continueFrom?: string | null;
+  pausedUntil?: number;
 }
 
 export class ClaudeCodeService {
@@ -55,6 +56,17 @@ export class ClaudeCodeService {
     onError: (error: string, tasks: TaskItem[]) => void;
   } | null = null;
   private currentWorkflowExecution: WorkflowExecution | null = null;
+  private readonly pausedPipelines: Map<
+    string,
+    {
+      tasks: TaskItem[];
+      currentIndex: number;
+      resetTime: number;
+      onProgress: (tasks: TaskItem[], currentIndex: number) => void;
+      onComplete: (tasks: TaskItem[]) => void;
+      onError: (error: string, tasks: TaskItem[]) => void;
+    }
+  > = new Map();
 
   constructor(private readonly configService: ConfigurationService) {}
 
@@ -165,10 +177,46 @@ export class ClaudeCodeService {
         );
 
         if (!result.success) {
-          // Task failed, update status and stop pipeline
+          const errorOutput =
+            result.error ?? result.output ?? "Task execution failed";
+          const rateLimitCheck = this.detectRateLimit(errorOutput);
+
+          if (rateLimitCheck.isRateLimited) {
+            task.status = "paused";
+            task.pausedUntil = rateLimitCheck.resetTime;
+            task.results = "Rate limited - waiting for reset";
+
+            // Generate unique pipeline ID
+            const pipelineId = `pipeline-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+            // Store state for resume
+            if (rateLimitCheck.resetTime) {
+              this.pausedPipelines.set(pipelineId, {
+                tasks,
+                currentIndex: i,
+                resetTime: rateLimitCheck.resetTime,
+                onProgress,
+                onComplete,
+                onError,
+              });
+
+              // Schedule auto-resume
+              const delay = rateLimitCheck.resetTime - Date.now();
+              if (delay > 0) {
+                setTimeout(() => {
+                  this.resumePipeline(pipelineId);
+                }, delay);
+              }
+            }
+
+            onProgress([...tasks], i);
+            return;
+          }
+
+          // Regular error handling
           task.status = "error";
-          task.results = result.error ?? "Task execution failed";
-          onError(result.error ?? "Task execution failed", [...tasks]);
+          task.results = errorOutput;
+          onError(errorOutput, [...tasks]);
           return;
         }
 
@@ -186,9 +234,45 @@ export class ClaudeCodeService {
         onProgress([...tasks], i);
       } catch (error) {
         // Task failed with exception
+        const errorMessage =
+          error instanceof Error ? error.message : String(error);
+        const rateLimitCheck = this.detectRateLimit(errorMessage);
+
+        if (rateLimitCheck.isRateLimited) {
+          task.status = "paused";
+          task.pausedUntil = rateLimitCheck.resetTime;
+          task.results = "Rate limited - waiting for reset";
+
+          // Generate unique pipeline ID
+          const pipelineId = `pipeline-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+          // Store state for resume
+          if (rateLimitCheck.resetTime) {
+            this.pausedPipelines.set(pipelineId, {
+              tasks,
+              currentIndex: i,
+              resetTime: rateLimitCheck.resetTime,
+              onProgress,
+              onComplete,
+              onError,
+            });
+
+            // Schedule auto-resume
+            const delay = rateLimitCheck.resetTime - Date.now();
+            if (delay > 0) {
+              setTimeout(() => {
+                this.resumePipeline(pipelineId);
+              }, delay);
+            }
+          }
+
+          onProgress([...tasks], i);
+          return;
+        }
+
         task.status = "error";
-        task.results = error instanceof Error ? error.message : String(error);
-        onError(task.results, [...tasks]);
+        task.results = errorMessage;
+        onError(errorMessage, [...tasks]);
         return;
       }
     }
@@ -464,6 +548,52 @@ export class ClaudeCodeService {
 
   isValidModelId(modelId: string): boolean {
     return modelId === "auto" || this.configService.validateModel(modelId);
+  }
+
+  private detectRateLimit(output: string): {
+    isRateLimited: boolean;
+    resetTime?: number;
+  } {
+    const match = output.match(/Claude AI usage limit reached\|(\d+)/);
+    if (match) {
+      return {
+        isRateLimited: true,
+        resetTime: parseInt(match[1], 10) * 1000,
+      };
+    }
+    return { isRateLimited: false };
+  }
+
+  private async resumePipeline(pipelineId: string): Promise<void> {
+    const pausedState = this.pausedPipelines.get(pipelineId);
+    if (!pausedState) {
+      return;
+    }
+
+    this.pausedPipelines.delete(pipelineId);
+
+    // Restore pipeline execution state
+    this.currentPipelineExecution = {
+      tasks: pausedState.tasks,
+      currentIndex: pausedState.currentIndex,
+      onProgress: pausedState.onProgress,
+      onComplete: pausedState.onComplete,
+      onError: pausedState.onError,
+    };
+
+    // Resume from the paused task
+    const resumeIndex = pausedState.currentIndex;
+    if (resumeIndex < pausedState.tasks.length) {
+      pausedState.tasks[resumeIndex].status = "pending";
+      pausedState.tasks[resumeIndex].pausedUntil = undefined;
+    }
+
+    // Continue pipeline execution
+    await this.executeTasksPipeline(
+      pausedState.tasks[resumeIndex]?.model ?? "auto",
+      "/",
+      {},
+    );
   }
 
   /**

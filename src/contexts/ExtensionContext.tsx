@@ -67,7 +67,7 @@ export interface ConversationData {
   entries: TranscriptEntry[];
 }
 
-export type Period = "hourly" | "today" | "week" | "month";
+export type Period = "hourly" | "today" | "yesterday" | "week" | "month";
 
 export interface UsageReport {
   date: string;
@@ -335,7 +335,7 @@ export interface ExtensionActions {
   // Usage View Actions
   updateUsageState: (updates: Partial<UsageViewState>) => void;
   requestUsageReport: (
-    period: "today" | "week" | "month" | "hourly",
+    period: "today" | "yesterday" | "week" | "month" | "hourly",
     hours?: number,
     startHour?: number,
   ) => void;
@@ -514,7 +514,7 @@ export const ExtensionProvider: React.FC<{ children: ReactNode }> = ({
     },
 
     requestUsageReport: (
-      period: "today" | "week" | "month" | "hourly",
+      period: "today" | "yesterday" | "week" | "month" | "hourly",
       hours?: number,
       startHour?: number,
     ) => {

@@ -40,7 +40,7 @@ export interface UsageReport {
 }
 
 export interface PeriodUsageReport {
-  period: "today" | "week" | "month" | "hourly";
+  period: "today" | "yesterday" | "week" | "month" | "hourly";
   startDate: string;
   endDate: string;
   dailyReports: UsageReport[];
@@ -530,7 +530,7 @@ export class UsageReportService {
   }
 
   public async generateReport(
-    period: "today" | "week" | "month" | "hourly",
+    period: "today" | "yesterday" | "week" | "month" | "hourly",
     hours?: number,
     startHour?: number,
   ): Promise<PeriodUsageReport> {
@@ -539,23 +539,36 @@ export class UsageReportService {
 
     const now = new Date();
     let startDate: Date;
-    const endDate = new Date(now);
-    endDate.setHours(23, 59, 59, 999);
+    let endDate: Date;
 
     switch (period) {
       case "today":
         startDate = new Date(now);
         startDate.setHours(0, 0, 0, 0);
+        endDate = new Date(now);
+        endDate.setHours(23, 59, 59, 999);
+        break;
+      case "yesterday":
+        startDate = new Date(now);
+        startDate.setDate(now.getDate() - 1);
+        startDate.setHours(0, 0, 0, 0);
+        endDate = new Date(now);
+        endDate.setDate(now.getDate() - 1);
+        endDate.setHours(23, 59, 59, 999);
         break;
       case "week":
         startDate = new Date(now);
         startDate.setDate(now.getDate() - 6);
         startDate.setHours(0, 0, 0, 0);
+        endDate = new Date(now);
+        endDate.setHours(23, 59, 59, 999);
         break;
       case "month":
         startDate = new Date(now);
         startDate.setDate(now.getDate() - 29);
         startDate.setHours(0, 0, 0, 0);
+        endDate = new Date(now);
+        endDate.setHours(23, 59, 59, 999);
         break;
       case "hourly": {
         const totalHours = hours ?? 5;
@@ -571,7 +584,7 @@ export class UsageReportService {
         }
 
         // Calculate end date/time
-        endDate.setTime(startDate.getTime());
+        endDate = new Date(startDate.getTime());
         endDate.setUTCHours(
           endDate.getUTCHours() + totalHours - 1,
           59,
@@ -642,58 +655,69 @@ export class UsageReportService {
       }
     }
 
-    // For hourly period, create ONE aggregated block instead of multiple reports
-    if (period === "hourly") {
+    // For hourly, today, and yesterday periods, return individual hours that have activity
+    if (period === "hourly" || period === "today" || period === "yesterday") {
+      const hourlyReports: UsageReport[] = [];
       const allModels = new Set<string>();
-      const aggregatedStats = new Map<
-        string,
-        {
-          inputTokens: number;
-          outputTokens: number;
-          cacheCreateTokens: number;
-          cacheReadTokens: number;
-          cost: number;
-        }
-      >();
-
-      // Aggregate all hourly data into one block
-      for (const hourData of hourlyData) {
-        for (const [model, stats] of Object.entries(hourData.models)) {
-          if (model !== "<synthetic>") {
-            allModels.add(model);
-          }
-
-          const existing = aggregatedStats.get(model) ?? {
-            inputTokens: 0,
-            outputTokens: 0,
-            cacheCreateTokens: 0,
-            cacheReadTokens: 0,
-            cost: 0,
-          };
-
-          aggregatedStats.set(model, {
-            inputTokens: existing.inputTokens + stats.input,
-            outputTokens: existing.outputTokens + stats.output,
-            cacheCreateTokens: existing.cacheCreateTokens + stats.cacheCreate,
-            cacheReadTokens: existing.cacheReadTokens + stats.cacheRead,
-            cost: existing.cost + stats.cost,
-          });
-        }
-      }
-
-      // Calculate totals for the single aggregated block
       let totalInputTokens = 0;
       let totalOutputTokens = 0;
       let totalCacheCreateTokens = 0;
       let totalCacheReadTokens = 0;
       let totalCost = 0;
 
-      for (const stats of aggregatedStats.values()) {
-        totalInputTokens += stats.inputTokens;
-        totalOutputTokens += stats.outputTokens;
-        totalCacheCreateTokens += stats.cacheCreateTokens;
-        totalCacheReadTokens += stats.cacheReadTokens;
-        totalCost += stats.cost;
+      // Process each hour individually
+      for (const hourData of hourlyData) {
+        const hourModels = new Set<string>();
+        let hourInputTokens = 0;
+        let hourOutputTokens = 0;
+        let hourCacheCreateTokens = 0;
+        let hourCacheReadTokens = 0;
+        let hourCost = 0;
+
+        // Aggregate data for this hour
+        for (const [model, stats] of Object.entries(hourData.models)) {
+          if (model !== "<synthetic>") {
+            hourModels.add(model);
+            allModels.add(model);
+          }
+
+          hourInputTokens += stats.input;
+          hourOutputTokens += stats.output;
+          hourCacheCreateTokens += stats.cacheCreate;
+          hourCacheReadTokens += stats.cacheRead;
+          hourCost += stats.cost;
+        }
+
+        // Only include hours that have activity
+        if (
+          hourInputTokens > 0 ||
+          hourOutputTokens > 0 ||
+          hourCacheCreateTokens > 0 ||
+          hourCacheReadTokens > 0
+        ) {
+          const hourTotalTokens =
+            hourInputTokens +
+            hourOutputTokens +
+            hourCacheCreateTokens +
+            hourCacheReadTokens;
+
+          hourlyReports.push({
+            date: this.formatHour(hourData.hour),
+            models: Array.from(hourModels).filter((m) => m !== "unknown"),
+            inputTokens: hourInputTokens,
+            outputTokens: hourOutputTokens,
+            cacheCreateTokens: hourCacheCreateTokens,
+            cacheReadTokens: hourCacheReadTokens,
+            totalTokens: hourTotalTokens,
+            costUSD: hourCost,
+          });
+
+          totalInputTokens += hourInputTokens;
+          totalOutputTokens += hourOutputTokens;
+          totalCacheCreateTokens += hourCacheCreateTokens;
+          totalCacheReadTokens += hourCacheReadTokens;
+          totalCost += hourCost;
+        }
       }
 
       const totalTokens =
@@ -702,25 +726,11 @@ export class UsageReportService {
         totalCacheCreateTokens +
         totalCacheReadTokens;
 
-      const hoursCount = hours ?? 5;
-      const hourlyLabel = `${hoursCount} Hours (${this.formatHour(startDate.toISOString())} - ${this.formatHour(endDate.toISOString())})`;
-
       return {
         period,
         startDate: this.formatDate(startDate.toISOString()),
         endDate: this.formatDate(endDate.toISOString()),
-        dailyReports: [
-          {
-            date: hourlyLabel,
-            models: Array.from(allModels).filter((m) => m !== "unknown"),
-            inputTokens: totalInputTokens,
-            outputTokens: totalOutputTokens,
-            cacheCreateTokens: totalCacheCreateTokens,
-            cacheReadTokens: totalCacheReadTokens,
-            totalTokens,
-            costUSD: totalCost,
-          },
-        ],
+        dailyReports: hourlyReports,
         totals: {
           inputTokens: totalInputTokens,
           outputTokens: totalOutputTokens,

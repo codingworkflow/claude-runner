@@ -629,7 +629,7 @@ export class RunnerController implements EventBus {
   }
 
   private async requestUsageReport(
-    period: "today" | "week" | "month" | "hourly",
+    period: "today" | "yesterday" | "week" | "month" | "hourly",
     hours?: number,
     startHour?: number,
   ): Promise<void> {

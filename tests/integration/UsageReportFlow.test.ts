@@ -44,6 +44,17 @@ const mockWebviewView = {
   onDidChangeVisibility: jest.fn(),
 } as unknown as vscode.WebviewView;
 
+// Mock file system for PipelineService
+jest.mock("fs/promises", () => ({
+  mkdir: jest.fn(() => Promise.resolve()),
+  writeFile: jest.fn(() => Promise.resolve()),
+  readFile: jest.fn(() => Promise.resolve("{}")),
+  access: jest.fn(() => Promise.resolve()),
+  readdir: jest.fn(() => Promise.resolve([])),
+  rm: jest.fn(() => Promise.resolve()),
+  unlink: jest.fn(() => Promise.resolve()),
+}));
+
 // Mock services
 jest.mock("../../src/services/ClaudeCodeService");
 jest.mock("../../src/services/TerminalService");
@@ -310,9 +321,11 @@ describe("Usage Report Integration Flow", () => {
       (mockWebview.postMessage as jest.Mock).mockClear();
 
       // Mock with minimal delay and period-specific responses
-      mockInstance.generateReport.mockImplementation(async (period) => {
-        return { ...mockReport, period };
-      });
+      mockInstance.generateReport.mockImplementation(
+        async (period, _hours, _startHour) => {
+          return { ...mockReport, period };
+        },
+      );
 
       // Send multiple rapid requests sequentially to ensure they all process
       await messageHandler({ command: "requestUsageReport", period: "today" });

@@ -111,7 +111,16 @@ describe("UsageReportService Logic Tests", () => {
       ];
 
       // Aggregate the data (simulating daily aggregation logic)
-      const aggregated: Record<string, any> = {};
+      const aggregated: Record<
+        string,
+        {
+          input: number;
+          output: number;
+          cacheCreate: number;
+          cacheRead: number;
+          cost: number;
+        }
+      > = {};
 
       for (const record of hourlyRecords) {
         for (const [model, stats] of Object.entries(record.models)) {
@@ -169,7 +178,16 @@ describe("UsageReportService Logic Tests", () => {
         { models: {} },
       ];
 
-      const aggregated: Record<string, any> = {};
+      const aggregated: Record<
+        string,
+        {
+          input: number;
+          output: number;
+          cacheCreate: number;
+          cacheRead: number;
+          cost: number;
+        }
+      > = {};
 
       for (const record of records) {
         for (const [model, stats] of Object.entries(record.models)) {

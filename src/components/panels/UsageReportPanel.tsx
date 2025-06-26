@@ -102,6 +102,8 @@ const UsageReportPanel: React.FC<UsageReportPanelProps> = ({
     switch (period) {
       case "today":
         return "Today";
+      case "yesterday":
+        return "Yesterday";
       case "week":
         return "Last 7 Days";
       case "month":
@@ -139,6 +141,7 @@ const UsageReportPanel: React.FC<UsageReportPanelProps> = ({
               className="dropdown"
             >
               <option value="today">Today</option>
+              <option value="yesterday">Yesterday</option>
               <option value="week">Last 7 Days</option>
               <option value="month">Last 30 Days</option>
               <option value="hourly">Hourly</option>
@@ -388,72 +391,89 @@ const UsageReportPanel: React.FC<UsageReportPanelProps> = ({
               </div>
             </div>
 
-            {report.dailyReports.length > 0 && (
-              <div className="daily-breakdown">
-                <h4>
-                  {selectedPeriod === "hourly"
-                    ? "Hourly Breakdown"
-                    : "Daily Breakdown"}
-                </h4>
-                <div className="daily-list">
-                  {report.dailyReports.map((dailyReport) => (
-                    <div key={dailyReport.date} className="daily-item">
-                      <div className="daily-header">
-                        <span className="daily-date">{dailyReport.date}</span>
-                        <span className="daily-cost">
-                          {formatCurrency(dailyReport.costUSD)}
-                        </span>
-                      </div>
+            {(() => {
+              const shouldShowBreakdown =
+                report.dailyReports.length > 0 &&
+                !(
+                  selectedPeriod === "week" && report.dailyReports.length === 1
+                ) &&
+                !(
+                  selectedPeriod === "month" && report.dailyReports.length === 1
+                );
 
-                      <div className="daily-details">
-                        <div className="daily-row">
-                          <span className="daily-label">Models:</span>
-                          <span className="daily-value">
-                            {dailyReport.models.length > 0
-                              ? dailyReport.models.join(", ")
-                              : "None"}
-                          </span>
-                        </div>
+              return (
+                shouldShowBreakdown && (
+                  <div className="daily-breakdown">
+                    <h4>
+                      {selectedPeriod === "hourly" ||
+                      selectedPeriod === "today" ||
+                      selectedPeriod === "yesterday"
+                        ? "Hourly Breakdown"
+                        : "Daily Breakdown"}
+                    </h4>
+                    <div className="daily-list">
+                      {report.dailyReports.map((dailyReport) => (
+                        <div key={dailyReport.date} className="daily-item">
+                          <div className="daily-header">
+                            <span className="daily-date">
+                              {dailyReport.date}
+                            </span>
+                            <span className="daily-cost">
+                              {formatCurrency(dailyReport.costUSD)}
+                            </span>
+                          </div>
 
-                        <div className="daily-metrics">
-                          <div className="metric">
-                            <span className="metric-label">Input:</span>
-                            <span className="metric-value">
-                              {formatNumber(dailyReport.inputTokens)}
-                            </span>
-                          </div>
-                          <div className="metric">
-                            <span className="metric-label">Output:</span>
-                            <span className="metric-value">
-                              {formatNumber(dailyReport.outputTokens)}
-                            </span>
-                          </div>
-                          <div className="metric">
-                            <span className="metric-label">Cache C:</span>
-                            <span className="metric-value">
-                              {formatNumber(dailyReport.cacheCreateTokens)}
-                            </span>
-                          </div>
-                          <div className="metric">
-                            <span className="metric-label">Cache R:</span>
-                            <span className="metric-value">
-                              {formatNumber(dailyReport.cacheReadTokens)}
-                            </span>
-                          </div>
-                        </div>
+                          <div className="daily-details">
+                            <div className="daily-row">
+                              <span className="daily-label">Models:</span>
+                              <span className="daily-value">
+                                {dailyReport.models.length > 0
+                                  ? dailyReport.models.join(", ")
+                                  : "None"}
+                              </span>
+                            </div>
 
-                        <div className="daily-total">
-                          <span className="total-label">Total Tokens:</span>
-                          <span className="total-value">
-                            {formatNumber(dailyReport.totalTokens)}
-                          </span>
+                            <div className="daily-metrics">
+                              <div className="metric">
+                                <span className="metric-label">Input:</span>
+                                <span className="metric-value">
+                                  {formatNumber(dailyReport.inputTokens)}
+                                </span>
+                              </div>
+                              <div className="metric">
+                                <span className="metric-label">Output:</span>
+                                <span className="metric-value">
+                                  {formatNumber(dailyReport.outputTokens)}
+                                </span>
+                              </div>
+                              <div className="metric">
+                                <span className="metric-label">Cache C:</span>
+                                <span className="metric-value">
+                                  {formatNumber(dailyReport.cacheCreateTokens)}
+                                </span>
+                              </div>
+                              <div className="metric">
+                                <span className="metric-label">Cache R:</span>
+                                <span className="metric-value">
+                                  {formatNumber(dailyReport.cacheReadTokens)}
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="daily-total">
+                              <span className="total-label">Total Tokens:</span>
+                              <span className="total-value">
+                                {formatNumber(dailyReport.totalTokens)}
+                              </span>
+                            </div>
+                          </div>
                         </div>
-                      </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
-              </div>
-            )}
+                  </div>
+                )
+              );
+            })()}
 
             {report.dailyReports.length === 0 && (
               <div className="state-message no-data">

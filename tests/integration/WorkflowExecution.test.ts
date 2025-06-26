@@ -9,6 +9,17 @@ import { WorkflowService } from "../../src/services/WorkflowService";
 import { ConfigurationService } from "../../src/services/ConfigurationService";
 import { ClaudeWorkflow } from "../../src/types/WorkflowTypes";
 
+// Mock file system to prevent actual directory creation
+jest.mock("fs/promises", () => ({
+  mkdir: jest.fn().mockResolvedValue(undefined),
+  writeFile: jest.fn().mockResolvedValue(undefined),
+  readFile: jest.fn().mockResolvedValue("{}"),
+  access: jest.fn().mockResolvedValue(undefined),
+  readdir: jest.fn().mockResolvedValue([]),
+  rm: jest.fn().mockResolvedValue(undefined),
+  unlink: jest.fn().mockResolvedValue(undefined),
+}));
+
 describe("Workflow Execution Integration", () => {
   let claudeService: ClaudeCodeService;
   let workflowService: WorkflowService;

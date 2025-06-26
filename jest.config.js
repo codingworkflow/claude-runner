@@ -6,6 +6,10 @@ module.exports = {
     "**/__tests__/**/*.+(ts|tsx|js)",
     "**/?(*.)+(spec|test).+(ts|tsx|js)",
   ],
+  testPathIgnorePatterns: [
+    "/node_modules/",
+    "/tests/unit/suite/", // Exclude VSCode extension tests (they use Mocha, not Jest)
+  ],
   transform: {
     "^.+\\.(ts|tsx)$": [
       "ts-jest",

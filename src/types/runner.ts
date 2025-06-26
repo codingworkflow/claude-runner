@@ -65,7 +65,7 @@ export type RunnerCommand =
   | { kind: "updateParallelTasksCount"; value: number }
   | {
       kind: "requestUsageReport";
-      period: "today" | "week" | "month" | "hourly";
+      period: "today" | "yesterday" | "week" | "month" | "hourly";
       hours?: number;
       startHour?: number;
     }
@@ -176,8 +176,8 @@ export const RunnerCommandRegistry: {
     kind: "requestUsageReport",
     period:
       isString(m.period) &&
-      ["today", "week", "month", "hourly"].includes(m.period)
-        ? (m.period as "today" | "week" | "month" | "hourly")
+      ["today", "yesterday", "week", "month", "hourly"].includes(m.period)
+        ? (m.period as "today" | "yesterday" | "week" | "month" | "hourly")
         : "today",
     hours: isNumber(m.hours) ? m.hours : undefined,
     startHour: isNumber(m.startHour) ? m.startHour : undefined,
