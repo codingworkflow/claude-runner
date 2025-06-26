@@ -1,0 +1,83 @@
+{
+  "timestamp": "2025-06-26T06:15:09.388Z",
+  "claudeInstalled": false,
+  "testResults": [
+    {
+      "timestamp": "2025-06-26T06:15:08.704Z",
+      "message": "🚀 Starting Claude CLI detection tests...",
+      "type": "info"
+    },
+    {
+      "timestamp": "2025-06-26T06:15:08.705Z",
+      "message": "Checking Claude CLI installation status...",
+      "type": "info"
+    },
+    {
+      "timestamp": "2025-06-26T06:15:08.712Z",
+      "message": "Claude CLI not found in PATH",
+      "type": "info"
+    },
+    {
+      "timestamp": "2025-06-26T06:15:08.712Z",
+      "message": "Testing extension Claude CLI detection logic...",
+      "type": "info"
+    },
+    {
+      "timestamp": "2025-06-26T06:15:08.714Z",
+      "message": "Extension detection matches actual CLI state",
+      "type": "success"
+    },
+    {
+      "timestamp": "2025-06-26T06:15:08.715Z",
+      "message": "Testing shell detection for Claude CLI...",
+      "type": "info"
+    },
+    {
+      "timestamp": "2025-06-26T06:15:08.719Z",
+      "message": "bash: Claude CLI not found",
+      "type": "info"
+    },
+    {
+      "timestamp": "2025-06-26T06:15:08.726Z",
+      "message": "zsh: Claude CLI not found",
+      "type": "info"
+    },
+    {
+      "timestamp": "2025-06-26T06:15:08.729Z",
+      "message": "fish: Claude CLI not found",
+      "type": "info"
+    },
+    {
+      "timestamp": "2025-06-26T06:15:08.733Z",
+      "message": "sh: Claude CLI not found",
+      "type": "info"
+    },
+    {
+      "timestamp": "2025-06-26T06:15:08.733Z",
+      "message": "Testing PATH-based Claude CLI detection...",
+      "type": "info"
+    },
+    {
+      "timestamp": "2025-06-26T06:15:08.736Z",
+      "message": "Claude CLI not found in PATH",
+      "type": "info"
+    },
+    {
+      "timestamp": "2025-06-26T06:15:08.736Z",
+      "message": "Testing npm global package detection...",
+      "type": "info"
+    },
+    {
+      "timestamp": "2025-06-26T06:15:09.388Z",
+      "message": "Claude CLI found in npm global packages",
+      "type": "success"
+    }
+  ],
+  "environment": {
+    "node_version": "v23.11.1",
+    "platform": "linux",
+    "arch": "x64",
+    "ci": false,
+    "github_actions": false
+  }
+}

@@ -1,0 +1,26 @@
+FROM mcr.microsoft.com/vscode/devcontainers/typescript-node:latest
+
+RUN apt-get update && apt-get install -y \
+    xvfb \
+    libnss3 \
+    libatk-bridge2.0-0 \
+    libdrm2 \
+    libxcomposite1 \
+    libxdamage1 \
+    libxrandr2 \
+    libgbm1 \
+    libxss1 \
+    libasound2 \
+    make \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /workspace
+COPY . .
+
+RUN make setup
+RUN make build-vsix
+
+COPY docker/docker-test-runner.sh /usr/local/bin/run-tests.sh
+RUN chmod +x /usr/local/bin/run-tests.sh
+
+CMD ["/usr/local/bin/run-tests.sh"]
