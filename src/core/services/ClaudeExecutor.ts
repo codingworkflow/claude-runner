@@ -372,7 +372,13 @@ export class ClaudeExecutor {
             exitCode,
           });
         } else {
-          let errorMsg = stderr || `Command failed with exit code ${exitCode}`;
+          // if stderr is empty, fall back to stdout (so we catch "usage limit reached" there)
+          const stderrTrim = stderr.trim();
+          const stdoutTrim = stdout.trim();
+          let errorMsg =
+            stderrTrim ||
+            stdoutTrim ||
+            `Command failed with exit code ${exitCode}`;
           if (exitCode === 127) {
             errorMsg = `Claude CLI not found in PATH. Please install Claude Code CLI.`;
           }

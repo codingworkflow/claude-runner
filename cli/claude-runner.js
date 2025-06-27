@@ -70,26 +70,34 @@ class ClaudeRunnerCLI {
     const args = process.argv.slice(2);
     const command = args[0];
 
+    // Parse global options
+    const options = this.parseGlobalOptions(args);
+
     switch (command) {
       case "list":
-        await this.listWorkflows(args[1] || ".github/workflows");
+        await this.listWorkflows(args[1] || ".github/workflows", options);
         break;
 
       case "validate":
         if (!args[1]) {
-          console.error("Usage: claude-runner validate <workflow.yml>");
+          console.error(
+            "Usage: claude-runner validate <workflow.yml> [--path <directory>]",
+          );
           process.exit(1);
         }
-        await this.validateWorkflow(args[1]);
+        await this.validateWorkflow(args[1], options);
         break;
 
       case "run":
         if (!args[1]) {
-          console.error("Usage: claude-runner run <workflow.yml> [--verbose]");
+          console.error(
+            "Usage: claude-runner run <workflow.yml> [--verbose] [--path <directory>]",
+          );
           process.exit(1);
         }
         await this.runWorkflow(args[1], {
           verbose: args.includes("--verbose"),
+          executionPath: options.executionPath,
         });
         break;
 
@@ -99,19 +107,45 @@ class ClaudeRunnerCLI {
     }
   }
 
+  parseGlobalOptions(args) {
+    const options = {
+      executionPath: process.cwd(), // Default to current working directory
+    };
+
+    for (let i = 0; i < args.length; i++) {
+      if (args[i] === "--path" || args[i] === "-p") {
+        if (i + 1 < args.length && !args[i + 1].startsWith("-")) {
+          options.executionPath = path.resolve(args[i + 1]);
+        } else {
+          console.error("ERROR: --path requires a directory argument");
+          process.exit(1);
+        }
+      }
+    }
+
+    return options;
+  }
+
   showHelp() {
     console.log("Claude Runner CLI");
     console.log("");
     console.log("Usage:");
     console.log(
-      "  claude-runner list [directory]         - List Claude workflows",
+      "  claude-runner list [directory] [options]        - List Claude workflows",
     );
-    console.log("  claude-runner validate <workflow.yml>  - Validate workflow");
-    console.log("  claude-runner run <workflow.yml>       - Execute workflow");
+    console.log(
+      "  claude-runner validate <workflow.yml> [options] - Validate workflow",
+    );
+    console.log(
+      "  claude-runner run <workflow.yml> [options]      - Execute workflow",
+    );
     console.log("");
     console.log("Options:");
     console.log(
-      "  --verbose                              - Show detailed output",
+      "  --verbose                               - Show detailed output",
+    );
+    console.log(
+      "  --path, -p <directory>                  - Set execution directory (default: current)",
     );
     console.log("");
     console.log("Examples:");
@@ -123,10 +157,12 @@ class ClaudeRunnerCLI {
     console.log(
       "  claude-runner run .github/workflows/claude-test.yml --verbose",
     );
+    console.log("  claude-runner run workflow.yml --path /path/to/project");
   }
 
-  async listWorkflows(directory) {
-    const fullPath = path.resolve(directory);
+  async listWorkflows(directory, options = {}) {
+    const baseDir = options.executionPath || process.cwd();
+    const fullPath = path.resolve(baseDir, directory);
 
     if (!fs.existsSync(fullPath)) {
       console.error(`ERROR: Directory not found: ${fullPath}`);
@@ -179,8 +215,9 @@ class ClaudeRunnerCLI {
     });
   }
 
-  async validateWorkflow(workflowPath) {
-    const fullPath = path.resolve(workflowPath);
+  async validateWorkflow(workflowPath, options = {}) {
+    const baseDir = options.executionPath || process.cwd();
+    const fullPath = path.resolve(baseDir, workflowPath);
 
     if (!fs.existsSync(fullPath)) {
       console.error(`ERROR: Workflow file not found: ${fullPath}`);
@@ -232,7 +269,8 @@ class ClaudeRunnerCLI {
     );
 
     // Load and validate workflow using shared parser
-    const fullPath = path.resolve(workflowPath);
+    const baseDir = options.executionPath || process.cwd();
+    const fullPath = path.resolve(baseDir, workflowPath);
     if (!fs.existsSync(fullPath)) {
       console.error(`ERROR: Workflow file not found: ${fullPath}`);
       process.exit(1);
@@ -303,7 +341,7 @@ class ClaudeRunnerCLI {
           const result = await this.executor.executeTask(
             step.with.prompt,
             step.with.model || "auto",
-            step.with.working_directory || process.cwd(),
+            step.with.working_directory || baseDir,
             taskOptions,
           );
 
@@ -353,7 +391,7 @@ class ClaudeRunnerCLI {
                 const retryResult = await this.executor.executeTask(
                   step.with.prompt,
                   step.with.model || "auto",
-                  step.with.working_directory || process.cwd(),
+                  step.with.working_directory || baseDir,
                   taskOptions,
                 );
 
@@ -387,7 +425,7 @@ class ClaudeRunnerCLI {
                 const retryResult = await this.executor.executeTask(
                   step.with.prompt,
                   step.with.model || "auto",
-                  step.with.working_directory || process.cwd(),
+                  step.with.working_directory || baseDir,
                   taskOptions,
                 );
 

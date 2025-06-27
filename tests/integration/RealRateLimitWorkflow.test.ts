@@ -73,7 +73,7 @@ if [[ "$*" == *"-p"* ]]; then
     if [ $CURRENT_TIME -lt $RESET_TIME ]; then
         # Still rate limited
         echo "Rate limit still active" >> "${testDir}/claude-calls.log"
-        echo "Claude AI usage limit reached|$RESET_TIME" >&2
+        echo "Claude AI usage limit reached|$RESET_TIME"
         exit 1
     else
         # Rate limit expired - clean up and succeed
@@ -149,7 +149,7 @@ jobs:
       expect(result.stderr).toContain("Waiting");
 
       // Check that retry happened and succeeded
-      expect(result.stdout).toContain("Rate limit expired, retrying");
+      expect(result.stdout).toContain("Rate limit expired, retrying step:");
       expect(result.stdout).toContain("COMPLETED after retry");
       expect(result.stdout).toContain(
         "Task completed successfully after rate limit!",
@@ -311,7 +311,7 @@ if [[ "$*" == *"-r"* ]] || [[ "$*" == *"Continue conversation"* ]]; then
         RESET_TIME=$(($(date +%s) + 5))
         echo "$RESET_TIME" > "${testDir}/session-reset-time"
         echo "Session task rate limited until: $RESET_TIME" >> "${testDir}/claude-calls.log"
-        echo "Claude AI usage limit reached|$RESET_TIME" >&2
+        echo "Claude AI usage limit reached|$RESET_TIME"
         exit 1
     else
         # Second call to second task - check if time expired
@@ -320,7 +320,7 @@ if [[ "$*" == *"-r"* ]] || [[ "$*" == *"Continue conversation"* ]]; then
         
         if [ $CURRENT_TIME -lt $RESET_TIME ]; then
             echo "Session task still rate limited" >> "${testDir}/claude-calls.log"
-            echo "Claude AI usage limit reached|$RESET_TIME" >&2
+            echo "Claude AI usage limit reached|$RESET_TIME"
             exit 1
         else
             echo "Session task rate limit expired - success" >> "${testDir}/claude-calls.log"
