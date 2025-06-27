@@ -1,0 +1,172 @@
+name: runner_conditions
+'on':
+  workflow_dispatch:
+    inputs:
+      description:
+        description: Pipeline execution
+        required: false
+        type: string
+jobs:
+  pipeline:
+    name: Pipeline Execution
+    runs-on: ubuntu-latest
+    steps:
+      - id: task_1751000902868_c0dsxdsgd
+        name: Task 1
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: >-
+            Read key plan /workspaces/vsix/claude-code-docs/docs/runner_conditions.md
+            Extend TaskItem interface - Add check?: string, condition?: ConditionType, and skipReason?: string fields to
+            support conditional execution
+          model: auto
+          allow_all_tools: true
+          output_session: true
+
+      - id: task_1751000902868_8xi0lwg58
+        name: Task 2
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: Create ConditionType type definition - Define 'on_success' | 'on_failure' | 'always' union type
+          model: auto
+          allow_all_tools: true
+          resume_session: ${{ steps.task_1751000902868_c0dsxdsgd.outputs.session_id }}
+
+      - id: task_1751000902868_8w172h3i3
+        name: Task 3
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: >-
+            Extend ClaudeStep interface - Add check and condition properties to ClaudeStep.with object for workflow
+            generation
+          model: auto
+          allow_all_tools: true
+          resume_session: ${{ steps.task_1751000902868_8xi0lwg58.outputs.session_id }}
+
+      - id: task_1751000902868_m88v2e7o5
+        name: Task 4
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: >-
+            Implement evaluateCondition method in ClaudeCodeService - Add logic to execute check commands and determine
+            if step should run based on condition
+          model: auto
+          allow_all_tools: true
+          resume_session: ${{ steps.task_1751000902868_8w172h3i3.outputs.session_id }}
+
+      - id: task_1751000902868_lvs9knoab
+        name: Task 5
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: Update executeTasksPipeline method - Integrate conditional evaluation logic into the pipeline execution flow
+          model: auto
+          allow_all_tools: true
+          resume_session: ${{ steps.task_1751000902868_m88v2e7o5.outputs.session_id }}
+
+      - id: task_1751000902868_ok7llyu1y
+        name: Task 6
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: >-
+            Extend WorkflowParser validation - Add validateConditionalStep method to check for valid check commands and
+            condition types
+          model: auto
+          allow_all_tools: true
+          resume_session: ${{ steps.task_1751000902868_lvs9knoab.outputs.session_id }}
+
+      - id: task_1751000902868_b7wzwuj5c
+        name: Task 7
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: >-
+            Update PipelineService.savePipeline - Modify workflow generation to include check and condition properties
+            in ClaudeStep.with
+          model: auto
+          allow_all_tools: true
+          resume_session: ${{ steps.task_1751000902868_ok7llyu1y.outputs.session_id }}
+
+      - id: task_1751000902868_u2vi3yy2h
+        name: Task 8
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: >-
+            Enhance TaskList UI component - Add condition configuration controls with check command input and condition
+            dropdown
+          model: auto
+          allow_all_tools: true
+          resume_session: ${{ steps.task_1751000902868_b7wzwuj5c.outputs.session_id }}
+
+      - id: task_1751000902868_1bwtqyzi0
+        name: Task 9
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: >-
+            Create ConditionalStepBuilder component - Build new React component for intuitive condition configuration
+            interface
+          model: auto
+          allow_all_tools: true
+          resume_session: ${{ steps.task_1751000902868_u2vi3yy2h.outputs.session_id }}
+
+      - id: task_1751000902868_safkoss4l
+        name: Task 10
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: >-
+            Add predefined command list - Create configuration for common check commands like 'make lint', 'make test',
+            'npm run type-check'
+          model: auto
+          allow_all_tools: true
+          resume_session: ${{ steps.task_1751000902868_1bwtqyzi0.outputs.session_id }}
+
+      - id: task_1751000902868_sgcyjkxql
+        name: Task 11
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: >-
+            Update task status handling - Add 'skipped' status to TaskItem and handle skip reason tracking in execution
+            pipeline
+          model: auto
+          allow_all_tools: true
+          resume_session: ${{ steps.task_1751000902868_safkoss4l.outputs.session_id }}
+
+      - id: task_1751000902868_1kg3ptgkb
+        name: Task 12
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: >-
+            Write unit tests for conditional logic - Test evaluateCondition method with various exit codes and condition
+            types
+          model: auto
+          allow_all_tools: true
+          resume_session: ${{ steps.task_1751000902868_sgcyjkxql.outputs.session_id }}
+
+      - id: task_1751000902868_unq3yukrh
+        name: Task 13
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: >-
+            Write integration tests for conditional workflows - Test end-to-end conditional pipeline execution with real
+            commands
+          model: auto
+          allow_all_tools: true
+          resume_session: ${{ steps.task_1751000902868_1kg3ptgkb.outputs.session_id }}
+
+      - id: task_1751000902868_1wtqz7dbq
+        name: Task 14
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: Update UI tests for TaskList component - Test new condition configuration controls and validation
+          model: auto
+          allow_all_tools: true
+          resume_session: ${{ steps.task_1751000902868_unq3yukrh.outputs.session_id }}
+
+      - id: task_1751000902868_27q6yko63
+        name: Task 15
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: >-
+            Create example conditional workflow templates - Build sample workflows demonstrating lint-fix-test patterns
+            and quality gate patterns
+          model: auto
+          allow_all_tools: true
+          resume_session: ${{ steps.task_1751000902868_1wtqz7dbq.outputs.session_id }}

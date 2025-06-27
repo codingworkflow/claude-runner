@@ -1,6 +1,7 @@
 import React from "react";
 import Button from "../common/Button";
 import { TaskItem } from "../../services/ClaudeCodeService";
+import { ConditionType } from "../../core/models/Task";
 
 interface TaskListProps {
   tasks: TaskItem[];
@@ -77,15 +78,15 @@ const TaskList: React.FC<TaskListProps> = ({
           </div>
 
           {index > 0 && (
-            <div className="resume-config-group">
-              <label>Resume from:</label>
+            <div className="resume-row-inline">
+              <label className="inline-label">Resume from:</label>
               <select
                 value={task.resumeFromTaskId ?? ""}
                 onChange={(e) =>
                   updateTask(task.id, "resumeFromTaskId", e.target.value)
                 }
                 disabled={isTasksRunning}
-                className="model-select"
+                className="condition-select-inline"
               >
                 <option value="">New session</option>
                 {tasks.slice(0, index).map((prevTask, idx) => (
@@ -96,6 +97,39 @@ const TaskList: React.FC<TaskListProps> = ({
               </select>
             </div>
           )}
+
+          <div className="condition-controls">
+            <div className="check-command-row">
+              <label className="inline-label">Command:</label>
+              <input
+                type="text"
+                value={task.check ?? ""}
+                onChange={(e) => updateTask(task.id, "check", e.target.value)}
+                placeholder="Optional check command (e.g., make lint)"
+                className="check-command-input-inline"
+                disabled={isTasksRunning}
+              />
+            </div>
+            <div className="condition-row-inline">
+              <label className="inline-label">Condition:</label>
+              <select
+                value={task.condition ?? "always"}
+                onChange={(e) =>
+                  updateTask(
+                    task.id,
+                    "condition",
+                    e.target.value as ConditionType,
+                  )
+                }
+                disabled={isTasksRunning}
+                className="condition-select-inline"
+              >
+                <option value="always">Always</option>
+                <option value="on_success">On Success</option>
+                <option value="on_failure">On Failure</option>
+              </select>
+            </div>
+          </div>
         </div>
       ))}
     </div>

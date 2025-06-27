@@ -5,13 +5,16 @@ interface TaskItem {
   name?: string;
   prompt: string;
   resumePrevious: boolean;
-  status: "pending" | "running" | "completed" | "error" | "paused";
+  status: "pending" | "running" | "completed" | "error" | "paused" | "skipped";
   results?: string;
   sessionId?: string;
   model?: string;
   dependsOn?: string[];
   continueFrom?: string | null;
   pausedUntil?: number;
+  check?: string;
+  condition?: "on_success" | "on_failure" | "always";
+  skipReason?: string;
 }
 
 interface CommandFile {

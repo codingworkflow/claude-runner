@@ -114,17 +114,25 @@ export class ClaudeExecutor {
         if (!result.success) {
           const errorOutput =
             result.error ?? result.output ?? "Task execution failed";
-          const rateLimitCheck = this.detectRateLimit(errorOutput);
+
+          // Check for rate limit in both output and error message
+          const rateLimitCheck = this.detectRateLimit(
+            result.output || "",
+            result.error,
+          );
 
           if (rateLimitCheck.isRateLimited) {
             task.status = "paused";
             task.pausedUntil = rateLimitCheck.resetTime;
-            task.results = "Rate limited - waiting for reset";
+            task.results = `Rate limited - waiting for reset until ${new Date(rateLimitCheck.resetTime ?? 0).toLocaleString()}`;
             onProgress?.(tasks, i);
 
-            // For now, we'll just stop execution on rate limit
-            // In a full implementation, we'd store state and resume later
-            this.logger.warn("Rate limit detected, pausing pipeline execution");
+            this.logger.warn(
+              `Rate limit detected, pausing pipeline execution until ${new Date(rateLimitCheck.resetTime ?? 0).toLocaleString()}`,
+            );
+
+            // Store the failed task index for resumption
+            (task as unknown as { pausedAtIndex: number }).pausedAtIndex = i;
             return;
           }
 
@@ -172,6 +180,120 @@ export class ClaudeExecutor {
     return this.currentProcess !== null;
   }
 
+  async resumePipeline(
+    tasks: TaskItem[],
+    model: string,
+    workingDirectory: string,
+    options: TaskOptions = {},
+    onProgress?: (tasks: TaskItem[], currentIndex: number) => void,
+    onComplete?: (tasks: TaskItem[]) => void,
+    onError?: (error: string, tasks: TaskItem[]) => void,
+  ): Promise<void> {
+    // Find the first paused task or the task after the last completed one
+    let resumeIndex = tasks.findIndex((task) => task.status === "paused");
+    if (resumeIndex === -1) {
+      resumeIndex = tasks.findIndex((task) => task.status === "pending");
+    }
+    if (resumeIndex === -1) {
+      this.logger.info("No tasks to resume - all tasks completed");
+      onComplete?.(tasks);
+      return;
+    }
+
+    // Reset the paused task to pending if it was paused
+    if (tasks[resumeIndex].status === "paused") {
+      tasks[resumeIndex].status = "pending";
+      delete tasks[resumeIndex].pausedUntil;
+      delete (tasks[resumeIndex] as unknown as { pausedAtIndex?: number })
+        .pausedAtIndex;
+    }
+
+    // Continue pipeline execution from the resume point
+    for (let i = resumeIndex; i < tasks.length; i++) {
+      const task = tasks[i];
+
+      // Update task status to running
+      task.status = "running";
+      onProgress?.(tasks, i);
+
+      try {
+        const taskOptions: TaskOptions = { ...options };
+
+        // Set resume session if this task should resume from another task
+        if (task.resumeFromTaskId) {
+          const sourceTask = tasks.find((t) => t.id === task.resumeFromTaskId);
+          if (sourceTask?.sessionId) {
+            taskOptions.resumeSessionId = sourceTask.sessionId;
+          }
+        }
+
+        // Use task-specific model if specified, otherwise use pipeline default
+        const taskModel = task.model ?? model;
+
+        const result = await this.executeTaskCommand(
+          task.prompt,
+          taskModel,
+          workingDirectory,
+          taskOptions,
+        );
+
+        if (!result.success) {
+          const errorOutput =
+            result.error ?? result.output ?? "Task execution failed";
+
+          // Check for rate limit in both output and error message
+          const rateLimitCheck = this.detectRateLimit(
+            result.output || "",
+            result.error,
+          );
+
+          if (rateLimitCheck.isRateLimited) {
+            task.status = "paused";
+            task.pausedUntil = rateLimitCheck.resetTime;
+            task.results = `Rate limited - waiting for reset until ${new Date(rateLimitCheck.resetTime ?? 0).toLocaleString()}`;
+            onProgress?.(tasks, i);
+
+            this.logger.warn(
+              `Rate limit detected during resume, pausing pipeline execution until ${new Date(rateLimitCheck.resetTime ?? 0).toLocaleString()}`,
+            );
+
+            // Store the failed task index for resumption
+            (task as unknown as { pausedAtIndex: number }).pausedAtIndex = i;
+            return;
+          }
+
+          // Regular error handling
+          task.status = "error";
+          task.results = errorOutput;
+          onError?.(errorOutput, tasks);
+          return;
+        }
+
+        // Extract session ID and result from output
+        const { sessionId, resultText } = this.parseTaskResult(
+          result.output,
+          taskOptions.outputFormat,
+        );
+
+        task.status = "completed";
+        task.results = resultText;
+        task.sessionId = sessionId;
+
+        onProgress?.(tasks, i);
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : String(error);
+        task.status = "error";
+        task.results = errorMessage;
+        onError?.(errorMessage, tasks);
+        return;
+      }
+    }
+
+    // All tasks completed successfully
+    onComplete?.(tasks);
+  }
+
   async validateClaudeCommand(model: string): Promise<boolean> {
     try {
       const args = ["claude"];
@@ -206,7 +328,7 @@ export class ClaudeExecutor {
     return await this.executeCommand(args, workingDirectory);
   }
 
-  private async executeCommand(
+  protected async executeCommand(
     args: string[],
     cwd: string,
   ): Promise<CommandResult> {
@@ -391,11 +513,16 @@ export class ClaudeExecutor {
     return `'${arg.replace(/'/g, "'\"'\"'")}'`;
   }
 
-  private detectRateLimit(output: string): {
+  private detectRateLimit(
+    output: string,
+    stderr?: string,
+  ): {
     isRateLimited: boolean;
     resetTime?: number;
   } {
-    const match = output.match(/Claude AI usage limit reached\|(\d+)/);
+    // Check both stdout and stderr for rate limit messages
+    const fullOutput = `${output} ${stderr ?? ""}`;
+    const match = fullOutput.match(/Claude AI usage limit reached\|(\d+)/);
     if (match) {
       return {
         isRateLimited: true,

@@ -47,10 +47,14 @@ describe("TaskList", () => {
     expect((taskNameInputs[0] as HTMLInputElement).value).toBe("Task 1");
     expect((taskNameInputs[1] as HTMLInputElement).value).toBe("Task 2");
 
-    // Check for resume from dropdown
-    const allSelects = container.querySelectorAll("select.model-select");
-    expect(allSelects).toHaveLength(3); // 2 model selects + 1 resume select
-    const resumeSelect = allSelects[2]; // The third select is the resume dropdown
+    // Check for model selects (should be 2, one for each task)
+    const modelSelects = container.querySelectorAll("select.model-select");
+    expect(modelSelects).toHaveLength(2); // 2 model selects only
+
+    // Check for resume from dropdown (now uses condition-select-inline class)
+    const resumeSelect = container.querySelector(
+      "div.resume-row-inline select",
+    );
     expect(resumeSelect).toBeTruthy();
     expect(resumeSelect?.textContent).toContain("Task 1");
   });
@@ -89,5 +93,68 @@ describe("TaskList", () => {
 
     fireEvent.click(getAllByText("Remove")[0]);
     expect(removeTask).toHaveBeenCalledWith("1");
+  });
+
+  it("renders condition configuration controls", () => {
+    const { container } = render(
+      <TaskList
+        tasks={tasks}
+        isTasksRunning={false}
+        defaultModel={DEFAULT_MODEL}
+        availableModels={getModelIds()}
+        updateTask={() => {}}
+        removeTask={() => {}}
+      />,
+    );
+
+    // Check for check command inputs
+    const checkCommandInputs = container.querySelectorAll(
+      "input.check-command-input-inline",
+    );
+    expect(checkCommandInputs).toHaveLength(2); // One for each task
+
+    // Check for condition dropdowns (exclude resume dropdown)
+    const conditionSelects = container.querySelectorAll(
+      "div.condition-row-inline select.condition-select-inline",
+    );
+    expect(conditionSelects).toHaveLength(2); // One for each task
+
+    // Verify condition dropdown options
+    const firstConditionSelect = conditionSelects[0];
+    expect(firstConditionSelect?.textContent).toContain("Always");
+    expect(firstConditionSelect?.textContent).toContain("On Success");
+    expect(firstConditionSelect?.textContent).toContain("On Failure");
+  });
+
+  it("calls updateTask when condition controls are modified", () => {
+    const updateTask = jest.fn();
+    const { container } = render(
+      <TaskList
+        tasks={tasks}
+        isTasksRunning={false}
+        defaultModel={DEFAULT_MODEL}
+        availableModels={getModelIds()}
+        updateTask={updateTask}
+        removeTask={() => {}}
+      />,
+    );
+
+    // Test check command input
+    const checkCommandInput = container.querySelector(
+      ".check-command-input-inline",
+    ) as HTMLInputElement;
+    fireEvent.change(checkCommandInput, {
+      target: { value: "test -f file.txt" },
+    });
+    expect(updateTask).toHaveBeenCalledWith("1", "check", "test -f file.txt");
+
+    // Test condition dropdown
+    const conditionSelect = container.querySelector(
+      ".condition-select-inline",
+    ) as HTMLSelectElement;
+    fireEvent.change(conditionSelect, {
+      target: { value: "on_success" },
+    });
+    expect(updateTask).toHaveBeenCalledWith("1", "condition", "on_success");
   });
 });

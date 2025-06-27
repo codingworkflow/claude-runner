@@ -2,7 +2,7 @@ import { ConfigManager } from "../../../../src/core/services/ConfigManager";
 import { IConfigSource, ILogger } from "../../../../src/core/interfaces";
 
 class MockConfigSource implements IConfigSource {
-  private readonly data = new Map<string, any>();
+  private readonly data = new Map<string, unknown>();
 
   async get<T>(key: string): Promise<T | undefined> {
     return this.data.get(key);
@@ -12,7 +12,7 @@ class MockConfigSource implements IConfigSource {
     this.data.set(key, value);
   }
 
-  setData(key: string, value: any): void {
+  setData(key: string, value: unknown): void {
     this.data.set(key, value);
   }
 }

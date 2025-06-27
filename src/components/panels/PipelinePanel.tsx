@@ -24,6 +24,7 @@ const PipelinePanel: React.FC<PipelinePanelProps> = ({ disabled }) => {
     model: defaultModel = DEFAULT_MODEL,
     status,
     currentTaskIndex,
+    discoveredWorkflows,
   } = main;
 
   const isTasksRunning = status === "running";
@@ -73,7 +74,17 @@ const PipelinePanel: React.FC<PipelinePanelProps> = ({ disabled }) => {
 
   const handleLoadPipeline = () => {
     if (selectedPipeline) {
-      actions.loadPipeline(selectedPipeline);
+      // Check if it's a workflow file (contains .yml or .yaml) or a saved pipeline
+      if (
+        selectedPipeline.includes(".yml") ||
+        selectedPipeline.includes(".yaml")
+      ) {
+        // It's a discovered workflow file
+        actions.loadWorkflow(selectedPipeline);
+      } else {
+        // It's a saved pipeline
+        actions.loadPipeline(selectedPipeline);
+      }
       setSelectedPipeline("");
     }
   };
@@ -131,6 +142,7 @@ const PipelinePanel: React.FC<PipelinePanelProps> = ({ disabled }) => {
         selectedPipeline={selectedPipeline}
         setSelectedPipeline={setSelectedPipeline}
         handleLoadPipeline={handleLoadPipeline}
+        discoveredWorkflows={discoveredWorkflows}
       />
 
       <PipelineDialog

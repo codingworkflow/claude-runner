@@ -1,6 +1,29 @@
 import { jest, describe, it, beforeEach, expect } from "@jest/globals";
-import { ClaudeCodeService } from "../../../src/services/ClaudeCodeService";
+import {
+  ClaudeCodeService,
+  CommandResult,
+} from "../../../src/services/ClaudeCodeService";
 import { ConfigurationService } from "../../../src/services/ConfigurationService";
+
+// Type for accessing private methods in tests
+type ClaudeCodeServiceWithPrivates = ClaudeCodeService & {
+  executeTaskCommand: (args: string[], cwd: string) => Promise<CommandResult>;
+  formatCommand: (args: string[]) => string;
+  buildTaskCommand: (
+    prompt: string,
+    model: string,
+    workingDirectory: string,
+    additionalArgs: Record<string, unknown>,
+  ) => string[];
+  executeCommand: (args: string[], options?: unknown) => Promise<CommandResult>;
+  detectRateLimit: (output: string) => {
+    isRateLimit: boolean;
+    resetTime?: number;
+  };
+  resumePipeline: (pipelineId: string) => Promise<void>;
+  currentPipelineExecution: unknown;
+  pausedPipelines: Map<string, unknown>;
+};
 
 // Mock child_process
 jest.mock(
@@ -91,8 +114,11 @@ describe("ClaudeCodeService", () => {
         '{"result": "This is the extracted result", "metadata": {"tokens": 100}}';
 
       // Access private method via type assertion for testing
-      const extractedResult = // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (claudeCodeService as any).extractResultFromJson(mockJsonOutput);
+      const extractedResult = (
+        claudeCodeService as unknown as {
+          extractResultFromJson: (output: string) => string;
+        }
+      ).extractResultFromJson(mockJsonOutput);
       expect(extractedResult).toBe("This is the extracted result");
     });
 
@@ -104,8 +130,11 @@ describe("ClaudeCodeService", () => {
 
       const malformedJson = '{"result": incomplete json';
 
-      const extractedResult = // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (claudeCodeService as any).extractResultFromJson(malformedJson);
+      const extractedResult = (
+        claudeCodeService as unknown as {
+          extractResultFromJson: (output: string) => string;
+        }
+      ).extractResultFromJson(malformedJson);
       expect(extractedResult).toBe(malformedJson); // Should return original if parsing fails
 
       consoleSpy.mockRestore();
@@ -115,8 +144,11 @@ describe("ClaudeCodeService", () => {
       const jsonWithoutResult =
         '{"metadata": {"tokens": 100}, "other": "data"}';
 
-      const extractedResult = // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (claudeCodeService as any).extractResultFromJson(jsonWithoutResult);
+      const extractedResult = (
+        claudeCodeService as unknown as {
+          extractResultFromJson: (output: string) => string;
+        }
+      ).extractResultFromJson(jsonWithoutResult);
       // Should return formatted JSON since no result field exists
       expect(extractedResult).toEqual(expect.stringContaining('"metadata"'));
       expect(extractedResult).toEqual(expect.stringContaining('"other"'));
@@ -125,12 +157,15 @@ describe("ClaudeCodeService", () => {
 
   describe("Command Building", () => {
     it("should build basic task command correctly", () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const args = (claudeCodeService as any).buildTaskCommand(
-        "test prompt",
-        "claude-sonnet-4-20250514",
-        {},
-      );
+      const args = (
+        claudeCodeService as unknown as {
+          buildTaskCommand: (
+            task: string,
+            model: string,
+            options: object,
+          ) => string[];
+        }
+      ).buildTaskCommand("test prompt", "claude-sonnet-4-20250514", {});
 
       expect(args).toContain("claude");
       expect(args).toContain("-p");
@@ -141,47 +176,62 @@ describe("ClaudeCodeService", () => {
     });
 
     it("should include output format in command", () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const args = (claudeCodeService as any).buildTaskCommand(
-        "test prompt",
-        "claude-sonnet-4-20250514",
-        { outputFormat: "json" },
-      );
+      const args = (
+        claudeCodeService as unknown as {
+          buildTaskCommand: (
+            task: string,
+            model: string,
+            options: { outputFormat?: string },
+          ) => string[];
+        }
+      ).buildTaskCommand("test prompt", "claude-sonnet-4-20250514", {
+        outputFormat: "json",
+      });
 
       expect(args).toContain("--output-format");
       expect(args).toContain("json");
     });
 
     it("should include max turns in command", () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const args = (claudeCodeService as any).buildTaskCommand(
-        "test prompt",
-        "claude-sonnet-4-20250514",
-        { maxTurns: 5 },
-      );
+      const args = (
+        claudeCodeService as unknown as {
+          buildTaskCommand: (
+            task: string,
+            model: string,
+            options: { maxTurns?: number },
+          ) => string[];
+        }
+      ).buildTaskCommand("test prompt", "claude-sonnet-4-20250514", {
+        maxTurns: 5,
+      });
 
       expect(args).toContain("--max-turns");
       expect(args).toContain("5");
     });
 
     it("should include allow all tools flag when specified", () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const args = (claudeCodeService as any).buildTaskCommand(
-        "test prompt",
-        "claude-sonnet-4-20250514",
-        { allowAllTools: true },
-      );
+      const args = (
+        claudeCodeService as unknown as {
+          buildTaskCommand: (
+            task: string,
+            model: string,
+            options: { allowAllTools?: boolean },
+          ) => string[];
+        }
+      ).buildTaskCommand("test prompt", "claude-sonnet-4-20250514", {
+        allowAllTools: true,
+      });
 
       expect(args).toContain("--dangerously-skip-permissions");
     });
 
     it("should include session resume when specified", () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const args = (claudeCodeService as any).buildTaskCommand(
-        "test prompt",
-        "claude-sonnet-4-20250514",
-        { resumeSessionId: "session123" },
-      );
+      const args = (
+        claudeCodeService as ClaudeCodeServiceWithPrivates
+      ).buildTaskCommand("test prompt", "claude-sonnet-4-20250514", {
+        resumeSessionId: "session123",
+      });
 
       expect(args).toContain("-r");
       expect(args).toContain("session123");
@@ -201,11 +251,16 @@ describe("ClaudeCodeService", () => {
       ];
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      expect((claudeCodeService as any).currentPipelineExecution).toBeNull();
+      expect(
+        (claudeCodeService as ClaudeCodeServiceWithPrivates)
+          .currentPipelineExecution,
+      ).toBeNull();
 
       // Set up pipeline (would normally be done by runTaskPipeline)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (claudeCodeService as any).currentPipelineExecution = {
+      (
+        claudeCodeService as ClaudeCodeServiceWithPrivates
+      ).currentPipelineExecution = {
         tasks,
         currentIndex: 0,
         onProgress: jest.fn(),
@@ -215,12 +270,14 @@ describe("ClaudeCodeService", () => {
 
       expect(
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (claudeCodeService as any).currentPipelineExecution,
+        (claudeCodeService as ClaudeCodeServiceWithPrivates)
+          .currentPipelineExecution,
       ).not.toBeNull();
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      expect((claudeCodeService as any).currentPipelineExecution.tasks).toEqual(
-        tasks,
-      );
+      expect(
+        (claudeCodeService as ClaudeCodeServiceWithPrivates)
+          .currentPipelineExecution.tasks,
+      ).toEqual(tasks);
     });
   });
 
@@ -228,12 +285,17 @@ describe("ClaudeCodeService", () => {
     it("should handle command execution failures gracefully", () => {
       // Mock executeCommand to return failure
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      jest.spyOn(claudeCodeService as any, "executeCommand").mockResolvedValue({
-        success: false,
-        output: "",
-        error: "Command failed",
-        exitCode: 1,
-      });
+      jest
+        .spyOn(
+          claudeCodeService as ClaudeCodeServiceWithPrivates,
+          "executeCommand",
+        )
+        .mockResolvedValue({
+          success: false,
+          output: "",
+          error: "Command failed",
+          exitCode: 1,
+        });
 
       return expect(
         claudeCodeService.runTask(
@@ -250,9 +312,9 @@ describe("ClaudeCodeService", () => {
       const rateLimitMessage = "Claude AI usage limit reached|1750928400";
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const result = (claudeCodeService as any).detectRateLimit(
-        rateLimitMessage,
-      );
+      const result = (
+        claudeCodeService as ClaudeCodeServiceWithPrivates
+      ).detectRateLimit(rateLimitMessage);
 
       expect(result.isRateLimited).toBe(true);
       expect(result.resetTime).toBe(1750928400000); // Converted to milliseconds
@@ -264,7 +326,9 @@ Claude AI usage limit reached|1750928400
 Please try again later.`;
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const result = (claudeCodeService as any).detectRateLimit(mixedOutput);
+      const result = (
+        claudeCodeService as ClaudeCodeServiceWithPrivates
+      ).detectRateLimit(mixedOutput);
 
       expect(result.isRateLimited).toBe(true);
       expect(result.resetTime).toBe(1750928400000);
@@ -274,7 +338,9 @@ Please try again later.`;
       const normalError = "Command execution failed with exit code 1";
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const result = (claudeCodeService as any).detectRateLimit(normalError);
+      const result = (
+        claudeCodeService as ClaudeCodeServiceWithPrivates
+      ).detectRateLimit(normalError);
 
       expect(result.isRateLimited).toBe(false);
       expect(result.resetTime).toBeUndefined();
@@ -282,7 +348,9 @@ Please try again later.`;
 
     it("should not detect rate limit in empty string", () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const result = (claudeCodeService as any).detectRateLimit("");
+      const result = (
+        claudeCodeService as ClaudeCodeServiceWithPrivates
+      ).detectRateLimit("");
 
       expect(result.isRateLimited).toBe(false);
       expect(result.resetTime).toBeUndefined();
@@ -292,7 +360,9 @@ Please try again later.`;
       const invalidMessage = "Claude AI usage limit reached|invalid_timestamp";
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const result = (claudeCodeService as any).detectRateLimit(invalidMessage);
+      const result = (
+        claudeCodeService as ClaudeCodeServiceWithPrivates
+      ).detectRateLimit(invalidMessage);
 
       expect(result.isRateLimited).toBe(false);
       expect(result.resetTime).toBeUndefined();
@@ -307,7 +377,9 @@ Please try again later.`;
 
       testCases.forEach((testCase, _index) => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const result = (claudeCodeService as any).detectRateLimit(testCase);
+        const result = (
+          claudeCodeService as ClaudeCodeServiceWithPrivates
+        ).detectRateLimit(testCase);
         expect(result.isRateLimited).toBe(true);
         expect(result.resetTime).toBeGreaterThan(1750928000000);
       });
@@ -345,7 +417,9 @@ Please try again later.`;
 
         testCases.forEach(({ message, expectedHours, expectedMinutes }) => {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const result = (claudeCodeService as any).detectRateLimit(message);
+          const result = (
+            claudeCodeService as ClaudeCodeServiceWithPrivates
+          ).detectRateLimit(message);
           expect(result.isRateLimited).toBe(true);
 
           const timeDiff = result.resetTime - currentTime;
@@ -365,9 +439,13 @@ Please try again later.`;
     beforeEach(() => {
       // Reset any stored pipeline state
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (claudeCodeService as any).pausedPipelines.clear();
+      (
+        claudeCodeService as ClaudeCodeServiceWithPrivates
+      ).pausedPipelines.clear();
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (claudeCodeService as any).currentPipelineExecution = null;
+      (
+        claudeCodeService as ClaudeCodeServiceWithPrivates
+      ).currentPipelineExecution = null;
     });
 
     it("should pause pipeline execution on rate limit detection", async () => {
@@ -401,7 +479,10 @@ Please try again later.`;
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       jest
-        .spyOn(claudeCodeService as any, "executeTaskCommand")
+        .spyOn(
+          claudeCodeService as ClaudeCodeServiceWithPrivates,
+          "executeTaskCommand",
+        )
         .mockResolvedValueOnce({
           success: false,
           output: rateLimitError,
@@ -432,7 +513,9 @@ Please try again later.`;
 
       // Verify pipeline state was stored
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const pausedPipelines = (claudeCodeService as any).pausedPipelines;
+      const pausedPipelines = (
+        claudeCodeService as ClaudeCodeServiceWithPrivates
+      ).pausedPipelines;
       expect(pausedPipelines.size).toBe(1);
 
       const storedState = Array.from(pausedPipelines.values())[0] as {
@@ -468,7 +551,10 @@ Please try again later.`;
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       jest
-        .spyOn(claudeCodeService as any, "executeTaskCommand")
+        .spyOn(
+          claudeCodeService as ClaudeCodeServiceWithPrivates,
+          "executeTaskCommand",
+        )
         .mockRejectedValueOnce(new Error(rateLimitError));
 
       // Start pipeline execution
@@ -522,7 +608,10 @@ Please try again later.`;
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       jest
-        .spyOn(claudeCodeService as any, "executeTaskCommand")
+        .spyOn(
+          claudeCodeService as ClaudeCodeServiceWithPrivates,
+          "executeTaskCommand",
+        )
         .mockResolvedValueOnce({
           success: false,
           output: `Claude AI usage limit reached|${resetTime1Seconds}`,
@@ -558,7 +647,9 @@ Please try again later.`;
 
       // Verify both pipelines are stored separately
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const pausedPipelines = (claudeCodeService as any).pausedPipelines;
+      const pausedPipelines = (
+        claudeCodeService as ClaudeCodeServiceWithPrivates
+      ).pausedPipelines;
       expect(pausedPipelines.size).toBe(2);
 
       const storedStates = Array.from(pausedPipelines.values()) as {
@@ -578,7 +669,9 @@ Please try again later.`;
       jest.clearAllTimers();
       jest.useFakeTimers();
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (claudeCodeService as any).pausedPipelines.clear();
+      (
+        claudeCodeService as ClaudeCodeServiceWithPrivates
+      ).pausedPipelines.clear();
       // Mock setTimeout as a spy for testing
       jest.spyOn(global, "setTimeout");
     });
@@ -615,7 +708,10 @@ Please try again later.`;
       // Mock executeTaskCommand to fail with rate limit first, then succeed
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       jest
-        .spyOn(claudeCodeService as any, "executeTaskCommand")
+        .spyOn(
+          claudeCodeService as ClaudeCodeServiceWithPrivates,
+          "executeTaskCommand",
+        )
         .mockResolvedValueOnce({
           success: false,
           output: `Claude AI usage limit reached|${resumeTimeSeconds}`,
@@ -629,7 +725,10 @@ Please try again later.`;
       // Mock resumePipeline to track when it's called
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const resumePipelineSpy = jest
-        .spyOn(claudeCodeService as any, "resumePipeline")
+        .spyOn(
+          claudeCodeService as ClaudeCodeServiceWithPrivates,
+          "resumePipeline",
+        )
         .mockImplementation(() => Promise.resolve());
 
       // Start pipeline execution
@@ -652,7 +751,9 @@ Please try again later.`;
 
       // Verify pipeline state was stored
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const pausedPipelines = (claudeCodeService as any).pausedPipelines;
+      const pausedPipelines = (
+        claudeCodeService as ClaudeCodeServiceWithPrivates
+      ).pausedPipelines;
       expect(pausedPipelines.size).toBe(1);
 
       // Verify setTimeout was called with correct delay (5000ms)
@@ -703,7 +804,10 @@ Please try again later.`;
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       jest
-        .spyOn(claudeCodeService as any, "executeTaskCommand")
+        .spyOn(
+          claudeCodeService as ClaudeCodeServiceWithPrivates,
+          "executeTaskCommand",
+        )
         .mockResolvedValueOnce({
           success: false,
           output: `Claude AI usage limit reached|${resumeTime1Seconds}`,
@@ -717,7 +821,7 @@ Please try again later.`;
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const resumePipelineSpy = jest.spyOn(
-        claudeCodeService as any,
+        claudeCodeService as ClaudeCodeServiceWithPrivates,
         "resumePipeline",
       );
 
@@ -779,7 +883,10 @@ Please try again later.`;
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       jest
-        .spyOn(claudeCodeService as any, "executeTaskCommand")
+        .spyOn(
+          claudeCodeService as ClaudeCodeServiceWithPrivates,
+          "executeTaskCommand",
+        )
         .mockResolvedValueOnce({
           success: false,
           output: `Claude AI usage limit reached|${resetTimeSeconds}`,
@@ -788,7 +895,7 @@ Please try again later.`;
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const resumePipelineSpy = jest.spyOn(
-        claudeCodeService as any,
+        claudeCodeService as ClaudeCodeServiceWithPrivates,
         "resumePipeline",
       );
 
@@ -833,7 +940,10 @@ Please try again later.`;
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       jest
-        .spyOn(claudeCodeService as any, "executeTaskCommand")
+        .spyOn(
+          claudeCodeService as ClaudeCodeServiceWithPrivates,
+          "executeTaskCommand",
+        )
         .mockResolvedValueOnce({
           success: false,
           output: `Claude AI usage limit reached|${resetTimeSeconds}`,
@@ -883,7 +993,10 @@ Please try again later.`;
       // Mock executeTaskCommand to fail with rate limit
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       jest
-        .spyOn(claudeCodeService as any, "executeTaskCommand")
+        .spyOn(
+          claudeCodeService as ClaudeCodeServiceWithPrivates,
+          "executeTaskCommand",
+        )
         .mockResolvedValueOnce({
           success: false,
           output: `Claude AI usage limit reached|${resumeTimeSeconds}`,
@@ -893,7 +1006,10 @@ Please try again later.`;
       // Mock resumePipeline to track when it's called
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const resumePipelineSpy = jest
-        .spyOn(claudeCodeService as any, "resumePipeline")
+        .spyOn(
+          claudeCodeService as ClaudeCodeServiceWithPrivates,
+          "resumePipeline",
+        )
         .mockImplementation(() => Promise.resolve());
 
       // Start pipeline
@@ -913,7 +1029,9 @@ Please try again later.`;
 
       // Verify pipeline state was stored
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const pausedPipelines = (claudeCodeService as any).pausedPipelines;
+      const pausedPipelines = (
+        claudeCodeService as ClaudeCodeServiceWithPrivates
+      ).pausedPipelines;
       expect(pausedPipelines.size).toBe(1);
 
       // Verify setTimeout was called with correct delay (2000ms)
@@ -928,6 +1046,352 @@ Please try again later.`;
       // Cleanup
       resumePipelineSpy.mockRestore();
       (Date.now as jest.Mock).mockRestore();
+    });
+  });
+
+  describe("evaluateCondition", () => {
+    let mockExecuteCommand: jest.MockedFunction<
+      (args: string[], options?: unknown) => Promise<CommandResult>
+    >;
+
+    beforeEach(() => {
+      // Mock the executeCommand method
+      mockExecuteCommand = jest.spyOn(
+        claudeCodeService as ClaudeCodeServiceWithPrivates,
+        "executeCommand",
+      );
+    });
+
+    afterEach(() => {
+      mockExecuteCommand.mockRestore();
+    });
+
+    describe("Condition: always", () => {
+      it("should always return shouldRun: true", async () => {
+        const result = await claudeCodeService.evaluateCondition(
+          undefined,
+          "always",
+          false,
+          "/test/dir",
+        );
+
+        expect(result.shouldRun).toBe(true);
+        expect(result.reason).toBeUndefined();
+      });
+
+      it("should return shouldRun: true even when previous step failed", async () => {
+        const result = await claudeCodeService.evaluateCondition(
+          undefined,
+          "always",
+          false,
+          "/test/dir",
+        );
+
+        expect(result.shouldRun).toBe(true);
+        expect(result.reason).toBeUndefined();
+      });
+    });
+
+    describe("Condition: on_success", () => {
+      it("should return shouldRun: true when previousStepSuccess is true", async () => {
+        const result = await claudeCodeService.evaluateCondition(
+          undefined,
+          "on_success",
+          true,
+          "/test/dir",
+        );
+
+        expect(result.shouldRun).toBe(true);
+        expect(result.reason).toBeUndefined();
+      });
+
+      it("should return shouldRun: false when previousStepSuccess is false", async () => {
+        const result = await claudeCodeService.evaluateCondition(
+          undefined,
+          "on_success",
+          false,
+          "/test/dir",
+        );
+
+        expect(result.shouldRun).toBe(false);
+        expect(result.reason).toBe(
+          "Condition 'on_success' not met (previous step failed)",
+        );
+      });
+    });
+
+    describe("Condition: on_failure", () => {
+      it("should return shouldRun: true when previousStepSuccess is false", async () => {
+        const result = await claudeCodeService.evaluateCondition(
+          undefined,
+          "on_failure",
+          false,
+          "/test/dir",
+        );
+
+        expect(result.shouldRun).toBe(true);
+        expect(result.reason).toBeUndefined();
+      });
+
+      it("should return shouldRun: false when previousStepSuccess is true", async () => {
+        const result = await claudeCodeService.evaluateCondition(
+          undefined,
+          "on_failure",
+          true,
+          "/test/dir",
+        );
+
+        expect(result.shouldRun).toBe(false);
+        expect(result.reason).toBe(
+          "Condition 'on_failure' not met (previous step succeeded)",
+        );
+      });
+    });
+
+    describe("No condition specified", () => {
+      it("should always return shouldRun: true when condition is undefined (KISS default)", async () => {
+        const resultSuccess = await claudeCodeService.evaluateCondition(
+          undefined,
+          undefined,
+          true,
+          "/test/dir",
+        );
+
+        expect(resultSuccess.shouldRun).toBe(true);
+        expect(resultSuccess.reason).toBeUndefined();
+
+        const resultFailure = await claudeCodeService.evaluateCondition(
+          undefined,
+          undefined,
+          false,
+          "/test/dir",
+        );
+
+        expect(resultFailure.shouldRun).toBe(true);
+        expect(resultFailure.reason).toBeUndefined();
+      });
+    });
+
+    describe("Check command execution", () => {
+      it("should return shouldRun: true when check command succeeds", async () => {
+        mockExecuteCommand.mockResolvedValue({
+          success: true,
+          output: "Command executed successfully",
+          exitCode: 0,
+        });
+
+        const result = await claudeCodeService.evaluateCondition(
+          "test -f file.txt",
+          "always",
+          true,
+          "/test/dir",
+        );
+
+        expect(result.shouldRun).toBe(true);
+        expect(result.reason).toBeUndefined();
+        expect(mockExecuteCommand).toHaveBeenCalledWith(
+          ["test", "-f", "file.txt"],
+          "/test/dir",
+        );
+      });
+
+      it("should return shouldRun: false when check command fails", async () => {
+        mockExecuteCommand.mockResolvedValue({
+          success: false,
+          output: "",
+          error: "File not found",
+          exitCode: 1,
+        });
+
+        const result = await claudeCodeService.evaluateCondition(
+          "test -f nonexistent.txt",
+          "always",
+          true,
+          "/test/dir",
+        );
+
+        expect(result.shouldRun).toBe(false);
+        expect(result.reason).toBe("Check command failed: File not found");
+        expect(mockExecuteCommand).toHaveBeenCalledWith(
+          ["test", "-f", "nonexistent.txt"],
+          "/test/dir",
+        );
+      });
+
+      it("should return shouldRun: false when check command fails without error message", async () => {
+        mockExecuteCommand.mockResolvedValue({
+          success: false,
+          output: "",
+          exitCode: 1,
+        });
+
+        const result = await claudeCodeService.evaluateCondition(
+          "false",
+          "always",
+          true,
+          "/test/dir",
+        );
+
+        expect(result.shouldRun).toBe(false);
+        expect(result.reason).toBe(
+          "Check command failed: Command returned non-zero exit code",
+        );
+      });
+    });
+
+    describe("Check command error handling", () => {
+      it("should handle check command execution exceptions", async () => {
+        const executionError = new Error("Command execution failed");
+        mockExecuteCommand.mockRejectedValue(executionError);
+
+        const result = await claudeCodeService.evaluateCondition(
+          "invalid-command",
+          "always",
+          true,
+          "/test/dir",
+        );
+
+        expect(result.shouldRun).toBe(false);
+        expect(result.reason).toBe(
+          "Check command execution failed: Command execution failed",
+        );
+      });
+
+      it("should handle non-Error exceptions in check command", async () => {
+        mockExecuteCommand.mockRejectedValue("String error");
+
+        const result = await claudeCodeService.evaluateCondition(
+          "invalid-command",
+          "always",
+          true,
+          "/test/dir",
+        );
+
+        expect(result.shouldRun).toBe(false);
+        expect(result.reason).toBe(
+          "Check command execution failed: String error",
+        );
+      });
+    });
+
+    describe("Combined condition and check command scenarios", () => {
+      it("should skip check command when condition is not met", async () => {
+        // This test ensures check command is not executed when condition fails
+        const result = await claudeCodeService.evaluateCondition(
+          "echo 'should not run'",
+          "on_success",
+          false, // Previous step failed
+          "/test/dir",
+        );
+
+        expect(result.shouldRun).toBe(false);
+        expect(result.reason).toBe(
+          "Condition 'on_success' not met (previous step failed)",
+        );
+        expect(mockExecuteCommand).not.toHaveBeenCalled();
+      });
+
+      it("should execute check command when condition is met", async () => {
+        mockExecuteCommand.mockResolvedValue({
+          success: true,
+          output: "Check passed",
+          exitCode: 0,
+        });
+
+        const result = await claudeCodeService.evaluateCondition(
+          "test -d /test/dir",
+          "on_success",
+          true, // Previous step succeeded
+          "/test/dir",
+        );
+
+        expect(result.shouldRun).toBe(true);
+        expect(result.reason).toBeUndefined();
+        expect(mockExecuteCommand).toHaveBeenCalledWith(
+          ["test", "-d", "/test/dir"],
+          "/test/dir",
+        );
+      });
+
+      it("should handle complex check command with multiple arguments", async () => {
+        mockExecuteCommand.mockResolvedValue({
+          success: true,
+          output: "Files found",
+          exitCode: 0,
+        });
+
+        const result = await claudeCodeService.evaluateCondition(
+          'find /test/dir -name "*.js" -type f',
+          "always",
+          true,
+          "/test/dir",
+        );
+
+        expect(result.shouldRun).toBe(true);
+        expect(mockExecuteCommand).toHaveBeenCalledWith(
+          ["find", "/test/dir", "-name", '"*.js"', "-type", "f"],
+          "/test/dir",
+        );
+      });
+    });
+
+    describe("Edge cases and validation", () => {
+      it("should handle empty check command string", async () => {
+        const result = await claudeCodeService.evaluateCondition(
+          "",
+          "always",
+          true,
+          "/test/dir",
+        );
+
+        // Empty string should be treated as no check command
+        expect(result.shouldRun).toBe(true);
+        expect(result.reason).toBeUndefined();
+        expect(mockExecuteCommand).not.toHaveBeenCalled();
+      });
+
+      it("should handle whitespace-only check command", async () => {
+        mockExecuteCommand.mockResolvedValue({
+          success: false,
+          output: "",
+          error: "Invalid command",
+          exitCode: 127,
+        });
+
+        const result = await claudeCodeService.evaluateCondition(
+          "   ",
+          "always",
+          true,
+          "/test/dir",
+        );
+
+        expect(result.shouldRun).toBe(false);
+        expect(mockExecuteCommand).toHaveBeenCalledWith(
+          ["", "", "", ""],
+          "/test/dir",
+        );
+      });
+
+      it("should use correct working directory for check command", async () => {
+        mockExecuteCommand.mockResolvedValue({
+          success: true,
+          output: "Success",
+          exitCode: 0,
+        });
+
+        const customWorkingDir = "/custom/working/directory";
+        await claudeCodeService.evaluateCondition(
+          "pwd",
+          "always",
+          true,
+          customWorkingDir,
+        );
+
+        expect(mockExecuteCommand).toHaveBeenCalledWith(
+          ["pwd"],
+          customWorkingDir,
+        );
+      });
     });
   });
 });

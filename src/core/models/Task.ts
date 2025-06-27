@@ -2,6 +2,8 @@
  * Core task types - platform-agnostic
  */
 
+export type ConditionType = "on_success" | "on_failure" | "always";
+
 export interface TaskOptions {
   allowAllTools?: boolean;
   outputFormat?: "text" | "json" | "stream-json";
@@ -31,13 +33,16 @@ export interface TaskItem {
   name?: string;
   prompt: string;
   resumeFromTaskId?: string;
-  status: "pending" | "running" | "completed" | "error" | "paused";
+  status: "pending" | "running" | "completed" | "error" | "paused" | "skipped";
   results?: string;
   sessionId?: string;
   model?: string;
   dependsOn?: string[];
   continueFrom?: string | null;
   pausedUntil?: number;
+  check?: string;
+  condition?: ConditionType;
+  skipReason?: string;
 }
 
 export interface ExecutionOptions {

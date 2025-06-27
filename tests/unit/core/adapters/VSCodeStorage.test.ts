@@ -1,8 +1,9 @@
+import * as vscode from "vscode";
 import { VSCodeStorage } from "../../../../src/adapters/vscode/VSCodeStorage";
 
 // Mock VS Code extension context
 const mockGlobalState = {
-  data: new Map<string, any>(),
+  data: new Map<string, unknown>(),
   get: jest.fn(),
   update: jest.fn(),
   keys: jest.fn(),
@@ -10,15 +11,15 @@ const mockGlobalState = {
 
 const mockContext = {
   globalState: mockGlobalState,
-} as any;
+} as unknown as vscode.ExtensionContext;
 
 // Set up mock implementations
 mockGlobalState.get.mockImplementation(<T>(key: string): T | undefined => {
-  return mockGlobalState.data.get(key);
+  return mockGlobalState.data.get(key) as T | undefined;
 });
 
 mockGlobalState.update.mockImplementation(
-  (key: string, value: any): Promise<void> => {
+  (key: string, value: unknown): Promise<void> => {
     if (value === undefined) {
       mockGlobalState.data.delete(key);
     } else {

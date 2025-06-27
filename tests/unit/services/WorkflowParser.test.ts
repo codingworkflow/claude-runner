@@ -1,6 +1,11 @@
 import { describe, it, expect } from "@jest/globals";
 import { WorkflowParser } from "../../../src/services/WorkflowParser";
-import { ClaudeWorkflow } from "../../../src/types/WorkflowTypes";
+import { ClaudeWorkflow, ClaudeStep } from "../../../src/types/WorkflowTypes";
+
+// Type for accessing private static methods in tests
+type WorkflowParserWithPrivates = typeof WorkflowParser & {
+  validateConditionalStep: (step: ClaudeStep) => void;
+};
 
 describe("WorkflowParser", () => {
   describe("parseYaml", () => {
@@ -227,6 +232,127 @@ jobs:
         },
       });
       expect(resolved).toBe("Hello Developer, session: abc123");
+    });
+  });
+
+  describe("validateConditionalStep", () => {
+    it("should accept valid conditional step with check and condition", () => {
+      const validStep = {
+        id: "test-step",
+        name: "Test Step",
+        uses: "anthropics/claude-pipeline-action@v1",
+        with: {
+          prompt: "Test prompt",
+          check: "npm test",
+          condition: "on_success",
+        },
+      };
+
+      expect(() => {
+        (WorkflowParser as WorkflowParserWithPrivates).validateConditionalStep(
+          validStep,
+        );
+      }).not.toThrow();
+    });
+
+    it("should accept step with check but no condition", () => {
+      const validStep = {
+        id: "test-step",
+        name: "Test Step",
+        uses: "anthropics/claude-pipeline-action@v1",
+        with: {
+          prompt: "Test prompt",
+          check: "make lint",
+        },
+      };
+
+      expect(() => {
+        (WorkflowParser as WorkflowParserWithPrivates).validateConditionalStep(
+          validStep,
+        );
+      }).not.toThrow();
+    });
+
+    it("should throw error for non-string check command", () => {
+      const invalidStep = {
+        id: "test-step",
+        name: "Test Step",
+        uses: "anthropics/claude-pipeline-action@v1",
+        with: {
+          prompt: "Test prompt",
+          check: 123 as unknown,
+        },
+      };
+
+      expect(() => {
+        (WorkflowParser as WorkflowParserWithPrivates).validateConditionalStep(
+          invalidStep,
+        );
+      }).toThrow("Check command in step 'Test Step' must be a string");
+    });
+
+    it("should throw error for invalid condition type", () => {
+      const invalidStep = {
+        id: "test-step",
+        name: "Test Step",
+        uses: "anthropics/claude-pipeline-action@v1",
+        with: {
+          prompt: "Test prompt",
+          check: "npm test",
+          condition: "invalid_condition" as unknown,
+        },
+      };
+
+      expect(() => {
+        (WorkflowParser as WorkflowParserWithPrivates).validateConditionalStep(
+          invalidStep,
+        );
+      }).toThrow(
+        "Invalid condition type in step 'Test Step': invalid_condition",
+      );
+    });
+
+    it("should throw error for condition without check command", () => {
+      const invalidStep = {
+        id: "test-step",
+        name: "Test Step",
+        uses: "anthropics/claude-pipeline-action@v1",
+        with: {
+          prompt: "Test prompt",
+          condition: "on_success",
+        },
+      };
+
+      expect(() => {
+        (WorkflowParser as WorkflowParserWithPrivates).validateConditionalStep(
+          invalidStep,
+        );
+      }).toThrow(
+        "Step 'Test Step' has condition 'on_success' but no check command specified",
+      );
+    });
+
+    it("should accept all valid condition types", () => {
+      const conditionTypes = ["on_success", "on_failure", "always"];
+
+      conditionTypes.forEach((condition) => {
+        const validStep = {
+          id: `test-step-${condition}`,
+          name: "Test Step",
+          uses: "anthropics/claude-pipeline-action@v1",
+          with: {
+            prompt: "Test prompt",
+            check: "npm test",
+            condition,
+          },
+        };
+
+        expect(() => {
+          (
+            WorkflowParser as WorkflowParserWithPrivates
+          ).validateConditionalStep(validStep);
+        }).not.toThrow();
+      });
     });
   });
 

@@ -104,6 +104,15 @@ export class PipelineService {
               step.with.output_session = true;
             }
 
+            // Add check and condition properties if defined
+            if (task.check) {
+              step.with.check = task.check;
+            }
+
+            if (task.condition) {
+              step.with.condition = task.condition;
+            }
+
             return step;
           }),
         },
@@ -180,6 +189,54 @@ export class PipelineService {
     return pipelines;
   }
 
+  async discoverWorkflowFiles(): Promise<{ name: string; path: string }[]> {
+    const workflows: { name: string; path: string }[] = [];
+
+    if (!this.rootPath) {
+      return workflows;
+    }
+
+    try {
+      const files = await fs.readdir(this.workflowsDir);
+
+      for (const file of files) {
+        if (
+          file.startsWith("claude") &&
+          (file.endsWith(".yml") || file.endsWith(".yaml"))
+        ) {
+          const filePath = path.join(this.workflowsDir, file);
+          try {
+            const content = await fs.readFile(filePath, "utf-8");
+            const workflow = WorkflowParser.parseYaml(content);
+
+            workflows.push({
+              name: workflow.name || file.replace(/\.ya?ml$/, ""),
+              path: filePath,
+            });
+          } catch (error) {
+            console.warn(`Failed to parse workflow file ${file}:`, error);
+          }
+        }
+      }
+    } catch (error) {
+      // No workflows directory found
+    }
+
+    return workflows;
+  }
+
+  async loadWorkflowFromFile(filePath: string): Promise<ClaudeWorkflow | null> {
+    try {
+      const content = await fs.readFile(filePath, "utf-8");
+      const workflow = WorkflowParser.parseYaml(content);
+      return workflow;
+    } catch (error) {
+      console.error(`Failed to load workflow from ${filePath}:`, error);
+      vscode.window.showErrorMessage(`Failed to load workflow from file`);
+      return null;
+    }
+  }
+
   async deletePipeline(name: string): Promise<void> {
     try {
       const workflowFilename = `claude-${name.toLowerCase().replace(/[^a-z0-9]/g, "-")}.yml`;
@@ -229,6 +286,8 @@ export class PipelineService {
             resumeFromTaskId,
             status: "pending",
             model: claudeStep.with.model,
+            check: claudeStep.with.check,
+            condition: claudeStep.with.condition,
           });
         }
       }

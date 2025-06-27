@@ -13,6 +13,7 @@ interface PipelineControlsProps {
   selectedPipeline: string;
   setSelectedPipeline: (pipeline: string) => void;
   handleLoadPipeline: () => void;
+  discoveredWorkflows?: { name: string; path: string }[];
 }
 
 const PipelineControls: React.FC<PipelineControlsProps> = ({
@@ -27,6 +28,7 @@ const PipelineControls: React.FC<PipelineControlsProps> = ({
   selectedPipeline,
   setSelectedPipeline,
   handleLoadPipeline,
+  discoveredWorkflows,
 }) => {
   return (
     <div className="task-controls">
@@ -62,29 +64,50 @@ const PipelineControls: React.FC<PipelineControlsProps> = ({
         </div>
       )}
 
-      {availablePipelines.length > 0 && !isTasksRunning && (
-        <div className="pipeline-controls">
-          <select
-            value={selectedPipeline}
-            onChange={(e) => setSelectedPipeline(e.target.value)}
-            className="model-select"
-          >
-            <option value="">Select a pipeline...</option>
-            {availablePipelines.map((pipeline) => (
-              <option key={pipeline} value={pipeline}>
-                {pipeline}
-              </option>
-            ))}
-          </select>
-          <Button
-            variant="secondary"
-            onClick={handleLoadPipeline}
-            disabled={!selectedPipeline}
-          >
-            Load Pipeline
-          </Button>
-        </div>
-      )}
+      {(availablePipelines.length > 0 ||
+        (discoveredWorkflows && discoveredWorkflows.length > 0)) &&
+        !isTasksRunning && (
+          <div className="pipeline-controls" style={{ marginTop: "16px" }}>
+            <select
+              value={selectedPipeline}
+              onChange={(e) => setSelectedPipeline(e.target.value)}
+              className="pipeline-select"
+            >
+              <option value="">Select pipeline</option>
+
+              {availablePipelines.length > 0 && (
+                <optgroup label="Saved Pipelines">
+                  {availablePipelines.map((pipeline) => (
+                    <option key={`pipeline-${pipeline}`} value={pipeline}>
+                      {pipeline}
+                    </option>
+                  ))}
+                </optgroup>
+              )}
+
+              {discoveredWorkflows && discoveredWorkflows.length > 0 && (
+                <optgroup label="Workflows">
+                  {discoveredWorkflows.map((workflow) => (
+                    <option
+                      key={`workflow-${workflow.path}`}
+                      value={workflow.path}
+                    >
+                      {workflow.name}
+                    </option>
+                  ))}
+                </optgroup>
+              )}
+            </select>
+
+            <Button
+              variant="secondary"
+              onClick={handleLoadPipeline}
+              disabled={!selectedPipeline}
+            >
+              Load
+            </Button>
+          </div>
+        )}
     </div>
   );
 };

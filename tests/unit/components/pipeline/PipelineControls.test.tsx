@@ -18,6 +18,7 @@ describe("PipelineControls", () => {
         selectedPipeline=""
         setSelectedPipeline={() => {}}
         handleLoadPipeline={() => {}}
+        discoveredWorkflows={[]}
       />,
     );
 
@@ -40,6 +41,7 @@ describe("PipelineControls", () => {
         selectedPipeline=""
         setSelectedPipeline={() => {}}
         handleLoadPipeline={() => {}}
+        discoveredWorkflows={[]}
       />,
     );
 
@@ -62,10 +64,81 @@ describe("PipelineControls", () => {
         selectedPipeline=""
         setSelectedPipeline={() => {}}
         handleLoadPipeline={() => {}}
+        discoveredWorkflows={[]}
       />,
     );
 
     fireEvent.click(getByText("Run Pipeline"));
     expect(handleRunTasks).toHaveBeenCalled();
+  });
+
+  it("displays discovered workflows in dropdown when provided", () => {
+    const discoveredWorkflows = [
+      { name: "test", path: ".github/workflows/claude-test.yml" },
+      {
+        name: "integration-test",
+        path: ".github/workflows/claude-integration-test.yml",
+      },
+    ];
+    const { getByText, getByRole } = render(
+      <PipelineControls
+        isTasksRunning={false}
+        canRunTasks={true}
+        disabled={false}
+        addTask={() => {}}
+        cancelTask={() => {}}
+        handleRunTasks={() => {}}
+        setShowPipelineDialog={() => {}}
+        availablePipelines={[]}
+        selectedPipeline=""
+        setSelectedPipeline={() => {}}
+        handleLoadPipeline={() => {}}
+        discoveredWorkflows={discoveredWorkflows}
+      />,
+    );
+
+    // Check that the dropdown contains the workflows
+    const select = getByRole("combobox");
+    expect(select).toBeTruthy();
+    expect(getByText("🔧 test")).toBeTruthy();
+    expect(getByText("🔧 integration-test")).toBeTruthy();
+    expect(getByText("Load Pipeline")).toBeTruthy();
+
+    // Check that the optgroup exists by looking for the label attribute
+    const optgroup = select.querySelector(
+      'optgroup[label="Discovered Workflows (2 found)"]',
+    );
+    expect(optgroup).toBeTruthy();
+  });
+
+  it("calls setSelectedPipeline when a workflow is selected from dropdown", () => {
+    const setSelectedPipeline = jest.fn();
+    const discoveredWorkflows = [
+      { name: "test", path: ".github/workflows/claude-test.yml" },
+    ];
+    const { getByRole } = render(
+      <PipelineControls
+        isTasksRunning={false}
+        canRunTasks={true}
+        disabled={false}
+        addTask={() => {}}
+        cancelTask={() => {}}
+        handleRunTasks={() => {}}
+        setShowPipelineDialog={() => {}}
+        availablePipelines={[]}
+        selectedPipeline=""
+        setSelectedPipeline={setSelectedPipeline}
+        handleLoadPipeline={() => {}}
+        discoveredWorkflows={discoveredWorkflows}
+      />,
+    );
+
+    const select = getByRole("combobox");
+    fireEvent.change(select, {
+      target: { value: ".github/workflows/claude-test.yml" },
+    });
+    expect(setSelectedPipeline).toHaveBeenCalledWith(
+      ".github/workflows/claude-test.yml",
+    );
   });
 });

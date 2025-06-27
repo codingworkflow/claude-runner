@@ -13,6 +13,7 @@ import { ClaudeDetectionService } from "../services/ClaudeDetectionService";
 import { LogsService } from "../services/LogsService";
 import { CommandsService, CommandFile } from "../services/CommandsService";
 import { getModelIds } from "../models/ClaudeModels";
+import { ClaudeWorkflow } from "../types/WorkflowTypes";
 
 export interface ControllerCallbacks {
   onUsageReportData?: (data: unknown) => void;
@@ -65,6 +66,9 @@ export class RunnerController implements EventBus {
     vscode.workspace.onDidChangeWorkspaceFolders(async () => {
       await this.loadAvailablePipelines();
     });
+
+    // Load available pipelines on initialization
+    void this.loadAvailablePipelines();
   }
 
   readonly send = (cmd: RunnerCommand): void => {
@@ -113,6 +117,9 @@ export class RunnerController implements EventBus {
         break;
       case "loadPipeline":
         void this.loadPipeline(cmd.name);
+        break;
+      case "loadWorkflow":
+        void this.loadPipeline(cmd.workflowId);
         break;
       case "pipelineAddTask":
         this.pipelineAddTask(cmd.newTask);
@@ -200,6 +207,8 @@ export class RunnerController implements EventBus {
       outputFormat: "json",
       tasks: [],
       currentTaskIndex: undefined,
+      availablePipelines: [],
+      discoveredWorkflows: [],
 
       // Task execution state
       lastTaskResults: undefined,
@@ -595,9 +604,32 @@ export class RunnerController implements EventBus {
     }
   }
 
-  private async loadPipeline(name: string): Promise<void> {
+  private async loadPipeline(nameOrPath: string): Promise<void> {
     try {
-      const workflow = await this.pipelineService.loadPipeline(name);
+      const currentState = this.state$.value;
+      let workflow: ClaudeWorkflow | null = null;
+
+      // Check if input is a file path (contains / or \)
+      if (nameOrPath.includes("/") || nameOrPath.includes("\\")) {
+        // Direct file path - load directly
+        workflow = await this.pipelineService.loadWorkflowFromFile(nameOrPath);
+      } else {
+        // Pipeline name - try loading as saved pipeline first
+        workflow = await this.pipelineService.loadPipeline(nameOrPath);
+
+        // If not found, search in discovered workflows
+        if (!workflow && currentState.discoveredWorkflows) {
+          const discoveredWorkflow = currentState.discoveredWorkflows.find(
+            (w) => w.name === nameOrPath,
+          );
+          if (discoveredWorkflow) {
+            workflow = await this.pipelineService.loadWorkflowFromFile(
+              discoveredWorkflow.path,
+            );
+          }
+        }
+      }
+
       if (!workflow) {
         return;
       }
@@ -606,8 +638,15 @@ export class RunnerController implements EventBus {
       try {
         tasks = this.pipelineService.workflowToTaskItems(workflow);
       } catch (error) {
+        const displayName =
+          nameOrPath.includes("/") || nameOrPath.includes("\\")
+            ? (nameOrPath
+                .split("/")
+                .pop()
+                ?.replace(/\.ya?ml$/, "") ?? nameOrPath)
+            : nameOrPath;
         vscode.window.showErrorMessage(
-          `Pipeline '${name}' is invalid: ${error}`,
+          `Pipeline '${displayName}' is invalid: ${error}`,
         );
         return;
       }
@@ -621,8 +660,15 @@ export class RunnerController implements EventBus {
         tasks,
       });
 
+      const displayName =
+        nameOrPath.includes("/") || nameOrPath.includes("\\")
+          ? (nameOrPath
+              .split("/")
+              .pop()
+              ?.replace(/\.ya?ml$/, "") ?? nameOrPath)
+          : nameOrPath;
       vscode.window.showInformationMessage(
-        `Pipeline '${name}' loaded successfully with ${tasks.length} tasks`,
+        `Pipeline '${displayName}' loaded successfully with ${tasks.length} tasks`,
       );
     } catch (error) {
       vscode.window.showErrorMessage(
@@ -728,10 +774,24 @@ export class RunnerController implements EventBus {
   }
 
   private async loadAvailablePipelines(): Promise<void> {
-    // This would need to be handled differently - perhaps emit as a separate observable
-    // For now, just update the service
-    await this.pipelineService.listPipelines();
-    // Available pipelines loaded in the background
+    try {
+      const [savedPipelines, discoveredWorkflows] = await Promise.all([
+        this.pipelineService.listPipelines(),
+        this.pipelineService.discoverWorkflowFiles(),
+      ]);
+
+      const availablePipelines = [
+        ...savedPipelines,
+        ...discoveredWorkflows.map((w) => w.name),
+      ];
+
+      this.updateState({
+        availablePipelines,
+        discoveredWorkflows,
+      });
+    } catch (error) {
+      console.error("Failed to load available pipelines:", error);
+    }
   }
 
   private getCurrentWorkspacePath(): string | undefined {

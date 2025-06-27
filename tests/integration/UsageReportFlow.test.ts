@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, jest } from "@jest/globals";
 import * as vscode from "vscode";
 import { ClaudeRunnerPanel } from "../../src/providers/ClaudeRunnerPanel";
 import { ClaudeCodeService } from "../../src/services/ClaudeCodeService";
+import { ClaudeService } from "../../src/services/ClaudeService";
 import { TerminalService } from "../../src/services/TerminalService";
 import { ConfigurationService } from "../../src/services/ConfigurationService";
 import { UsageReportService } from "../../src/services/UsageReportService";
@@ -92,7 +93,7 @@ describe("Usage Report Integration Flow", () => {
     panel = new ClaudeRunnerPanel(
       mockContext,
       mockClaudeCodeService,
-      {} as any, // claudeService mock
+      {} as jest.Mocked<ClaudeService>,
       mockTerminalService,
       mockConfigService,
     );

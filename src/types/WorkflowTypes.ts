@@ -3,6 +3,8 @@
  * Based on GitHub Actions workflow syntax with Claude-specific extensions
  */
 
+export type ConditionType = "on_success" | "on_failure" | "always";
+
 export interface ClaudeWorkflow {
   name: string;
   on?: WorkflowTrigger;
@@ -53,6 +55,8 @@ export interface ClaudeStep extends Step {
     working_directory?: string;
     resume_session?: string;
     output_session?: boolean;
+    check?: string;
+    condition?: ConditionType;
     [key: string]: unknown;
   };
 }

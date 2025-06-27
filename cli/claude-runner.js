@@ -322,8 +322,102 @@ class ClaudeRunnerCLI {
               }
             }
           } else {
-            console.error(`  FAILED (${duration}ms): ${result.error}`);
-            process.exit(1);
+            // Check for rate limit before failing
+            const rateLimitMatch = (result.error || "").match(
+              /Claude AI usage limit reached\|(\d+)/,
+            );
+            if (rateLimitMatch) {
+              const resetTime = parseInt(rateLimitMatch[1], 10) * 1000;
+              const waitTime = resetTime - Date.now();
+              const resetDate = new Date(resetTime).toLocaleString();
+
+              console.warn(
+                `  RATE LIMITED (${duration}ms): Claude AI usage limit reached`,
+              );
+              console.warn(`  Reset time: ${resetDate}`);
+
+              if (waitTime > 0) {
+                const waitMinutes = Math.ceil(waitTime / 60000);
+                console.warn(
+                  `  Waiting ${waitMinutes} minute(s) before retrying...`,
+                );
+
+                // Wait for the rate limit to reset
+                await new Promise((resolve) =>
+                  setTimeout(resolve, waitTime + 1000),
+                ); // Add 1 second buffer
+
+                console.log(`  Rate limit expired, retrying step: ${step.id}`);
+
+                // Retry the same step
+                const retryResult = await this.executor.executeTask(
+                  step.with.prompt,
+                  step.with.model || "auto",
+                  step.with.working_directory || process.cwd(),
+                  taskOptions,
+                );
+
+                const retryDuration = Date.now() - startTime;
+
+                if (retryResult.success) {
+                  console.log(`  COMPLETED after retry (${retryDuration}ms)`);
+                  console.log(
+                    `  Output: ${retryResult.output.substring(0, 200)}${retryResult.output.length > 200 ? "..." : ""}`,
+                  );
+
+                  if (step.with.output_session && retryResult.sessionId) {
+                    sessions.set(step.id, retryResult.sessionId);
+                    if (options.verbose) {
+                      console.log(
+                        `  Session ID stored: ${retryResult.sessionId}`,
+                      );
+                    }
+                  }
+                } else {
+                  console.error(
+                    `  FAILED after retry (${retryDuration}ms): ${retryResult.error}`,
+                  );
+                  process.exit(1);
+                }
+              } else {
+                console.warn(
+                  `  Rate limit already expired, retrying immediately...`,
+                );
+                // Retry immediately if the reset time has already passed
+                const retryResult = await this.executor.executeTask(
+                  step.with.prompt,
+                  step.with.model || "auto",
+                  step.with.working_directory || process.cwd(),
+                  taskOptions,
+                );
+
+                if (retryResult.success) {
+                  console.log(
+                    `  COMPLETED after immediate retry (${Date.now() - startTime}ms)`,
+                  );
+                  console.log(
+                    `  Output: ${retryResult.output.substring(0, 200)}${retryResult.output.length > 200 ? "..." : ""}`,
+                  );
+
+                  if (step.with.output_session && retryResult.sessionId) {
+                    sessions.set(step.id, retryResult.sessionId);
+                    if (options.verbose) {
+                      console.log(
+                        `  Session ID stored: ${retryResult.sessionId}`,
+                      );
+                    }
+                  }
+                } else {
+                  console.error(
+                    `  FAILED after immediate retry: ${retryResult.error}`,
+                  );
+                  process.exit(1);
+                }
+              }
+            } else {
+              console.error(`  FAILED (${duration}ms): ${result.error}`);
+              process.exit(1);
+            }
           }
         }
       }

@@ -608,8 +608,12 @@ export class UsageReportService {
       const dayStart = new Date(currentDate);
       dayStart.setUTCHours(0, 0, 0, 0);
 
-      if (dayStart.getTime() < today.getTime()) {
-        // Past day: aggregate if needed and use daily file
+      // Use hourly files for today, yesterday, hourly periods; daily files for week, month
+      const useHourlyFiles =
+        period === "today" || period === "yesterday" || period === "hourly";
+
+      if (dayStart.getTime() < today.getTime() && !useHourlyFiles) {
+        // Past day: aggregate if needed and use daily file (for week/month periods)
         await this.aggregateDaily(dayStart);
         try {
           const dailyFile = this.dailyFilename(dayStart);
@@ -627,12 +631,15 @@ export class UsageReportService {
         currentDate.setUTCDate(currentDate.getUTCDate() + 1);
         currentDate.setUTCHours(0, 0, 0, 0);
       } else {
-        // Today: use hourly files within the time range
-        for (
-          let hour = Math.max(0, startDate.getUTCHours());
-          hour <= 23;
-          hour++
-        ) {
+        // Use hourly files within the time range
+        const startHour =
+          dayStart.getTime() === startDate.getTime()
+            ? startDate.getUTCHours()
+            : 0;
+        const endHour =
+          dayStart.getTime() === endDate.getTime() ? endDate.getUTCHours() : 23;
+
+        for (let hour = startHour; hour <= endHour; hour++) {
           const hourDate = new Date(dayStart);
           hourDate.setUTCHours(hour, 0, 0, 0);
 
@@ -651,7 +658,15 @@ export class UsageReportService {
             // Hour file doesn't exist, skip
           }
         }
-        break; // Today is the last day we process
+
+        // Move to next day
+        currentDate.setUTCDate(currentDate.getUTCDate() + 1);
+        currentDate.setUTCHours(0, 0, 0, 0);
+
+        // Continue processing if we have more days in the range
+        if (currentDate > endDate) {
+          break;
+        }
       }
     }
 

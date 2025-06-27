@@ -516,7 +516,7 @@
   margin-top: 8px;
 }
 
-.pipeline-controls select {
+.pipeline-select {
   font-family: var(--vscode-font-family);
   font-size: var(--vscode-font-size);
   padding: 4px 6px;
@@ -529,9 +529,21 @@
   margin-right: 6px;
 }
 
-.pipeline-controls select:focus {
+.pipeline-select:focus {
   outline: 1px solid var(--vscode-focusBorder);
   outline-offset: -1px;
+}
+
+.pipeline-select optgroup {
+  font-weight: 600;
+  color: var(--vscode-descriptionForeground);
+  font-style: normal;
+}
+
+.pipeline-select option {
+  padding: 4px 8px;
+  font-weight: normal;
+  color: var(--vscode-input-foreground);
 }
 
 /* Daily Breakdown Styles */

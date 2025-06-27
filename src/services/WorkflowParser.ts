@@ -70,6 +70,38 @@ export class WorkflowParser {
         );
       }
     }
+
+    // Validate conditional step properties
+    this.validateConditionalStep(step);
+  }
+
+  /**
+   * Validate conditional step properties
+   */
+  private static validateConditionalStep(step: ClaudeStep): void {
+    // Validate check command if present
+    if (step.with.check && typeof step.with.check !== "string") {
+      throw new Error(
+        `Check command in step '${step.name ?? step.id ?? "unnamed"}' must be a string`,
+      );
+    }
+
+    // Validate condition type if present
+    if (step.with.condition) {
+      const validConditions = ["on_success", "on_failure", "always"];
+      if (!validConditions.includes(step.with.condition as string)) {
+        throw new Error(
+          `Invalid condition type in step '${step.name ?? step.id ?? "unnamed"}': ${step.with.condition}. Must be one of: ${validConditions.join(", ")}`,
+        );
+      }
+    }
+
+    // Validate that check command is provided when condition is specified
+    if (step.with.condition && !step.with.check) {
+      throw new Error(
+        `Step '${step.name ?? step.id ?? "unnamed"}' has condition '${step.with.condition}' but no check command specified`,
+      );
+    }
   }
 
   /**

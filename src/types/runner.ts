@@ -54,6 +54,7 @@ export type RunnerCommand =
       tasks: TaskItem[];
     }
   | { kind: "loadPipeline"; name: string }
+  | { kind: "loadWorkflow"; workflowId: string }
   | { kind: "pipelineAddTask"; newTask: TaskItem }
   | { kind: "pipelineRemoveTask"; taskId: string }
   | {
@@ -152,6 +153,10 @@ export const RunnerCommandRegistry: {
     kind: "loadPipeline",
     name: isString(m.name) ? m.name : "",
   }),
+  loadWorkflow: (m) => ({
+    kind: "loadWorkflow",
+    workflowId: isString(m.workflowId) ? m.workflowId : "",
+  }),
   pipelineAddTask: (m) => ({
     kind: "pipelineAddTask",
     newTask: isTaskItem(m.newTask)
@@ -236,6 +241,8 @@ export interface UIState {
   outputFormat: "text" | "json";
   tasks: TaskItem[];
   currentTaskIndex?: number;
+  availablePipelines: string[];
+  discoveredWorkflows?: { name: string; path: string }[];
 
   // Task execution state
   lastTaskResults?: string;

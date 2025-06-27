@@ -109,6 +109,7 @@ export interface MainViewState {
   outputFormat: "text" | "json";
   availablePipelines?: string[];
   availableModels?: string[];
+  discoveredWorkflows?: { name: string; path: string }[];
   workflows: WorkflowMetadata[];
   currentWorkflow: ClaudeWorkflow | null;
   workflowInputs: Record<string, string>;
@@ -706,6 +707,7 @@ export const ExtensionProvider: React.FC<{ children: ReactNode }> = ({
               "showChatPrompt",
               "availablePipelines",
               "availableModels",
+              "discoveredWorkflows",
             ];
 
             const mainUpdates: Partial<MainViewState> = {};

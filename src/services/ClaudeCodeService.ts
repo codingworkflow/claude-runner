@@ -28,6 +28,8 @@ export interface CommandResult {
   sessionId?: string;
 }
 
+export type ConditionType = "on_success" | "on_failure" | "always";
+
 /**
  * @deprecated Legacy interface - kept for UI compatibility
  * New code should use ClaudeWorkflow and ClaudeStep from WorkflowTypes
@@ -37,13 +39,16 @@ export interface TaskItem {
   name?: string;
   prompt: string;
   resumeFromTaskId?: string;
-  status: "pending" | "running" | "completed" | "error" | "paused";
+  status: "pending" | "running" | "completed" | "error" | "paused" | "skipped";
   results?: string;
   sessionId?: string;
   model?: string;
   dependsOn?: string[];
   continueFrom?: string | null;
   pausedUntil?: number;
+  check?: string;
+  condition?: ConditionType;
+  skipReason?: string;
 }
 
 export class ClaudeCodeService {
@@ -144,6 +149,8 @@ export class ClaudeCodeService {
     const { tasks, onProgress, onComplete, onError } =
       this.currentPipelineExecution;
 
+    let previousStepSuccess = true;
+
     for (let i = 0; i < tasks.length; i++) {
       if (!this.currentPipelineExecution) {
         // Pipeline was cancelled
@@ -152,6 +159,23 @@ export class ClaudeCodeService {
 
       this.currentPipelineExecution.currentIndex = i;
       const task = tasks[i];
+
+      // Evaluate condition to determine if task should run
+      const workingDirectory = options.workingDirectory ?? rootPath;
+      const conditionResult = await this.evaluateCondition(
+        task.check,
+        task.condition,
+        previousStepSuccess,
+        workingDirectory,
+      );
+
+      if (!conditionResult.shouldRun) {
+        // Skip task based on condition evaluation
+        task.status = "skipped";
+        task.skipReason = conditionResult.reason;
+        onProgress([...tasks], i);
+        continue;
+      }
 
       // Update task status to running
       task.status = "running";
@@ -212,14 +236,15 @@ export class ClaudeCodeService {
             }
 
             onProgress([...tasks], i);
+            // Note: Rate limiting doesn't affect previousStepSuccess status
             return;
           }
 
-          // Regular error handling
+          // Regular error handling - continue with remaining tasks
           task.status = "error";
           task.results = errorOutput;
-          onError(errorOutput, [...tasks]);
-          return;
+          previousStepSuccess = false;
+          onProgress([...tasks], i);
         }
 
         // Extract session ID and result from output
@@ -231,6 +256,7 @@ export class ClaudeCodeService {
         task.status = "completed";
         task.results = resultText;
         task.sessionId = sessionId;
+        previousStepSuccess = true;
 
         onProgress([...tasks], i);
       } catch (error) {
@@ -268,19 +294,28 @@ export class ClaudeCodeService {
           }
 
           onProgress([...tasks], i);
+          // Note: Rate limiting doesn't affect previousStepSuccess status
           return;
         }
 
         task.status = "error";
         task.results = errorMessage;
-        onError(errorMessage, [...tasks]);
-        return;
+        previousStepSuccess = false;
+        onProgress([...tasks], i);
       }
     }
 
-    // All tasks completed successfully
+    // Pipeline completed - check for errors
     this.currentPipelineExecution = null;
-    onComplete([...tasks]);
+    const hasErrors = tasks.some((task) => task.status === "error");
+
+    if (hasErrors) {
+      const errorTasks = tasks.filter((task) => task.status === "error");
+      const firstError = errorTasks[0];
+      onError(firstError.results ?? "Task failed", [...tasks]);
+    } else {
+      onComplete([...tasks]);
+    }
   }
 
   private async executeTaskCommand(
@@ -695,5 +730,67 @@ export class ClaudeCodeService {
   cancelWorkflow(): void {
     this.currentWorkflowExecution = null;
     this.cancelCurrentTask();
+  }
+
+  /**
+   * Evaluate whether a step should run based on its condition and check command
+   */
+  async evaluateCondition(
+    checkCommand: string | undefined,
+    condition: ConditionType | undefined,
+    previousStepSuccess: boolean,
+    workingDirectory: string,
+  ): Promise<{ shouldRun: boolean; reason?: string }> {
+    // If no condition is specified, default to "always" (KISS principle)
+    if (!condition) {
+      return { shouldRun: true };
+    }
+
+    // Handle condition-based logic
+    let conditionMet = false;
+    switch (condition) {
+      case "always":
+        conditionMet = true;
+        break;
+      case "on_success":
+        conditionMet = previousStepSuccess;
+        break;
+      case "on_failure":
+        conditionMet = !previousStepSuccess;
+        break;
+      default:
+        conditionMet = previousStepSuccess;
+    }
+
+    // If condition is not met, skip the step
+    if (!conditionMet) {
+      const reason = `Condition '${condition}' not met (previous step ${previousStepSuccess ? "succeeded" : "failed"})`;
+      return { shouldRun: false, reason };
+    }
+
+    // If no check command, and condition is met, run the step
+    if (!checkCommand) {
+      return { shouldRun: true };
+    }
+
+    // Execute the check command to determine if step should run
+    try {
+      const result = await this.executeCommand(
+        checkCommand.split(" "),
+        workingDirectory,
+      );
+
+      if (result.success) {
+        return { shouldRun: true };
+      } else {
+        const reason = `Check command failed: ${result.error ?? "Command returned non-zero exit code"}`;
+        return { shouldRun: false, reason };
+      }
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      const reason = `Check command execution failed: ${errorMessage}`;
+      return { shouldRun: false, reason };
+    }
   }
 }
