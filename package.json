@@ -276,7 +276,8 @@
     "analyze-css:clean": "npm run analyze-css && echo '\n🧹 To clean up unused CSS, review the report above and manually remove unused rules.'",
     "cleanup-css": "node scripts/cleanup-css.js plan",
     "cleanup-css:auto": "node scripts/cleanup-css.js auto-clean",
-    "cleanup-css:list": "node scripts/cleanup-css.js list"
+    "cleanup-css:list": "node scripts/cleanup-css.js list",
+    "convert-todo": "node scripts/convert-todo-to-workflow.js"
   },
   "devDependencies": {
     "@fullhuman/postcss-purgecss": "^7.0.2",

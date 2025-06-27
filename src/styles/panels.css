@@ -184,7 +184,7 @@
 .resume-config-group label {
   font-size: var(--vscode-font-size);
   color: var(--vscode-foreground);
-  min-width: 50px;
+  min-width: 80px;
   font-weight: 500;
 }
 
