@@ -12,21 +12,18 @@ describe("ProgressTracker", () => {
       prompt: "Prompt 1",
       status: "completed",
       results: "Results 1",
-      resumePrevious: false,
     },
     {
       id: "2",
       name: "Task 2",
       prompt: "Prompt 2",
       status: "running",
-      resumePrevious: false,
     },
     {
       id: "3",
       name: "Task 3",
       prompt: "Prompt 3",
       status: "pending",
-      resumePrevious: false,
     },
   ];
 

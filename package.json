@@ -15,6 +15,9 @@
   "engines": {
     "vscode": "^1.85.0"
   },
+  "bin": {
+    "claude-runner": "./cli/claude-runner"
+  },
   "categories": [
     "Other",
     "AI",
@@ -233,6 +236,7 @@
     "watch": "webpack --watch --mode development",
     "compile-tests": "tsc -p ./tsconfig.test.json --outDir out",
     "watch-tests": "tsc -p ./tsconfig.test.json -w --outDir out",
+    "build-cli": "tsc -p ./tsconfig.cli.json",
     "pretest": "npm run lint",
     "lint": "eslint src --ext ts,tsx",
     "test": "npm run test:unit",

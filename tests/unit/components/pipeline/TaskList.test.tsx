@@ -15,7 +15,6 @@ describe("TaskList", () => {
       name: "Task 1",
       prompt: "Prompt 1",
       status: "pending",
-      resumePrevious: false,
       model: DEFAULT_MODEL,
     },
     {
@@ -23,13 +22,13 @@ describe("TaskList", () => {
       name: "Task 2",
       prompt: "Prompt 2",
       status: "pending",
-      resumePrevious: true,
+      resumeFromTaskId: "1",
       model: DEFAULT_MODEL,
     },
   ];
 
   it("renders a list of tasks", () => {
-    const { getByDisplayValue } = render(
+    const { container } = render(
       <TaskList
         tasks={tasks}
         isTasksRunning={false}
@@ -40,8 +39,20 @@ describe("TaskList", () => {
       />,
     );
 
-    expect(getByDisplayValue("Task 1")).toBeTruthy();
-    expect(getByDisplayValue("Task 2")).toBeTruthy();
+    // Check for task name inputs specifically
+    const taskNameInputs = container.querySelectorAll(
+      'input[type="text"].task-name-input',
+    );
+    expect(taskNameInputs).toHaveLength(2);
+    expect((taskNameInputs[0] as HTMLInputElement).value).toBe("Task 1");
+    expect((taskNameInputs[1] as HTMLInputElement).value).toBe("Task 2");
+
+    // Check for resume from dropdown
+    const allSelects = container.querySelectorAll("select.model-select");
+    expect(allSelects).toHaveLength(3); // 2 model selects + 1 resume select
+    const resumeSelect = allSelects[2]; // The third select is the resume dropdown
+    expect(resumeSelect).toBeTruthy();
+    expect(resumeSelect?.textContent).toContain("Task 1");
   });
 
   it("calls updateTask when a task is modified", () => {

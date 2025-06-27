@@ -67,7 +67,7 @@ const PipelineControls: React.FC<PipelineControlsProps> = ({
           <select
             value={selectedPipeline}
             onChange={(e) => setSelectedPipeline(e.target.value)}
-            className="pipeline-select"
+            className="model-select"
           >
             <option value="">Select a pipeline...</option>
             {availablePipelines.map((pipeline) => (

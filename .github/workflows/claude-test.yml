@@ -19,6 +19,7 @@ jobs:
           model: claude-opus-4-20250514
           allow_all_tools: true
           output_session: true
+          
       - id: task_1749136022714_z5t92m803
         name: Task 2
         uses: anthropics/claude-pipeline-action@v1

@@ -36,7 +36,7 @@ export interface TaskItem {
   id: string;
   name?: string;
   prompt: string;
-  resumePrevious: boolean;
+  resumeFromTaskId?: string;
   status: "pending" | "running" | "completed" | "error" | "paused";
   results?: string;
   sessionId?: string;
@@ -143,7 +143,6 @@ export class ClaudeCodeService {
 
     const { tasks, onProgress, onComplete, onError } =
       this.currentPipelineExecution;
-    let lastSessionId: string | undefined;
 
     for (let i = 0; i < tasks.length; i++) {
       if (!this.currentPipelineExecution) {
@@ -161,9 +160,12 @@ export class ClaudeCodeService {
       try {
         const taskOptions: TaskOptions = { ...options };
 
-        // Set resume session if this task should resume previous
-        if (task.resumePrevious && lastSessionId) {
-          taskOptions.resumeSessionId = lastSessionId;
+        // Set resume session if this task should resume from another task
+        if (task.resumeFromTaskId) {
+          const sourceTask = tasks.find((t) => t.id === task.resumeFromTaskId);
+          if (sourceTask?.sessionId) {
+            taskOptions.resumeSessionId = sourceTask.sessionId;
+          }
         }
 
         // Use task-specific model if specified, otherwise use pipeline default
@@ -229,7 +231,6 @@ export class ClaudeCodeService {
         task.status = "completed";
         task.results = resultText;
         task.sessionId = sessionId;
-        lastSessionId = sessionId;
 
         onProgress([...tasks], i);
       } catch (error) {

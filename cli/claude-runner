@@ -1,0 +1,19 @@
+#!/bin/bash
+
+# Claude Runner CLI - Uses compiled core modules (TRUE DRY implementation)
+
+CLI_DIR="$(dirname "$0")"
+EXTENSION_ROOT="$(dirname "$CLI_DIR")"
+
+# Build CLI if needed (ensures core modules are compiled)
+if [ ! -d "$CLI_DIR/dist" ] || [ ! -f "$CLI_DIR/dist/core/services/ClaudeExecutor.js" ]; then
+    echo "Building CLI from core modules..."
+    cd "$EXTENSION_ROOT"
+    npm run build-cli >/dev/null 2>&1
+fi
+
+# Set NODE_PATH to include the extension's node_modules for js-yaml
+export NODE_PATH="$EXTENSION_ROOT/node_modules:$NODE_PATH"
+
+# Run the CLI that imports from compiled core modules
+node "$CLI_DIR/claude-runner.js" "$@"

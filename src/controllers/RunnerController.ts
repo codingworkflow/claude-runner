@@ -1,7 +1,9 @@
 import * as vscode from "vscode";
 import { BehaviorSubject } from "rxjs";
 import { RunnerCommand, UIState, EventBus } from "../types/runner";
-import { ClaudeCodeService, TaskItem } from "../services/ClaudeCodeService";
+import { ClaudeCodeService } from "../services/ClaudeCodeService";
+import { ClaudeService } from "../services/ClaudeService";
+import { TaskItem } from "../core/models/Task";
 import { TerminalService } from "../services/TerminalService";
 import { ConfigurationService } from "../services/ConfigurationService";
 import { PipelineService } from "../services/PipelineService";
@@ -40,6 +42,7 @@ export class RunnerController implements EventBus {
   constructor(
     private readonly context: vscode.ExtensionContext,
     private readonly claudeCodeService: ClaudeCodeService,
+    private readonly claudeService: ClaudeService,
     private readonly terminalService: TerminalService,
     private readonly configService: ConfigurationService,
     private readonly pipelineService: PipelineService,

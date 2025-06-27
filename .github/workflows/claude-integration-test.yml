@@ -1,0 +1,36 @@
+name: integration-test
+'on':
+  workflow_dispatch:
+    inputs:
+      description:
+        description: Pipeline execution
+        required: false
+        type: string
+jobs:
+  pipeline:
+    name: Pipeline Execution
+    runs-on: ubuntu-latest
+    steps:
+      - id: task_1750982023660_lskzttjfl
+        name: Task 1
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: give as output only a randow number
+          model: auto
+          allow_all_tools: true
+          output_session: true
+      - id: task_1750982024916_fmsatzoba
+        name: Task 2
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: give as output only a randow number
+          model: auto
+          allow_all_tools: true
+      - id: task_1750982348178_ayw0z7r0y
+        name: Task 3
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: output only the previous random number
+          model: auto
+          allow_all_tools: true
+          resume_session: ${{ steps.task_1750982023660_lskzttjfl.outputs.session_id }}

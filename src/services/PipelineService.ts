@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 import * as path from "path";
 import * as fs from "fs/promises";
-import { TaskItem } from "./ClaudeCodeService";
+import { TaskItem } from "../core/models/Task";
 import { ClaudeWorkflow, ClaudeStep } from "../types/WorkflowTypes";
 import { WorkflowParser } from "./WorkflowParser";
 
@@ -77,7 +77,7 @@ export class PipelineService {
         pipeline: {
           name: "Pipeline Execution",
           "runs-on": "ubuntu-latest",
-          steps: tasks.map((task, index) => {
+          steps: tasks.map((task, _index) => {
             const step: ClaudeStep = {
               id: task.id,
               name: task.name ?? `Task ${task.id}`,
@@ -90,12 +90,17 @@ export class PipelineService {
             };
 
             // Handle session resumption
-            if (task.resumePrevious && index > 0) {
-              step.with.resume_session = `\${{ steps.${tasks[index - 1].id}.outputs.session_id }}`;
+            if (task.resumeFromTaskId) {
+              const sourceTask = tasks.find(
+                (t) => t.id === task.resumeFromTaskId,
+              );
+              if (sourceTask) {
+                step.with.resume_session = `\${{ steps.${sourceTask.id}.outputs.session_id }}`;
+              }
             }
 
             // Output session for next step if needed
-            if (index < tasks.length - 1 && tasks[index + 1].resumePrevious) {
+            if (tasks.some((t) => t.resumeFromTaskId === task.id)) {
               step.with.output_session = true;
             }
 
@@ -207,13 +212,13 @@ export class PipelineService {
           const claudeStep = step as ClaudeStep;
 
           // Check if this step resumes from a previous one
-          let resumePrevious = false;
+          let resumeFromTaskId: string | undefined;
           if (claudeStep.with.resume_session) {
             const match = claudeStep.with.resume_session.match(
               /\$\{\{\s*steps\.(\w+)\.outputs\.session_id\s*\}\}/,
             );
             if (match) {
-              resumePrevious = true;
+              resumeFromTaskId = match[1];
             }
           }
 
@@ -221,7 +226,7 @@ export class PipelineService {
             id: step.id ?? `step-${tasks.length}`,
             name: step.name,
             prompt: claudeStep.with.prompt,
-            resumePrevious,
+            resumeFromTaskId,
             status: "pending",
             model: claudeStep.with.model,
           });

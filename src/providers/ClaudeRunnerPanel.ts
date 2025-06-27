@@ -3,6 +3,7 @@ import { Subscription } from "rxjs";
 import { RunnerController } from "../controllers/RunnerController";
 import { UIState, WebviewMessage } from "../types/runner";
 import { ClaudeCodeService } from "../services/ClaudeCodeService";
+import { ClaudeService } from "../services/ClaudeService";
 import { TerminalService } from "../services/TerminalService";
 import { ConfigurationService } from "../services/ConfigurationService";
 import { PipelineService } from "../services/PipelineService";
@@ -37,6 +38,7 @@ export class ClaudeRunnerPanel implements vscode.WebviewViewProvider {
   constructor(
     private readonly context: vscode.ExtensionContext,
     private readonly claudeCodeService: ClaudeCodeService,
+    private readonly claudeService: ClaudeService,
     private readonly terminalService: TerminalService,
     private readonly configService: ConfigurationService,
     private readonly isClaudeInstalled: boolean = true,
@@ -51,6 +53,7 @@ export class ClaudeRunnerPanel implements vscode.WebviewViewProvider {
     this.controller = new RunnerController(
       context,
       claudeCodeService,
+      claudeService,
       terminalService,
       configService,
       pipelineService,

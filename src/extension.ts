@@ -3,7 +3,9 @@ import { ClaudeRunnerPanel } from "./providers/ClaudeRunnerPanel";
 import { CommandsWebviewProvider } from "./providers/CommandsWebviewProvider";
 import { UsageLogsWebviewProvider } from "./providers/UsageLogsWebviewProvider";
 import { ClaudeCodeService } from "./services/ClaudeCodeService";
+import { ClaudeService } from "./services/ClaudeService";
 import { TerminalService } from "./services/TerminalService";
+import { CLIInstallationService } from "./services/CLIInstallationService";
 import { ConfigurationService } from "./services/ConfigurationService";
 import { ClaudeDetectionService } from "./services/ClaudeDetectionService";
 import { UsageReportService } from "./services/UsageReportService";
@@ -14,6 +16,7 @@ let claudeRunnerPanel: ClaudeRunnerPanel | undefined;
 let commandsWebviewProvider: CommandsWebviewProvider | undefined;
 let usageLogsWebviewProvider: UsageLogsWebviewProvider | undefined;
 let claudeCodeService: ClaudeCodeService;
+let claudeService: ClaudeService;
 let terminalService: TerminalService;
 let configurationService: ConfigurationService;
 let usageReportService: UsageReportService;
@@ -40,6 +43,7 @@ export async function activate(context: vscode.ExtensionContext) {
   if (isClaudeInstalled) {
     // Initialize services only if Claude is installed
     claudeCodeService = new ClaudeCodeService(configurationService);
+    claudeService = new ClaudeService();
     terminalService = new TerminalService(configurationService);
   }
 
@@ -121,6 +125,7 @@ export async function activate(context: vscode.ExtensionContext) {
   claudeRunnerPanel = new ClaudeRunnerPanel(
     context,
     claudeCodeService,
+    claudeService,
     terminalService,
     configurationService,
     isClaudeInstalled,
@@ -152,6 +157,9 @@ export async function activate(context: vscode.ExtensionContext) {
     logsService,
   );
 
+  // Set up CLI to be available in terminal
+  await CLIInstallationService.setupCLI(context);
+
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider(
       "claude-runner.mainView",
@@ -174,6 +182,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
 export function deactivate() {
   claudeRunnerPanel?.dispose();
+  CLIInstallationService.cleanupCLI();
 }
 
 function showClaudeRunnerPanel(
@@ -184,6 +193,7 @@ function showClaudeRunnerPanel(
     claudeRunnerPanel = new ClaudeRunnerPanel(
       context,
       claudeCodeService,
+      claudeService,
       terminalService,
       configurationService,
       isClaudeInstalled,
@@ -323,6 +333,7 @@ async function openClaudeRunnerInEditor(
     const editorProvider = new ClaudeRunnerPanel(
       context,
       claudeCodeService,
+      claudeService,
       terminalService,
       configurationService,
       isClaudeInstalled,

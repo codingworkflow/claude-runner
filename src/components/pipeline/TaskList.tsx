@@ -77,18 +77,23 @@ const TaskList: React.FC<TaskListProps> = ({
           </div>
 
           {index > 0 && (
-            <div className="checkbox-group">
-              <label>
-                <input
-                  type="checkbox"
-                  checked={!!task.resumePrevious}
-                  onChange={(e) =>
-                    updateTask(task.id, "resumePrevious", e.target.checked)
-                  }
-                  disabled={isTasksRunning}
-                />
-                Resume previous session
-              </label>
+            <div className="resume-config-group">
+              <label>Resume from:</label>
+              <select
+                value={task.resumeFromTaskId ?? ""}
+                onChange={(e) =>
+                  updateTask(task.id, "resumeFromTaskId", e.target.value)
+                }
+                disabled={isTasksRunning}
+                className="model-select"
+              >
+                <option value="">New session</option>
+                {tasks.slice(0, index).map((prevTask, idx) => (
+                  <option key={prevTask.id} value={prevTask.id}>
+                    {prevTask.name ?? `Task ${idx + 1}`}
+                  </option>
+                ))}
+              </select>
             </div>
           )}
         </div>

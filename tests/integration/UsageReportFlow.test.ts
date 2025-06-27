@@ -92,6 +92,7 @@ describe("Usage Report Integration Flow", () => {
     panel = new ClaudeRunnerPanel(
       mockContext,
       mockClaudeCodeService,
+      {} as any, // claudeService mock
       mockTerminalService,
       mockConfigService,
     );

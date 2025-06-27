@@ -32,8 +32,16 @@ logs/
 coverage/
 *.lcov
 
-# TypeScript
+# TypeScript compilation artifacts
 *.tsbuildinfo
+*.d.ts
+*.d.ts.map
+
+# Generated JavaScript files (compiled from TypeScript)
+src/**/*.js
+src/**/*.js.map
+!src/**/*.test.js
+!src/**/*.spec.js
 
 # Editor directories and files
 .idea/
@@ -75,3 +83,7 @@ webview.css.map
 
 # CSS Analysis Reports
 css-analysis-report.json
+
+# CLI artifacts - Keep dist/ for packaging
+cli/node_modules/
+cli/*.log

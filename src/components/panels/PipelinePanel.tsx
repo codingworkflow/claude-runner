@@ -51,7 +51,6 @@ const PipelinePanel: React.FC<PipelinePanelProps> = ({ disabled }) => {
       id: `task_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       name: `Task ${nextNumber}`,
       prompt: "",
-      resumePrevious: false,
       status: "pending" as const,
       model: defaultModel,
     };
