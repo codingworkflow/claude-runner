@@ -41,7 +41,7 @@ help:
 	@echo "  make cleanup-css-auto  - Auto-remove safe unused CSS rules"
 	@echo ""
 	@echo "CLI Pipeline:"
-	@echo "  make pipeline PIPELINE=path/to/workflow.yml [PATH=execution/path] - Run pipeline using CLI"
+	@echo "  make pipeline PIPELINE=path/to/workflow.yml [WORKDIR=execution/path] - Run pipeline using CLI"
 	@echo ""
 	@echo "Todo Conversion:"
 	@echo "  make converttodo SOURCE=todo.json TARGET=workflow.yml - Convert JSON todo to workflow"
@@ -321,30 +321,26 @@ pipeline:
 	@if [ -z "$(PIPELINE)" ]; then \
 		echo "Error: PIPELINE parameter is required"; \
 		echo ""; \
-		echo "Usage: make pipeline PIPELINE=path/to/workflow.yml [PATH=execution/path]"; \
+		echo "Usage: make pipeline PIPELINE=path/to/workflow.yml [WORKDIR=execution/path]"; \
 		echo ""; \
 		echo "Examples:"; \
 		echo "  make pipeline PIPELINE=.github/workflows/claude-integration-test.yml"; \
 		echo "  make pipeline PIPELINE=workflows/my-pipeline.yml"; \
-		echo "  make pipeline PIPELINE=workflow.yml PATH=/path/to/project"; \
+		echo "  make pipeline PIPELINE=workflow.yml WORKDIR=/path/to/project"; \
 		exit 1; \
 	fi
-	@PIPELINE_PATH="$(PIPELINE)"; \
-	if [ -n "$(PATH)" ]; then \
-		PIPELINE_PATH="$(PATH)/$(PIPELINE)"; \
-	fi; \
-	if [ ! -f "$$PIPELINE_PATH" ]; then \
-		echo "Error: Pipeline file not found: $$PIPELINE_PATH"; \
+	@if [ ! -f "$(PIPELINE)" ]; then \
+		echo "Error: Pipeline file not found: $(PIPELINE)"; \
 		exit 1; \
 	fi
 	@echo "Running pipeline: $(PIPELINE)"
-	@if [ -n "$(PATH)" ]; then \
-		echo "Execution path: $(PATH)"; \
+	@if [ -n "$(WORKDIR)" ]; then \
+		echo "Execution path: $(WORKDIR)"; \
 	fi
 	@echo "=================================="
 	@echo ""
-	@if [ -n "$(PATH)" ]; then \
-		node ./cli/claude-runner.js run "$(PIPELINE)" --path "$(PATH)"; \
+	@if [ -n "$(WORKDIR)" ]; then \
+		node ./cli/claude-runner.js run "$(PIPELINE)" --path "$(WORKDIR)"; \
 	else \
 		node ./cli/claude-runner.js run "$(PIPELINE)"; \
 	fi
