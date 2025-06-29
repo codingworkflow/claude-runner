@@ -87,3 +87,6 @@ css-analysis-report.json
 # CLI artifacts - Keep dist/ for packaging
 cli/node_modules/
 cli/*.log
+.claude/.credentials.json
+.claude/todos
+vsix/

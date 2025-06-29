@@ -1,4 +1,4 @@
-.PHONY: setup setup-ci build build-vsix watch package clean test test-coverage lint dev install-local install-devcontainer help validate dev-prepare dev-install uninstall-extension get-extension-id version-patch version-minor version-major sync-version sonar scan-secrets generate-icons prepare-marketplace analyze-css cleanup-css cleanup-css-auto pipeline converttodo
+.PHONY: setup build build-vsix watch package clean test lint dev install-local install-devcontainer serve-vsix help validate dev-prepare dev-install uninstall-extension get-extension-id version-patch version-minor version-major sync-version sonar scan-secrets generate-icons prepare-marketplace
 
 # Default target - show help
 help:
@@ -12,12 +12,20 @@ help:
 	@echo "  make dev           - Start development mode (alias for watch)"
 	@echo "  make clean         - Remove build artifacts"
 	@echo "  make test          - Run tests"
-	@echo "  make test-coverage - Run tests with coverage report"
+	@echo "  make test-main-window - Run main window load test only"
+	@echo "  make test-unit     - Run unit tests only"
+	@echo "  make test-e2e      - Run end-to-end tests only"
+	@echo "  make test-integration - Run integration tests only"
+	@echo "  make test-all-coverage - Run all tests with coverage"
+	@echo "  make test-claude-detection - Run Claude CLI detection test"
+	@echo "  make test-ci-phase1 - Run CI Phase 1 tests (without Claude CLI)"
+	@echo "  make test-ci-phase2 - Run CI Phase 2 tests (with Claude CLI)"
 	@echo "  make test-watch    - Run tests in watch mode"
 	@echo "  make lint          - Run ESLint and fix issues"
 	@echo "  make validate      - Run tests and linting"
 	@echo "  make install-local - Build and install extension locally"
 	@echo "  make install-devcontainer - Install in devcontainer environment"
+	@echo "  make serve-vsix    - Serve VSIX file via HTTP for download"
 	@echo "  make dev-prepare   - Step 1: Uninstall extension and build VSIX"
 	@echo "  make dev-install   - Step 2: Install extension only (manual reload required)"
 	@echo ""
@@ -34,17 +42,6 @@ help:
 	@echo "Assets:"
 	@echo "  make generate-icons    - Generate VSCode extension icons from logo"
 	@echo "  make prepare-marketplace - Prepare assets and README for marketplace"
-	@echo ""
-	@echo "CSS Analysis:"
-	@echo "  make analyze-css       - Analyze CSS usage and detect unused styles"
-	@echo "  make cleanup-css       - Show CSS cleanup plan"
-	@echo "  make cleanup-css-auto  - Auto-remove safe unused CSS rules"
-	@echo ""
-	@echo "CLI Pipeline:"
-	@echo "  make pipeline PIPELINE=path/to/workflow.yml [WORKDIR=execution/path] - Run pipeline using CLI"
-	@echo ""
-	@echo "Todo Conversion:"
-	@echo "  make converttodo SOURCE=todo.json TARGET=workflow.yml - Convert JSON todo to workflow"
 
 # Install dependencies
 setup:
@@ -103,7 +100,7 @@ dev: setup watch
 
 # Clean build artifacts
 clean:
-	@echo "Cleaning build artifacts..."
+	@echo "🧹 Cleaning build artifacts..."
 	@rm -rf dist/
 	@rm -rf out/
 	@rm -f *.vsix
@@ -115,43 +112,100 @@ clean:
 	@find . -name "*.tmp" -type f -delete 2>/dev/null || true
 	@find . -name "*.temp" -type f -delete 2>/dev/null || true
 	@find . -name ".DS_Store" -type f -delete 2>/dev/null || true
-	@echo "Clean complete"
+	@echo "✅ Clean complete"
 
 # Run tests
 test:
-	@echo "Running tests..."
+	@echo "🧪 Running tests..."
 	@npm run test
 
-# Run tests with coverage
-test-coverage:
-	@echo "Running tests with coverage..."
-	@npm run test:unit:coverage
+# Run main window load test only
+test-main-window:
+	@echo "🧪 Running main window load test..."
+	@npm run test:main-window
+
+# Run unit tests only
+test-unit:
+	@echo "🧪 Running unit tests..."
+	@npm run test:unit
+
+# Run end-to-end tests only
+test-e2e:
+	@echo "🧪 Running end-to-end tests..."
+	@npm run test:e2e
+
+# Run integration tests only
+test-integration:
+	@echo "🧪 Running integration tests..."
+	@npm run test:integration
+
+# Run all Jest tests with coverage
+test-all-coverage:
+	@echo "🧪 Running all tests with coverage..."
+	@npm run test:all:coverage
+
+# Run Claude CLI detection test
+test-claude-detection:
+	@echo "🔍 Running Claude CLI detection test..."
+	@npm run test:claude-detection
+
+# Run CI Phase 1 tests (without Claude CLI)
+test-ci-phase1:
+	@echo "🧪 Running CI Phase 1 tests (without Claude CLI)..."
+	@npm run test:ci:phase1
+
+# Run CI Phase 2 tests (with Claude CLI)
+test-ci-phase2:
+	@echo "🧪 Running CI Phase 2 tests (with Claude CLI)..."
+	@npm run test:ci:phase2
+
+# Install system dependencies for CI
+setup-ci:
+	@echo "Installing CI system dependencies..."
+	@sudo apt-get update
+	@sudo apt-get install -y xvfb make
+
+# Setup test environment for CI
+setup-test-env:
+	@echo "Setting up test environment..."
+	@export DISPLAY=:99; Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 & sleep 2
+
+# Install Claude CLI for testing
+install-claude-cli:
+	@echo "Installing Claude CLI..."
+	@npm install -g @anthropic-ai/claude-code
+
+# Setup Claude CLI configuration for testing
+setup-claude-config:
+	@echo "Setting up Claude CLI configuration..."
+	@mkdir -p ~/.claude
+	@echo '{"api_key": "test-key-for-ci", "default_model": "claude-sonnet-4-20250514"}' > ~/.claude/config.json
 
 # Run tests in watch mode
 test-watch:
-	@echo "Running tests in watch mode..."
+	@echo "🧪 Running tests in watch mode..."
 	@npm run test:watch
 
 # Run linting and fix issues
 lint:
-	@echo "Running ESLint with auto-fix..."
+	@echo "🔍 Running ESLint with auto-fix..."
 	@npm run lint -- --fix
-	@echo "Linting complete"
+	@echo "✅ Linting complete"
 
 # Run all validation
 validate: test lint
-	@echo "All validation checks passed"
+	@echo "✅ All validation checks passed"
 
 # Create VSIX package (alias for build-vsix)
 package: build-vsix
 
 # Install VSIX locally
 install-local: build-vsix
-	@echo "Installing extension locally..."
+	@echo "📥 Installing extension locally..."
 	@if [ -n "$$REMOTE_CONTAINERS" ] || [ -n "$$CODESPACES" ] || [ -f /.dockerenv ]; then \
-		echo "Detected devcontainer/Docker environment"; \
+		echo "🐳 Detected devcontainer/Docker environment"; \
 		echo ""; \
-		echo "Cannot install extension directly in devcontainer"; \
+		echo "⚠️  Cannot install extension directly in devcontainer"; \
 		echo ""; \
 		echo "To install this extension in your devcontainer:"; \
 		echo "1. Use the Command Palette (Ctrl/Cmd+Shift+P)"; \
@@ -162,20 +216,20 @@ install-local: build-vsix
 		echo "Or run: make install-devcontainer"; \
 	else \
 		code --install-extension dist/claude-runner-$$(node -p "require('./package.json').version").vsix; \
-		echo "Extension installed successfully"; \
+		echo "✅ Extension installed successfully"; \
 		echo ""; \
-		echo "Please reload VS Code to activate the extension"; \
+		echo "🔄 Please reload VS Code to activate the extension"; \
 	fi
 
 # Install extension in devcontainer environment
 install-devcontainer: build-vsix
-	@echo "Installing extension in devcontainer..."
+	@echo "🐳 Installing extension in devcontainer..."
 	@echo ""
 	@if [ -n "$$REMOTE_CONTAINERS" ] || [ -n "$$CODESPACES" ] || [ -f /.dockerenv ]; then \
-		echo "VSIX file created:"; \
+		echo "📦 VSIX file created:"; \
 		echo "   dist/claude-runner-$$(node -p "require('./package.json').version").vsix"; \
 		echo ""; \
-		echo "Installation options:"; \
+		echo "📋 Installation options:"; \
 		echo ""; \
 		echo "Option 1: Use VS Code Command Palette"; \
 		echo "  1. Press Ctrl/Cmd+Shift+P"; \
@@ -183,13 +237,29 @@ install-devcontainer: build-vsix
 		echo "  3. Navigate to /workspaces/vsix/claude-runner/dist/"; \
 		echo "  4. Select: claude-runner-$$(node -p "require('./package.json').version").vsix"; \
 		echo ""; \
-		echo "Option 2: Copy to host and install"; \
+		echo "Option 2: Download via web server"; \
+		echo "  Run: make serve-vsix"; \
+		echo "  Then download from the provided URL"; \
+		echo ""; \
+		echo "Option 3: Copy to host and install"; \
 		echo "  Use VS Code's Explorer to download the VSIX file"; \
 		echo "  Then install it in your local VS Code"; \
 	else \
-		echo "Not in a devcontainer environment"; \
+		echo "❌ Not in a devcontainer environment"; \
 		echo "Use 'make install-local' instead"; \
 	fi
+
+# Serve VSIX file via HTTP for easy download
+serve-vsix: build-vsix
+	@echo "🌐 Starting HTTP server to serve VSIX file..."
+	@echo ""
+	@echo "📦 VSIX file available at:"
+	@echo "   http://localhost:8080/claude-runner-$$(node -p "require('./package.json').version").vsix"
+	@echo ""
+	@echo "🔗 If running in devcontainer/Codespaces, use the forwarded port URL"
+	@echo ""
+	@echo "Press Ctrl+C to stop the server"
+	@cd dist && python3 -m http.server 8080 || python -m SimpleHTTPServer 8080
 
 # Get extension ID for uninstall
 get-extension-id:
