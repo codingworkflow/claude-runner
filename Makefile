@@ -1,4 +1,4 @@
-.PHONY: setup build build-vsix watch package clean test lint dev install-local install-devcontainer serve-vsix help validate dev-prepare dev-install uninstall-extension get-extension-id version-patch version-minor version-major sync-version sonar scan-secrets generate-icons prepare-marketplace
+.PHONY: setup build build-cli build-vsix watch package clean test lint dev install-local install-devcontainer serve-vsix help validate dev-prepare dev-install uninstall-extension get-extension-id version-patch version-minor version-major sync-version sonar scan-secrets generate-icons prepare-marketplace publish-cli publish-extension package-cli install-cli-global uninstall-cli-global
 
 # Default target - show help
 help:
@@ -7,6 +7,7 @@ help:
 	@echo "  make setup         - Install dependencies"
 	@echo "  make setup-ci      - Install dependencies for CI environment"
 	@echo "  make build         - Build extension (compile only)"
+	@echo "  make build-cli     - Build CLI components"
 	@echo "  make build-vsix    - Build and package VSIX file"
 	@echo "  make watch         - Watch for changes during development"
 	@echo "  make dev           - Start development mode (alias for watch)"
@@ -42,6 +43,13 @@ help:
 	@echo "Assets:"
 	@echo "  make generate-icons    - Generate VSCode extension icons from logo"
 	@echo "  make prepare-marketplace - Prepare assets and README for marketplace"
+	@echo ""
+	@echo "Publishing:"
+	@echo "  make publish-cli       - Publish CLI package to npm"
+	@echo "  make publish-extension - Publish extension to VSCode Marketplace"
+	@echo "  make package-cli       - Create CLI npm package (tarball)"
+	@echo "  make install-cli-global- Install CLI globally from local build"
+	@echo "  make uninstall-cli-global- Uninstall CLI globally"
 
 # Install dependencies
 setup:
@@ -64,6 +72,12 @@ build:
 	@echo "Compiling TypeScript..."
 	@npm run compile || true
 	@echo "Extension compiled successfully"
+
+# Build CLI components
+build-cli:
+	@echo "Building CLI components..."
+	@npm run build-cli
+	@echo "CLI built successfully"
 
 # Build and package the VSIX file
 build-vsix: clean
@@ -159,8 +173,8 @@ test-ci-phase2:
 	@echo "🧪 Running CI Phase 2 tests (with Claude CLI)..."
 	@npm run test:ci:phase2
 
-# Install system dependencies for CI
-setup-ci:
+# Install system dependencies for CI  
+setup-ci-system:
 	@echo "Installing CI system dependencies..."
 	@sudo apt-get update
 	@sudo apt-get install -y xvfb make
@@ -437,3 +451,25 @@ converttodo:
 	@echo "Target: $(TARGET)"
 	@echo ""
 	@npm run convert-todo "$(SOURCE)" "$(TARGET)"
+
+# Publishing targets
+publish-cli:
+	@echo "Publishing CLI to npm..."
+	@npm run publish:cli
+
+publish-extension:
+	@echo "Publishing extension to VSCode Marketplace..."
+	@npm run publish:extension
+
+package-cli: build-cli
+	@echo "Creating CLI package..."
+	@cd cli && npm pack
+	@echo "CLI package created: cli/claude-runner-cli-*.tgz"
+
+install-cli-global:
+	@echo "Installing CLI globally..."
+	@npm run install:cli:global
+
+uninstall-cli-global:
+	@echo "Uninstalling CLI globally..."
+	@npm run uninstall:cli:global

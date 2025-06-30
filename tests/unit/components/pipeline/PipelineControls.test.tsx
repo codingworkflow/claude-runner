@@ -100,14 +100,12 @@ describe("PipelineControls", () => {
     // Check that the dropdown contains the workflows
     const select = getByRole("combobox");
     expect(select).toBeTruthy();
-    expect(getByText("🔧 test")).toBeTruthy();
-    expect(getByText("🔧 integration-test")).toBeTruthy();
-    expect(getByText("Load Pipeline")).toBeTruthy();
+    expect(getByText("test")).toBeTruthy();
+    expect(getByText("integration-test")).toBeTruthy();
+    expect(getByText("Load")).toBeTruthy();
 
     // Check that the optgroup exists by looking for the label attribute
-    const optgroup = select.querySelector(
-      'optgroup[label="Discovered Workflows (2 found)"]',
-    );
+    const optgroup = select.querySelector('optgroup[label="Workflows"]');
     expect(optgroup).toBeTruthy();
   });
 

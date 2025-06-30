@@ -5,25 +5,62 @@ import {
 } from "../../../src/services/ClaudeCodeService";
 import { ConfigurationService } from "../../../src/services/ConfigurationService";
 
-// Type for accessing private methods in tests
-type ClaudeCodeServiceWithPrivates = ClaudeCodeService & {
-  executeTaskCommand: (args: string[], cwd: string) => Promise<CommandResult>;
-  formatCommand: (args: string[]) => string;
-  buildTaskCommand: (
-    prompt: string,
+// Interface for accessing private methods in tests
+interface ClaudeCodeServicePrivates {
+  executeTaskCommand: (
+    task: string,
     model: string,
-    workingDirectory: string,
-    additionalArgs: Record<string, unknown>,
+    rootPath: string,
+    options: import("../../../src/services/ClaudeCodeService").TaskOptions,
+  ) => Promise<CommandResult>;
+  buildTaskCommand: (
+    task: string,
+    model: string,
+    options: import("../../../src/services/ClaudeCodeService").TaskOptions,
   ) => string[];
-  executeCommand: (args: string[], options?: unknown) => Promise<CommandResult>;
+  executeCommand: (args: string[], cwd: string) => Promise<CommandResult>;
   detectRateLimit: (output: string) => {
-    isRateLimit: boolean;
+    isRateLimited: boolean;
     resetTime?: number;
   };
   resumePipeline: (pipelineId: string) => Promise<void>;
-  currentPipelineExecution: unknown;
-  pausedPipelines: Map<string, unknown>;
-};
+  currentPipelineExecution: {
+    tasks: import("../../../src/services/ClaudeCodeService").TaskItem[];
+    currentIndex: number;
+    onProgress: (
+      tasks: import("../../../src/services/ClaudeCodeService").TaskItem[],
+      currentIndex: number,
+    ) => void;
+    onComplete: (
+      tasks: import("../../../src/services/ClaudeCodeService").TaskItem[],
+    ) => void;
+    onError: (
+      error: string,
+      tasks: import("../../../src/services/ClaudeCodeService").TaskItem[],
+    ) => void;
+  } | null;
+  pausedPipelines: Map<
+    string,
+    {
+      tasks: import("../../../src/services/ClaudeCodeService").TaskItem[];
+      currentIndex: number;
+      resetTime: number;
+      workflowPath?: string;
+      onProgress: (
+        tasks: import("../../../src/services/ClaudeCodeService").TaskItem[],
+        currentIndex: number,
+      ) => void;
+      onComplete: (
+        tasks: import("../../../src/services/ClaudeCodeService").TaskItem[],
+      ) => void;
+      onError: (
+        error: string,
+        tasks: import("../../../src/services/ClaudeCodeService").TaskItem[],
+      ) => void;
+    }
+  >;
+  extractResultFromJson: (output: string) => string;
+}
 
 // Mock child_process
 jest.mock(
@@ -158,13 +195,7 @@ describe("ClaudeCodeService", () => {
   describe("Command Building", () => {
     it("should build basic task command correctly", () => {
       const args = (
-        claudeCodeService as unknown as {
-          buildTaskCommand: (
-            task: string,
-            model: string,
-            options: object,
-          ) => string[];
-        }
+        claudeCodeService as unknown as ClaudeCodeServicePrivates
       ).buildTaskCommand("test prompt", "claude-sonnet-4-20250514", {});
 
       expect(args).toContain("claude");
@@ -177,13 +208,7 @@ describe("ClaudeCodeService", () => {
 
     it("should include output format in command", () => {
       const args = (
-        claudeCodeService as unknown as {
-          buildTaskCommand: (
-            task: string,
-            model: string,
-            options: { outputFormat?: string },
-          ) => string[];
-        }
+        claudeCodeService as unknown as ClaudeCodeServicePrivates
       ).buildTaskCommand("test prompt", "claude-sonnet-4-20250514", {
         outputFormat: "json",
       });
@@ -194,13 +219,7 @@ describe("ClaudeCodeService", () => {
 
     it("should include max turns in command", () => {
       const args = (
-        claudeCodeService as unknown as {
-          buildTaskCommand: (
-            task: string,
-            model: string,
-            options: { maxTurns?: number },
-          ) => string[];
-        }
+        claudeCodeService as unknown as ClaudeCodeServicePrivates
       ).buildTaskCommand("test prompt", "claude-sonnet-4-20250514", {
         maxTurns: 5,
       });
@@ -211,13 +230,7 @@ describe("ClaudeCodeService", () => {
 
     it("should include allow all tools flag when specified", () => {
       const args = (
-        claudeCodeService as unknown as {
-          buildTaskCommand: (
-            task: string,
-            model: string,
-            options: { allowAllTools?: boolean },
-          ) => string[];
-        }
+        claudeCodeService as unknown as ClaudeCodeServicePrivates
       ).buildTaskCommand("test prompt", "claude-sonnet-4-20250514", {
         allowAllTools: true,
       });
@@ -226,9 +239,8 @@ describe("ClaudeCodeService", () => {
     });
 
     it("should include session resume when specified", () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const args = (
-        claudeCodeService as ClaudeCodeServiceWithPrivates
+        claudeCodeService as unknown as ClaudeCodeServicePrivates
       ).buildTaskCommand("test prompt", "claude-sonnet-4-20250514", {
         resumeSessionId: "session123",
       });
@@ -245,21 +257,18 @@ describe("ClaudeCodeService", () => {
           id: "1",
           name: "Task 1",
           prompt: "Test prompt",
-          resumePrevious: false,
           status: "pending" as const,
         },
       ];
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       expect(
-        (claudeCodeService as ClaudeCodeServiceWithPrivates)
+        (claudeCodeService as unknown as ClaudeCodeServicePrivates)
           .currentPipelineExecution,
       ).toBeNull();
 
       // Set up pipeline (would normally be done by runTaskPipeline)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (
-        claudeCodeService as ClaudeCodeServiceWithPrivates
+        claudeCodeService as unknown as ClaudeCodeServicePrivates
       ).currentPipelineExecution = {
         tasks,
         currentIndex: 0,
@@ -268,26 +277,22 @@ describe("ClaudeCodeService", () => {
         onError: jest.fn(),
       };
 
-      expect(
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (claudeCodeService as ClaudeCodeServiceWithPrivates)
-          .currentPipelineExecution,
-      ).not.toBeNull();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      expect(
-        (claudeCodeService as ClaudeCodeServiceWithPrivates)
-          .currentPipelineExecution.tasks,
-      ).toEqual(tasks);
+      const execution = (
+        claudeCodeService as unknown as ClaudeCodeServicePrivates
+      ).currentPipelineExecution;
+      expect(execution).not.toBeNull();
+      if (execution) {
+        expect(execution.tasks).toEqual(tasks);
+      }
     });
   });
 
   describe("Error Handling", () => {
     it("should handle command execution failures gracefully", () => {
       // Mock executeCommand to return failure
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       jest
         .spyOn(
-          claudeCodeService as ClaudeCodeServiceWithPrivates,
+          claudeCodeService as unknown as ClaudeCodeServicePrivates,
           "executeCommand",
         )
         .mockResolvedValue({
@@ -311,9 +316,8 @@ describe("ClaudeCodeService", () => {
     it("should detect rate limit message with timestamp", () => {
       const rateLimitMessage = "Claude AI usage limit reached|1750928400";
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = (
-        claudeCodeService as ClaudeCodeServiceWithPrivates
+        claudeCodeService as unknown as ClaudeCodeServicePrivates
       ).detectRateLimit(rateLimitMessage);
 
       expect(result.isRateLimited).toBe(true);
@@ -325,9 +329,8 @@ describe("ClaudeCodeService", () => {
 Claude AI usage limit reached|1750928400
 Please try again later.`;
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = (
-        claudeCodeService as ClaudeCodeServiceWithPrivates
+        claudeCodeService as unknown as ClaudeCodeServicePrivates
       ).detectRateLimit(mixedOutput);
 
       expect(result.isRateLimited).toBe(true);
@@ -337,9 +340,8 @@ Please try again later.`;
     it("should not detect rate limit in normal error messages", () => {
       const normalError = "Command execution failed with exit code 1";
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = (
-        claudeCodeService as ClaudeCodeServiceWithPrivates
+        claudeCodeService as unknown as ClaudeCodeServicePrivates
       ).detectRateLimit(normalError);
 
       expect(result.isRateLimited).toBe(false);
@@ -347,9 +349,8 @@ Please try again later.`;
     });
 
     it("should not detect rate limit in empty string", () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = (
-        claudeCodeService as ClaudeCodeServiceWithPrivates
+        claudeCodeService as unknown as ClaudeCodeServicePrivates
       ).detectRateLimit("");
 
       expect(result.isRateLimited).toBe(false);
@@ -359,9 +360,8 @@ Please try again later.`;
     it("should not detect rate limit with invalid timestamp format", () => {
       const invalidMessage = "Claude AI usage limit reached|invalid_timestamp";
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = (
-        claudeCodeService as ClaudeCodeServiceWithPrivates
+        claudeCodeService as unknown as ClaudeCodeServicePrivates
       ).detectRateLimit(invalidMessage);
 
       expect(result.isRateLimited).toBe(false);
@@ -376,9 +376,8 @@ Please try again later.`;
       ];
 
       testCases.forEach((testCase, _index) => {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const result = (
-          claudeCodeService as ClaudeCodeServiceWithPrivates
+          claudeCodeService as unknown as ClaudeCodeServicePrivates
         ).detectRateLimit(testCase);
         expect(result.isRateLimited).toBe(true);
         expect(result.resetTime).toBeGreaterThan(1750928000000);
@@ -416,13 +415,16 @@ Please try again later.`;
         ];
 
         testCases.forEach(({ message, expectedHours, expectedMinutes }) => {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const result = (
-            claudeCodeService as ClaudeCodeServiceWithPrivates
+            claudeCodeService as unknown as ClaudeCodeServicePrivates
           ).detectRateLimit(message);
           expect(result.isRateLimited).toBe(true);
 
-          const timeDiff = result.resetTime - currentTime;
+          const resetTime = result.resetTime;
+          if (!resetTime) {
+            throw new Error("Expected resetTime to be defined in test");
+          }
+          const timeDiff = resetTime - currentTime;
           const hours = Math.floor(timeDiff / 3600000);
           const minutes = Math.floor((timeDiff % 3600000) / 60000);
 
@@ -438,13 +440,11 @@ Please try again later.`;
   describe("Pipeline Rate Limit Handling", () => {
     beforeEach(() => {
       // Reset any stored pipeline state
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (
-        claudeCodeService as ClaudeCodeServiceWithPrivates
+        claudeCodeService as unknown as ClaudeCodeServicePrivates
       ).pausedPipelines.clear();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (
-        claudeCodeService as ClaudeCodeServiceWithPrivates
+        claudeCodeService as unknown as ClaudeCodeServicePrivates
       ).currentPipelineExecution = null;
     });
 
@@ -453,7 +453,6 @@ Please try again later.`;
         {
           id: "task1",
           prompt: "test task 1",
-          resumePrevious: false,
           status: "pending" as const,
           results: undefined,
           pausedUntil: undefined,
@@ -461,7 +460,6 @@ Please try again later.`;
         {
           id: "task2",
           prompt: "test task 2",
-          resumePrevious: false,
           status: "pending" as const,
           results: undefined,
           pausedUntil: undefined,
@@ -480,7 +478,7 @@ Please try again later.`;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       jest
         .spyOn(
-          claudeCodeService as ClaudeCodeServiceWithPrivates,
+          claudeCodeService as unknown as ClaudeCodeServicePrivates,
           "executeTaskCommand",
         )
         .mockResolvedValueOnce({
@@ -514,12 +512,12 @@ Please try again later.`;
       // Verify pipeline state was stored
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const pausedPipelines = (
-        claudeCodeService as ClaudeCodeServiceWithPrivates
+        claudeCodeService as unknown as ClaudeCodeServicePrivates
       ).pausedPipelines;
       expect(pausedPipelines.size).toBe(1);
 
       const storedState = Array.from(pausedPipelines.values())[0] as {
-        tasks: typeof tasks;
+        tasks: import("../../../src/services/ClaudeCodeService").TaskItem[];
         currentIndex: number;
         resetTime: number;
       };
@@ -533,7 +531,6 @@ Please try again later.`;
         {
           id: "task1",
           prompt: "test task 1",
-          resumePrevious: false,
           status: "pending" as const,
           results: undefined,
           pausedUntil: undefined,
@@ -549,10 +546,9 @@ Please try again later.`;
       const resetTime = resetTimeSeconds * 1000; // Convert back to milliseconds for comparison
       const rateLimitError = `Claude AI usage limit reached|${resetTimeSeconds}`;
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       jest
         .spyOn(
-          claudeCodeService as ClaudeCodeServiceWithPrivates,
+          claudeCodeService as unknown as ClaudeCodeServicePrivates,
           "executeTaskCommand",
         )
         .mockRejectedValueOnce(new Error(rateLimitError));
@@ -584,7 +580,6 @@ Please try again later.`;
         {
           id: "task1",
           prompt: "test 1",
-          resumePrevious: false,
           status: "pending" as const,
           results: undefined,
           pausedUntil: undefined,
@@ -594,7 +589,6 @@ Please try again later.`;
         {
           id: "task2",
           prompt: "test 2",
-          resumePrevious: false,
           status: "pending" as const,
           results: undefined,
           pausedUntil: undefined,
@@ -609,7 +603,7 @@ Please try again later.`;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       jest
         .spyOn(
-          claudeCodeService as ClaudeCodeServiceWithPrivates,
+          claudeCodeService as unknown as ClaudeCodeServicePrivates,
           "executeTaskCommand",
         )
         .mockResolvedValueOnce({
@@ -648,7 +642,7 @@ Please try again later.`;
       // Verify both pipelines are stored separately
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const pausedPipelines = (
-        claudeCodeService as ClaudeCodeServiceWithPrivates
+        claudeCodeService as unknown as ClaudeCodeServicePrivates
       ).pausedPipelines;
       expect(pausedPipelines.size).toBe(2);
 
@@ -670,7 +664,7 @@ Please try again later.`;
       jest.useFakeTimers();
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (
-        claudeCodeService as ClaudeCodeServiceWithPrivates
+        claudeCodeService as unknown as ClaudeCodeServicePrivates
       ).pausedPipelines.clear();
       // Mock setTimeout as a spy for testing
       jest.spyOn(global, "setTimeout");
@@ -687,7 +681,6 @@ Please try again later.`;
         {
           id: "task1",
           prompt: "test task",
-          resumePrevious: false,
           status: "pending" as const,
           results: undefined,
           pausedUntil: undefined,
@@ -709,7 +702,7 @@ Please try again later.`;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       jest
         .spyOn(
-          claudeCodeService as ClaudeCodeServiceWithPrivates,
+          claudeCodeService as unknown as ClaudeCodeServicePrivates,
           "executeTaskCommand",
         )
         .mockResolvedValueOnce({
@@ -723,10 +716,9 @@ Please try again later.`;
         });
 
       // Mock resumePipeline to track when it's called
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const resumePipelineSpy = jest
         .spyOn(
-          claudeCodeService as ClaudeCodeServiceWithPrivates,
+          claudeCodeService as unknown as ClaudeCodeServicePrivates,
           "resumePipeline",
         )
         .mockImplementation(() => Promise.resolve());
@@ -750,9 +742,8 @@ Please try again later.`;
       expect(tasks[0].pausedUntil).toBe(resumeTime);
 
       // Verify pipeline state was stored
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const pausedPipelines = (
-        claudeCodeService as ClaudeCodeServiceWithPrivates
+        claudeCodeService as unknown as ClaudeCodeServicePrivates
       ).pausedPipelines;
       expect(pausedPipelines.size).toBe(1);
 
@@ -778,7 +769,6 @@ Please try again later.`;
         {
           id: "task1",
           prompt: "test 1",
-          resumePrevious: false,
           status: "pending" as const,
           results: undefined,
           pausedUntil: undefined,
@@ -788,7 +778,6 @@ Please try again later.`;
         {
           id: "task2",
           prompt: "test 2",
-          resumePrevious: false,
           status: "pending" as const,
           results: undefined,
           pausedUntil: undefined,
@@ -802,10 +791,9 @@ Please try again later.`;
       const resumeTime1Seconds = Math.floor(fixedCurrentTime / 1000) + 3; // 3 seconds later
       const resumeTime2Seconds = Math.floor(fixedCurrentTime / 1000) + 8; // 8 seconds later
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       jest
         .spyOn(
-          claudeCodeService as ClaudeCodeServiceWithPrivates,
+          claudeCodeService as unknown as ClaudeCodeServicePrivates,
           "executeTaskCommand",
         )
         .mockResolvedValueOnce({
@@ -819,9 +807,8 @@ Please try again later.`;
           error: `Claude AI usage limit reached|${resumeTime2Seconds}`,
         });
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const resumePipelineSpy = jest.spyOn(
-        claudeCodeService as ClaudeCodeServiceWithPrivates,
+        claudeCodeService as unknown as ClaudeCodeServicePrivates,
         "resumePipeline",
       );
 
@@ -867,7 +854,6 @@ Please try again later.`;
         {
           id: "task1",
           prompt: "test task",
-          resumePrevious: false,
           status: "pending" as const,
           results: undefined,
           pausedUntil: undefined,
@@ -884,7 +870,7 @@ Please try again later.`;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       jest
         .spyOn(
-          claudeCodeService as ClaudeCodeServiceWithPrivates,
+          claudeCodeService as unknown as ClaudeCodeServicePrivates,
           "executeTaskCommand",
         )
         .mockResolvedValueOnce({
@@ -895,7 +881,7 @@ Please try again later.`;
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const resumePipelineSpy = jest.spyOn(
-        claudeCodeService as ClaudeCodeServiceWithPrivates,
+        claudeCodeService as unknown as ClaudeCodeServicePrivates,
         "resumePipeline",
       );
 
@@ -923,7 +909,6 @@ Please try again later.`;
         {
           id: "task1",
           prompt: "test task",
-          resumePrevious: false,
           status: "pending" as const,
           results: undefined,
           pausedUntil: undefined,
@@ -941,7 +926,7 @@ Please try again later.`;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       jest
         .spyOn(
-          claudeCodeService as ClaudeCodeServiceWithPrivates,
+          claudeCodeService as unknown as ClaudeCodeServicePrivates,
           "executeTaskCommand",
         )
         .mockResolvedValueOnce({
@@ -972,7 +957,6 @@ Please try again later.`;
         {
           id: "task1",
           prompt: "first task",
-          resumePrevious: false,
           status: "pending" as const,
           results: undefined,
           pausedUntil: undefined,
@@ -994,7 +978,7 @@ Please try again later.`;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       jest
         .spyOn(
-          claudeCodeService as ClaudeCodeServiceWithPrivates,
+          claudeCodeService as unknown as ClaudeCodeServicePrivates,
           "executeTaskCommand",
         )
         .mockResolvedValueOnce({
@@ -1007,7 +991,7 @@ Please try again later.`;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const resumePipelineSpy = jest
         .spyOn(
-          claudeCodeService as ClaudeCodeServiceWithPrivates,
+          claudeCodeService as unknown as ClaudeCodeServicePrivates,
           "resumePipeline",
         )
         .mockImplementation(() => Promise.resolve());
@@ -1030,7 +1014,7 @@ Please try again later.`;
       // Verify pipeline state was stored
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const pausedPipelines = (
-        claudeCodeService as ClaudeCodeServiceWithPrivates
+        claudeCodeService as unknown as ClaudeCodeServicePrivates
       ).pausedPipelines;
       expect(pausedPipelines.size).toBe(1);
 
@@ -1051,15 +1035,17 @@ Please try again later.`;
 
   describe("evaluateCondition", () => {
     let mockExecuteCommand: jest.MockedFunction<
-      (args: string[], options?: unknown) => Promise<CommandResult>
+      (args: string[], cwd: string) => Promise<CommandResult>
     >;
 
     beforeEach(() => {
       // Mock the executeCommand method
       mockExecuteCommand = jest.spyOn(
-        claudeCodeService as ClaudeCodeServiceWithPrivates,
+        claudeCodeService as unknown as ClaudeCodeServicePrivates,
         "executeCommand",
-      );
+      ) as jest.MockedFunction<
+        (args: string[], cwd: string) => Promise<CommandResult>
+      >;
     });
 
     afterEach(() => {

@@ -10,13 +10,24 @@ import { WorkflowOptions, WorkflowResult } from "../models/Task";
 import { ILogger, IFileSystem } from "../interfaces";
 import { WorkflowParser } from "./WorkflowParser";
 import { ClaudeExecutor } from "./ClaudeExecutor";
+import {
+  WorkflowStateService,
+  WorkflowState,
+} from "../../services/WorkflowStateService";
+import { WorkflowJsonLogger } from "../../services/WorkflowJsonLogger";
 
 export class WorkflowEngine {
+  private currentWorkflowState?: WorkflowState;
+  private readonly jsonLogger?: WorkflowJsonLogger;
+
   constructor(
     private readonly logger: ILogger,
     private readonly fileSystem: IFileSystem,
     private readonly executor: ClaudeExecutor,
-  ) {}
+    private readonly workflowStateService?: WorkflowStateService,
+  ) {
+    this.jsonLogger = new WorkflowJsonLogger(this.fileSystem, this.logger);
+  }
 
   /**
    * List all Claude workflows in a directory
@@ -124,7 +135,7 @@ export class WorkflowEngine {
   }
 
   /**
-   * Execute a workflow
+   * Execute a workflow with state persistence support
    */
   async executeWorkflow(
     execution: WorkflowExecution,
@@ -136,16 +147,51 @@ export class WorkflowEngine {
     ) => void,
     onComplete?: () => void,
     onError?: (error: string) => void,
+    workflowPath?: string,
   ): Promise<WorkflowResult> {
     const startTime = Date.now();
     const steps = this.getExecutionSteps(execution.workflow);
     let stepsExecuted = 0;
+
+    // Create workflow state for persistence if service is available
+    if (this.workflowStateService && workflowPath) {
+      this.currentWorkflowState =
+        await this.workflowStateService.createWorkflowState(
+          execution,
+          workflowPath,
+        );
+
+      // Initialize JSON log file
+      if (this.jsonLogger) {
+        await this.jsonLogger.initializeLog(
+          this.currentWorkflowState,
+          workflowPath,
+        );
+      }
+    }
 
     try {
       execution.status = "running";
 
       for (const { step, index } of steps) {
         const stepId = step.id ?? `step-${index}`;
+
+        // Create step checkpoint
+        if (this.currentWorkflowState && this.workflowStateService) {
+          const stepResult = this.workflowStateService.createStepResult(
+            index,
+            stepId,
+            undefined,
+            step.with.output_session === true,
+            step.with.resume_session,
+          );
+
+          await this.workflowStateService.updateWorkflowProgress(
+            this.currentWorkflowState.executionId,
+            stepResult,
+          );
+        }
+
         onStepProgress?.(stepId, "running");
 
         // Resolve variables in the step
@@ -180,17 +226,96 @@ export class WorkflowEngine {
 
           // Update execution with output
           this.updateExecutionOutput(execution, stepId, output);
+
+          // Update step completion in workflow state
+          if (this.currentWorkflowState && this.workflowStateService) {
+            const completedStepResult =
+              this.workflowStateService.completeStepResult(
+                this.workflowStateService.createStepResult(
+                  index,
+                  stepId,
+                  result.sessionId,
+                  step.with.output_session === true,
+                  step.with.resume_session,
+                ),
+                true,
+                result.output,
+              );
+
+            const updatedState =
+              await this.workflowStateService.updateWorkflowProgress(
+                this.currentWorkflowState.executionId,
+                completedStepResult,
+              );
+
+            // Update JSON log
+            if (updatedState && this.jsonLogger) {
+              await this.jsonLogger.updateStepProgress(
+                completedStepResult,
+                updatedState,
+              );
+            }
+          }
+
           onStepProgress?.(stepId, "completed", output);
           stepsExecuted++;
         } catch (error) {
           const errorMessage =
             error instanceof Error ? error.message : String(error);
+
+          // Update step failure in workflow state
+          if (this.currentWorkflowState && this.workflowStateService) {
+            const failedStepResult =
+              this.workflowStateService.completeStepResult(
+                this.workflowStateService.createStepResult(
+                  index,
+                  stepId,
+                  undefined,
+                  step.with.output_session === true,
+                  step.with.resume_session,
+                ),
+                false,
+                undefined,
+                errorMessage,
+              );
+
+            const updatedState =
+              await this.workflowStateService.updateWorkflowProgress(
+                this.currentWorkflowState.executionId,
+                failedStepResult,
+              );
+
+            // Update JSON log
+            if (updatedState && this.jsonLogger) {
+              await this.jsonLogger.updateStepProgress(
+                failedStepResult,
+                updatedState,
+              );
+            }
+          }
+
           onStepProgress?.(stepId, "failed", { result: errorMessage });
           throw error;
         }
       }
 
       execution.status = "completed";
+
+      // Mark workflow as completed in state
+      if (this.currentWorkflowState && this.workflowStateService) {
+        this.currentWorkflowState.status = "completed";
+        await this.workflowStateService.updateWorkflowProgress(
+          this.currentWorkflowState.executionId,
+          this.workflowStateService.createStepResult(-1, "workflow_completed"),
+        );
+
+        // Finalize JSON log
+        if (this.jsonLogger) {
+          await this.jsonLogger.updateWorkflowStatus("completed");
+          await this.jsonLogger.finalize();
+        }
+      }
+
       onComplete?.();
 
       const executionTime = Date.now() - startTime;
@@ -206,6 +331,19 @@ export class WorkflowEngine {
         error instanceof Error ? error.message : String(error);
       execution.status = "failed";
       execution.error = errorMessage;
+
+      // Mark workflow as failed in state
+      if (this.currentWorkflowState && this.workflowStateService) {
+        this.currentWorkflowState.status = "failed";
+        this.currentWorkflowState.canResume = false;
+
+        // Update JSON log with failure
+        if (this.jsonLogger) {
+          await this.jsonLogger.updateWorkflowStatus("failed");
+          await this.jsonLogger.finalize();
+        }
+      }
+
       onError?.(errorMessage);
 
       const executionTime = Date.now() - startTime;
@@ -217,6 +355,12 @@ export class WorkflowEngine {
         executionTimeMs: executionTime,
         stepsExecuted,
       };
+    } finally {
+      // Cleanup JSON logger
+      if (this.jsonLogger) {
+        this.jsonLogger.cleanup();
+      }
+      this.currentWorkflowState = undefined;
     }
   }
 
@@ -273,6 +417,241 @@ export class WorkflowEngine {
     }
 
     return resolvedStep;
+  }
+
+  /**
+   * Resume workflow execution from saved state
+   */
+  async resumeWorkflow(
+    executionId: string,
+    options: WorkflowOptions = {},
+    onStepProgress?: (
+      stepId: string,
+      status: "running" | "completed" | "failed",
+      output?: StepOutput,
+    ) => void,
+    onComplete?: () => void,
+    onError?: (error: string) => void,
+  ): Promise<WorkflowResult> {
+    if (!this.workflowStateService) {
+      throw new Error(
+        "WorkflowStateService not available for resume operation",
+      );
+    }
+
+    // Load workflow state
+    const workflowState =
+      await this.workflowStateService.getWorkflowState(executionId);
+    if (!workflowState || !workflowState.canResume) {
+      throw new Error(`Cannot resume workflow: ${executionId}`);
+    }
+
+    // Resume workflow state
+    const resumedState =
+      await this.workflowStateService.resumeWorkflow(executionId);
+    if (!resumedState) {
+      throw new Error(`Failed to resume workflow: ${executionId}`);
+    }
+
+    this.currentWorkflowState = resumedState;
+    const execution = resumedState.execution;
+    const steps = this.getExecutionSteps(execution.workflow);
+
+    // Restore session mappings to execution outputs
+    for (const [stepId, sessionId] of Object.entries(
+      resumedState.sessionMappings,
+    )) {
+      if (!execution.outputs[stepId]) {
+        execution.outputs[stepId] = {};
+      }
+      execution.outputs[stepId].session_id = sessionId;
+    }
+
+    const startTime = Date.now();
+    let stepsExecuted = resumedState.completedSteps.length;
+
+    try {
+      execution.status = "running";
+
+      // Continue from current step
+      for (let i = resumedState.currentStep; i < steps.length; i++) {
+        const { step } = steps[i];
+        const stepId = step.id ?? `step-${i}`;
+
+        // Skip if step is already completed
+        const existingStep = resumedState.completedSteps.find(
+          (s) => s.stepIndex === i,
+        );
+        if (existingStep && existingStep.status === "completed") {
+          continue;
+        }
+
+        // Create step checkpoint
+        const stepResult = this.workflowStateService.createStepResult(
+          i,
+          stepId,
+          undefined,
+          step.with.output_session === true,
+          step.with.resume_session,
+        );
+
+        await this.workflowStateService.updateWorkflowProgress(
+          resumedState.executionId,
+          stepResult,
+        );
+
+        onStepProgress?.(stepId, "running");
+
+        // Resolve variables in the step using restored session mappings
+        const resolvedStep = this.resolveStepVariables(step, execution);
+
+        try {
+          const result = await this.executor.executeTask(
+            resolvedStep.with.prompt,
+            resolvedStep.with.model ?? options.model ?? "auto",
+            options.workingDirectory ?? process.cwd(),
+            {
+              allowAllTools: resolvedStep.with.allow_all_tools,
+              outputFormat: "json",
+              workingDirectory:
+                resolvedStep.with.working_directory ?? options.workingDirectory,
+              resumeSessionId: resolvedStep.with.resume_session,
+            },
+          );
+
+          if (!result.success) {
+            throw new Error(result.error ?? "Task execution failed");
+          }
+
+          const output: StepOutput = {
+            result: result.output,
+          };
+
+          if (resolvedStep.with.output_session && result.sessionId) {
+            output.session_id = result.sessionId;
+          }
+
+          this.updateExecutionOutput(execution, stepId, output);
+
+          const completedStepResult =
+            this.workflowStateService.completeStepResult(
+              this.workflowStateService.createStepResult(
+                i,
+                stepId,
+                result.sessionId,
+                step.with.output_session === true,
+                step.with.resume_session,
+              ),
+              true,
+              result.output,
+            );
+
+          await this.workflowStateService.updateWorkflowProgress(
+            resumedState.executionId,
+            completedStepResult,
+          );
+
+          onStepProgress?.(stepId, "completed", output);
+          stepsExecuted++;
+        } catch (error) {
+          const errorMessage =
+            error instanceof Error ? error.message : String(error);
+
+          const failedStepResult = this.workflowStateService.completeStepResult(
+            this.workflowStateService.createStepResult(
+              i,
+              stepId,
+              undefined,
+              step.with.output_session === true,
+              step.with.resume_session,
+            ),
+            false,
+            undefined,
+            errorMessage,
+          );
+
+          await this.workflowStateService.updateWorkflowProgress(
+            resumedState.executionId,
+            failedStepResult,
+          );
+
+          onStepProgress?.(stepId, "failed", { result: errorMessage });
+          throw error;
+        }
+      }
+
+      execution.status = "completed";
+
+      if (this.currentWorkflowState) {
+        this.currentWorkflowState.status = "completed";
+        await this.workflowStateService.updateWorkflowProgress(
+          this.currentWorkflowState.executionId,
+          this.workflowStateService.createStepResult(-1, "workflow_completed"),
+        );
+      }
+
+      onComplete?.();
+
+      const executionTime = Date.now() - startTime;
+      return {
+        workflowId: execution.workflow.name,
+        success: true,
+        outputs: execution.outputs,
+        executionTimeMs: executionTime,
+        stepsExecuted,
+      };
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      execution.status = "failed";
+      execution.error = errorMessage;
+
+      if (this.currentWorkflowState) {
+        this.currentWorkflowState.status = "failed";
+        this.currentWorkflowState.canResume = false;
+      }
+
+      onError?.(errorMessage);
+
+      const executionTime = Date.now() - startTime;
+      return {
+        workflowId: execution.workflow.name,
+        success: false,
+        outputs: execution.outputs,
+        error: errorMessage,
+        executionTimeMs: executionTime,
+        stepsExecuted,
+      };
+    } finally {
+      // Cleanup JSON logger
+      if (this.jsonLogger) {
+        this.jsonLogger.cleanup();
+      }
+      this.currentWorkflowState = undefined;
+    }
+  }
+
+  /**
+   * Pause current workflow execution
+   */
+  async pauseCurrentWorkflow(): Promise<string | null> {
+    if (!this.currentWorkflowState || !this.workflowStateService) {
+      return null;
+    }
+
+    const pausedState = await this.workflowStateService.pauseWorkflow(
+      this.currentWorkflowState.executionId,
+      "manual",
+    );
+
+    return pausedState ? pausedState.executionId : null;
+  }
+
+  /**
+   * Get current workflow execution ID
+   */
+  getCurrentWorkflowExecutionId(): string | null {
+    return this.currentWorkflowState?.executionId ?? null;
   }
 
   /**

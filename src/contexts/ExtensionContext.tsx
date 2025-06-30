@@ -98,7 +98,7 @@ export interface MainViewState {
   rootPath: string;
   allowAllTools: boolean;
   parallelTasksCount: number;
-  status: "stopped" | "running" | "starting" | "stopping";
+  status: "stopped" | "running" | "starting" | "stopping" | "paused";
   tasks: TaskItem[];
   currentTaskIndex?: number;
   results?: string;
@@ -121,6 +121,25 @@ export interface MainViewState {
       output?: { result?: string; [key: string]: unknown };
     }
   >;
+
+  // Pause/Resume state
+  isPaused: boolean;
+  currentExecutionId?: string;
+  pausedPipelines: Array<{
+    pipelineId: string;
+    tasks: TaskItem[];
+    currentIndex: number;
+    pausedAt: number;
+  }>;
+  resumableWorkflows: Array<{
+    executionId: string;
+    workflowName: string;
+    workflowPath: string;
+    pausedAt: string;
+    currentStep: number;
+    totalSteps: number;
+    canResume: boolean;
+  }>;
 }
 
 export interface CommandFile {
@@ -213,6 +232,12 @@ const initialState: ExtensionState = {
     workflowInputs: {},
     executionStatus: "idle",
     stepStatuses: {},
+
+    // Pause/Resume initial state
+    isPaused: false,
+    currentExecutionId: undefined,
+    pausedPipelines: [],
+    resumableWorkflows: [],
   },
   commands: {
     activeTab: "global",
@@ -325,6 +350,12 @@ export interface ExtensionActions {
   runWorkflow: () => void;
   cancelWorkflow: () => void;
   createSampleWorkflow: () => void;
+  pausePipeline: () => void;
+  resumePipeline: (executionId: string) => void;
+  pauseWorkflow: (executionId?: string) => void;
+  resumeWorkflow: (executionId: string) => void;
+  deleteWorkflowState: (executionId: string) => void;
+  getResumableWorkflows: () => void;
 
   // Commands View Actions
   updateCommandsState: (updates: Partial<CommandsViewState>) => void;
@@ -486,6 +517,31 @@ export const ExtensionProvider: React.FC<{ children: ReactNode }> = ({
 
     createSampleWorkflow: () => {
       sendMessage("createSampleWorkflow");
+    },
+
+    // Pause/Resume Actions
+    pauseWorkflow: (executionId?: string) => {
+      sendMessage("pauseWorkflow", { executionId });
+    },
+
+    resumeWorkflow: (executionId: string) => {
+      sendMessage("resumeWorkflow", { executionId });
+    },
+
+    pausePipeline: () => {
+      sendMessage("pausePipeline");
+    },
+
+    resumePipeline: (pipelineId: string) => {
+      sendMessage("resumePipeline", { pipelineId });
+    },
+
+    getResumableWorkflows: () => {
+      sendMessage("getResumableWorkflows");
+    },
+
+    deleteWorkflowState: (executionId: string) => {
+      sendMessage("deleteWorkflowState", { executionId });
     },
 
     // Commands View Actions
@@ -708,6 +764,10 @@ export const ExtensionProvider: React.FC<{ children: ReactNode }> = ({
               "availablePipelines",
               "availableModels",
               "discoveredWorkflows",
+              "isPaused",
+              "pausedPipelines",
+              "resumableWorkflows",
+              "currentExecutionId",
             ];
 
             const mainUpdates: Partial<MainViewState> = {};

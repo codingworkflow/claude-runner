@@ -25,6 +25,9 @@ const PipelinePanel: React.FC<PipelinePanelProps> = ({ disabled }) => {
     status,
     currentTaskIndex,
     discoveredWorkflows,
+    isPaused = false,
+    pausedPipelines = [],
+    resumableWorkflows = [],
   } = main;
 
   const isTasksRunning = status === "running";
@@ -143,6 +146,14 @@ const PipelinePanel: React.FC<PipelinePanelProps> = ({ disabled }) => {
         setSelectedPipeline={setSelectedPipeline}
         handleLoadPipeline={handleLoadPipeline}
         discoveredWorkflows={discoveredWorkflows}
+        isPaused={isPaused}
+        pausedPipelines={pausedPipelines}
+        resumableWorkflows={resumableWorkflows}
+        onPausePipeline={actions.pausePipeline}
+        onResumePipeline={actions.resumePipeline}
+        onPauseWorkflow={actions.pauseWorkflow}
+        onResumeWorkflow={actions.resumeWorkflow}
+        onDeleteWorkflowState={actions.deleteWorkflowState}
       />
 
       <PipelineDialog

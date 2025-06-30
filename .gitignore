@@ -87,6 +87,16 @@ css-analysis-report.json
 # CLI artifacts - Keep dist/ for packaging
 cli/node_modules/
 cli/*.log
+cli/*.tgz
+cli/claude-runner-cli-*.tgz
 .claude/.credentials.json
 .claude/todos
 vsix/
+
+# NPM package artifacts
+*.tgz
+claude-runner-cli-*.tgz
+.claude/projects
+.claude/
+!.claude/command
+.github/workflows/*.json

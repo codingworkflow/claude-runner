@@ -1,0 +1,41 @@
+{
+  "name": "claude-runner-cli",
+  "version": "0.2.0",
+  "description": "Standalone CLI for executing Claude Code workflows and commands",
+  "main": "claude-runner.js",
+  "bin": {
+    "claude-runner": "./claude-runner"
+  },
+  "keywords": [
+    "claude",
+    "claude-code",
+    "ai",
+    "cli",
+    "workflow",
+    "anthropic"
+  ],
+  "author": "Codingworkflow",
+  "license": "GPL-3.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/codingworkflow/claude-runner",
+    "directory": "cli"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "js-yaml": "^4.1.0"
+  },
+  "files": [
+    "claude-runner",
+    "claude-runner.js",
+    "dist/",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "cd .. && npm run build-cli",
+    "prepublishOnly": "npm run build",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  }
+}

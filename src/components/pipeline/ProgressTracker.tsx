@@ -62,27 +62,25 @@ const ProgressTracker: React.FC<ProgressTrackerProps> = ({
               </h5>
               <div className="progress-status">
                 {task.status === "pending" && !isCurrentTask && (
-                  <span className="status-badge status-pending">
-                    ⏸️ Pending
-                  </span>
+                  <span className="status-badge status-pending">Pending</span>
                 )}
                 {(task.status === "running" ||
-                  (isCurrentTask && isTasksRunning)) && (
-                  <span className="status-badge status-running">
-                    ⏳ Running...
-                  </span>
+                  (isCurrentTask &&
+                    isTasksRunning &&
+                    task.status === "pending")) && (
+                  <span className="status-badge status-running">Running</span>
                 )}
                 {task.status === "completed" && (
                   <span className="status-badge status-completed">
-                    ✅ Completed
+                    Completed
                   </span>
                 )}
                 {task.status === "error" && (
-                  <span className="status-badge status-error">❌ Failed</span>
+                  <span className="status-badge status-error">Failed</span>
                 )}
                 {task.status === "paused" && (
                   <span className="status-badge status-paused">
-                    ⏸️ Paused{" "}
+                    Paused{" "}
                     {task.pausedUntil && (
                       <CountdownTimer targetTime={task.pausedUntil} />
                     )}

@@ -11,6 +11,8 @@ import { ClaudeDetectionService } from "./services/ClaudeDetectionService";
 import { UsageReportService } from "./services/UsageReportService";
 import { LogsService } from "./services/LogsService";
 import { detectParallelTasksCount } from "./utils/detectParallelTasksCount";
+import { VSCodeWorkflowStorageAdapter } from "./adapters/storage/WorkflowStorageAdapter";
+import { WorkflowStateService } from "./services/WorkflowStateService";
 
 let claudeRunnerPanel: ClaudeRunnerPanel | undefined;
 let commandsWebviewProvider: CommandsWebviewProvider | undefined;
@@ -42,7 +44,13 @@ export async function activate(context: vscode.ExtensionContext) {
   const isClaudeInstalled = result.isInstalled;
   if (isClaudeInstalled) {
     // Initialize services only if Claude is installed
-    claudeCodeService = new ClaudeCodeService(configurationService);
+    const storageAdapter = new VSCodeWorkflowStorageAdapter(context);
+    const stateService = new WorkflowStateService(storageAdapter);
+
+    claudeCodeService = new ClaudeCodeService(
+      configurationService,
+      stateService,
+    );
     claudeService = new ClaudeService();
     terminalService = new TerminalService(configurationService);
   }

@@ -5,7 +5,7 @@ class MockConfigSource implements IConfigSource {
   private readonly data = new Map<string, unknown>();
 
   async get<T>(key: string): Promise<T | undefined> {
-    return this.data.get(key);
+    return this.data.get(key) as T | undefined;
   }
 
   async set<T>(key: string, value: T): Promise<void> {

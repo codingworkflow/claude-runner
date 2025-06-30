@@ -15,7 +15,7 @@ jobs:
         name: Task 1
         uses: anthropics/claude-pipeline-action@v1
         with:
-          prompt: give as output only a randow number
+          prompt: give as output only a randow number REALLY random and not 42
           model: auto
           allow_all_tools: true
           output_session: true
@@ -23,14 +23,14 @@ jobs:
         name: Task 2
         uses: anthropics/claude-pipeline-action@v1
         with:
-          prompt: give as output only a randow number
+          prompt: give as output only a randow number REALLY random and not 42
           model: auto
           allow_all_tools: true
       - id: task_1750982348178_ayw0z7r0y
         name: Task 3
         uses: anthropics/claude-pipeline-action@v1
         with:
-          prompt: output only the previous random number
+          prompt: output only the previous random number 
           model: auto
           allow_all_tools: true
           resume_session: ${{ steps.task_1750982023660_lskzttjfl.outputs.session_id }}

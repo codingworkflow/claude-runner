@@ -438,6 +438,7 @@ describe("Pause/Resume Workflow Integration", () => {
         // Mock the resumePipeline method to avoid actual execution
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const resumeSpy = jest
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           .spyOn(claudeCodeService as any, "resumePipeline")
           .mockResolvedValue(undefined);
 

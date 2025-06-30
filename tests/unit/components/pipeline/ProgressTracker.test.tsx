@@ -38,10 +38,10 @@ describe("ProgressTracker", () => {
 
     expect(getByText("Pipeline Progress")).toBeTruthy();
     expect(getByText("Task 1")).toBeTruthy();
-    expect(getByText("✅ Completed")).toBeTruthy();
+    expect(getByText("Completed")).toBeTruthy();
     expect(getByText("Task 2")).toBeTruthy();
-    expect(getByText("⏳ Running...")).toBeTruthy();
+    expect(getByText("Running")).toBeTruthy();
     expect(getByText("Task 3")).toBeTruthy();
-    expect(getByText("⏸️ Pending")).toBeTruthy();
+    expect(getByText("Pending")).toBeTruthy();
   });
 });

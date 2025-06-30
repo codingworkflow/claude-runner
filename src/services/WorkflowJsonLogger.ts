@@ -1,0 +1,240 @@
+import * as path from "path";
+import { WorkflowState, WorkflowStepResult } from "./WorkflowStateService";
+import { IFileSystem } from "../core/interfaces/IFileSystem";
+import { ILogger } from "../core/interfaces/ILogger";
+
+export interface JsonLogStep {
+  step_index: number;
+  step_id: string;
+  step_name: string;
+  status: "completed" | "failed" | "paused";
+  start_time: string;
+  end_time: string;
+  duration_ms: number;
+  output: string;
+  session_id: string;
+  output_session: boolean;
+  resume_session?: string;
+}
+
+export interface JsonLogFormat {
+  workflow_name: string;
+  workflow_file: string;
+  execution_id: string;
+  start_time: string;
+  last_update_time: string;
+  status: "running" | "paused" | "completed" | "failed";
+  last_completed_step: number;
+  total_steps: number;
+  steps: JsonLogStep[];
+}
+
+export class WorkflowJsonLogger {
+  private logFilePath?: string;
+  private currentLog?: JsonLogFormat;
+
+  constructor(
+    private readonly fileSystem: IFileSystem,
+    private readonly logger: ILogger,
+  ) {}
+
+  async initializeLog(
+    workflowState: WorkflowState,
+    workflowPath: string,
+  ): Promise<void> {
+    try {
+      // Generate log file path in same folder as workflow (per specs)
+      const workflowDir = path.dirname(workflowPath);
+      const workflowBaseName = path.basename(
+        workflowPath,
+        path.extname(workflowPath),
+      );
+      const logFileName = `${workflowBaseName}.json`;
+      this.logFilePath = path.join(workflowDir, logFileName);
+
+      // Ensure log directory exists
+      const logDir = path.dirname(this.logFilePath);
+      if (!(await this.fileSystem.exists(logDir))) {
+        await this.fileSystem.mkdir(logDir, { recursive: true });
+      }
+
+      // Generate execution ID in correct format (YYYYMMDD-HHMMSS)
+      const now = new Date();
+      const executionId =
+        now.toISOString().slice(0, 19).replace(/[-:T]/g, "").slice(0, 8) +
+        "-" +
+        now.toISOString().slice(11, 19).replace(/[-:]/g, "").slice(0, 6);
+
+      // Get total steps count
+      const workflow = workflowState.execution.workflow;
+      let totalSteps = 0;
+      if (workflow.jobs) {
+        const jobName = Object.keys(workflow.jobs)[0];
+        const job = workflow.jobs[jobName];
+        totalSteps = job?.steps?.length || 0;
+      }
+
+      // Initialize log structure - NO pre-filled steps!
+      this.currentLog = {
+        workflow_name: workflow.name || workflowBaseName,
+        workflow_file: path.relative(path.dirname(workflowPath), workflowPath),
+        execution_id: executionId,
+        start_time: new Date().toISOString(),
+        last_update_time: new Date().toISOString(),
+        status: "running",
+        last_completed_step: -1,
+        total_steps: totalSteps,
+        steps: [], // Empty - steps added ONLY when completed!
+      };
+
+      await this.writeLogFile();
+    } catch (error) {
+      this.logger.error(
+        "Failed to initialize workflow JSON log",
+        error instanceof Error ? error : new Error(String(error)),
+      );
+    }
+  }
+
+  async updateStepProgress(
+    stepResult: WorkflowStepResult,
+    workflowState: WorkflowState,
+  ): Promise<void> {
+    if (!this.currentLog || !this.logFilePath) {
+      return;
+    }
+
+    try {
+      // Only add steps when they are COMPLETED or FAILED
+      if (stepResult.status === "completed" || stepResult.status === "failed") {
+        // Calculate duration
+        const startTime = new Date(
+          stepResult.startTime ?? new Date().toISOString(),
+        );
+        const endTime = new Date(
+          stepResult.endTime ?? new Date().toISOString(),
+        );
+        const durationMs = endTime.getTime() - startTime.getTime();
+
+        // Get step details from workflow
+        const workflow = workflowState.execution.workflow;
+        let stepName = `Step ${stepResult.stepIndex + 1}`;
+        let outputSession = false;
+        let resumeSession = "";
+
+        if (workflow.jobs) {
+          const jobName = Object.keys(workflow.jobs)[0];
+          const job = workflow.jobs[jobName];
+          const step = job?.steps?.[stepResult.stepIndex];
+          if (step) {
+            stepName = step.name ?? stepName;
+            outputSession = step.with?.output_session === true;
+            resumeSession = step.with?.resume_session
+              ? String(step.with.resume_session)
+              : "";
+          }
+        }
+
+        // Add completed step to log
+        const logStep: JsonLogStep = {
+          step_index: stepResult.stepIndex,
+          step_id: stepResult.stepId,
+          step_name: stepName,
+          status: stepResult.status === "completed" ? "completed" : "failed",
+          start_time: stepResult.startTime ?? new Date().toISOString(),
+          end_time: stepResult.endTime ?? new Date().toISOString(),
+          duration_ms: durationMs,
+          output: stepResult.output ?? "",
+          session_id: stepResult.sessionId ?? "",
+          output_session: outputSession,
+        };
+
+        if (resumeSession) {
+          logStep.resume_session = resumeSession;
+        }
+
+        this.currentLog.steps.push(logStep);
+        this.currentLog.last_completed_step = stepResult.stepIndex;
+      }
+
+      // Update log metadata
+      this.currentLog.last_update_time = new Date().toISOString();
+
+      // Update overall status
+      if (workflowState.status === "completed") {
+        this.currentLog.status = "completed";
+      } else if (workflowState.status === "failed") {
+        this.currentLog.status = "failed";
+      } else if (stepResult.status === "paused") {
+        this.currentLog.status = "paused";
+      }
+
+      await this.writeLogFile();
+    } catch (error) {
+      this.logger.error(
+        "Failed to update workflow JSON log",
+        error instanceof Error ? error : new Error(String(error)),
+      );
+    }
+  }
+
+  async updateWorkflowStatus(
+    status: "running" | "paused" | "completed" | "failed",
+  ): Promise<void> {
+    if (!this.currentLog || !this.logFilePath) {
+      return;
+    }
+
+    try {
+      this.currentLog.status = status;
+      this.currentLog.last_update_time = new Date().toISOString();
+      await this.writeLogFile();
+    } catch (error) {
+      this.logger.error(
+        "Failed to update workflow status in JSON log",
+        error instanceof Error ? error : new Error(String(error)),
+      );
+    }
+  }
+
+  // Removed restoreFromWorkflowState - not needed with new format
+
+  getLogFilePath(): string | undefined {
+    return this.logFilePath;
+  }
+
+  getCurrentLog(): JsonLogFormat | undefined {
+    return this.currentLog;
+  }
+
+  private async writeLogFile(): Promise<void> {
+    if (!this.logFilePath || !this.currentLog) {
+      return;
+    }
+
+    try {
+      const logContent = JSON.stringify(this.currentLog, null, 2);
+      await this.fileSystem.writeFile(this.logFilePath, logContent);
+    } catch (error) {
+      this.logger.error(
+        "Failed to write workflow JSON log file",
+        error instanceof Error ? error : new Error(String(error)),
+      );
+    }
+  }
+
+  async finalize(): Promise<void> {
+    if (this.currentLog) {
+      this.currentLog.status =
+        this.currentLog.status === "running"
+          ? "completed"
+          : this.currentLog.status;
+      await this.writeLogFile();
+    }
+  }
+
+  cleanup(): void {
+    this.logFilePath = undefined;
+    this.currentLog = undefined;
+  }
+}

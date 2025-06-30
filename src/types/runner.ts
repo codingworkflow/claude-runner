@@ -36,6 +36,12 @@ export type RunnerCommand =
   | { kind: "runTask"; task: string; outputFormat?: "text" | "json" }
   | { kind: "runTasks"; tasks: TaskItem[]; outputFormat?: "text" | "json" }
   | { kind: "cancelTask" }
+  | { kind: "pauseWorkflow"; executionId?: string }
+  | { kind: "resumeWorkflow"; executionId: string }
+  | { kind: "pausePipeline" }
+  | { kind: "resumePipeline"; pipelineId: string }
+  | { kind: "getResumableWorkflows" }
+  | { kind: "deleteWorkflowState"; executionId: string }
   | { kind: "updateModel"; model: string }
   | { kind: "updateRootPath"; path: string }
   | { kind: "updateAllowAllTools"; allow: boolean }
@@ -108,6 +114,24 @@ export const RunnerCommandRegistry: {
         : undefined,
   }),
   cancelTask: () => ({ kind: "cancelTask" }),
+  pauseWorkflow: (m) => ({
+    kind: "pauseWorkflow",
+    executionId: isString(m.executionId) ? m.executionId : undefined,
+  }),
+  resumeWorkflow: (m) => ({
+    kind: "resumeWorkflow",
+    executionId: isString(m.executionId) ? m.executionId : "",
+  }),
+  pausePipeline: () => ({ kind: "pausePipeline" }),
+  resumePipeline: (m) => ({
+    kind: "resumePipeline",
+    pipelineId: isString(m.pipelineId) ? m.pipelineId : "",
+  }),
+  getResumableWorkflows: () => ({ kind: "getResumableWorkflows" }),
+  deleteWorkflowState: (m) => ({
+    kind: "deleteWorkflowState",
+    executionId: isString(m.executionId) ? m.executionId : "",
+  }),
   updateModel: (m) => ({
     kind: "updateModel",
     model: isString(m.model) ? m.model : "",
@@ -243,11 +267,32 @@ export interface UIState {
   currentTaskIndex?: number;
   availablePipelines: string[];
   discoveredWorkflows?: { name: string; path: string }[];
+  workflowPath?: string;
 
   // Task execution state
+  status: "idle" | "running" | "completed" | "error" | "paused";
   lastTaskResults?: string;
   taskCompleted: boolean;
   taskError: boolean;
+
+  // Pause/Resume state
+  isPaused: boolean;
+  currentExecutionId?: string;
+  pausedPipelines: Array<{
+    pipelineId: string;
+    tasks: TaskItem[];
+    currentIndex: number;
+    pausedAt: number;
+  }>;
+  resumableWorkflows: Array<{
+    executionId: string;
+    workflowName: string;
+    workflowPath: string;
+    pausedAt: string;
+    currentStep: number;
+    totalSteps: number;
+    canResume: boolean;
+  }>;
 
   // Chat state
   chatPrompt: string;
@@ -270,7 +315,6 @@ export interface EventBus {
 
 // Message types for webview communication
 export type WebviewMessage = UIState & {
-  status: "idle" | "running" | "stopped";
   results?: string;
   availablePipelines: string[];
   availableModels: string[];

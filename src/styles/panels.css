@@ -252,6 +252,19 @@
   display: flex;
   gap: 6px;
   align-items: center;
+  flex-wrap: wrap;
+}
+
+/* Normalize task controls layout */
+.task-controls {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.task-controls .control-buttons {
+  margin-bottom: 0;
 }
 
 .save-pipeline-controls {
@@ -338,6 +351,28 @@
 .status-badge.status-paused {
   background-color: var(--vscode-charts-orange);
   color: var(--vscode-input-background);
+}
+
+/* Normalize completed status badges - remove icons */
+.status-badge.status-completed::before {
+  content: none !important;
+}
+
+.status-badge.status-completed .icon {
+  display: none !important;
+}
+
+/* Ensure consistent button format across all status badges */
+.status-badge {
+  font-size: 0.8em !important;
+  font-weight: 500 !important;
+  padding: 2px 6px !important;
+  border-radius: 3px !important;
+  border: 1px solid transparent !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 0 !important;
+  text-transform: capitalize;
 }
 
 /* Pipeline Progress Tracker */

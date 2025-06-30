@@ -33,7 +33,11 @@ export class ClaudeExecutor {
       }
 
       const args = this.buildTaskCommand(task, model, options);
-      const result = await this.executeCommand(args, workingDirectory);
+      const result = await this.executeCommand(
+        args,
+        workingDirectory,
+        options.outputFormat,
+      );
 
       if (!result.success) {
         throw new Error(result.error ?? "Command execution failed");
@@ -82,9 +86,20 @@ export class ClaudeExecutor {
     onProgress?: (tasks: TaskItem[], currentIndex: number) => void,
     onComplete?: (tasks: TaskItem[]) => void,
     onError?: (error: string, tasks: TaskItem[]) => void,
+    pauseChecker?: () => boolean,
+    onPause?: (tasks: TaskItem[], index: number) => void,
   ): Promise<void> {
     for (let i = 0; i < tasks.length; i++) {
       const task = tasks[i];
+
+      // Check if pause was requested before starting this task
+      if (pauseChecker?.()) {
+        // Pause at this task
+        task.status = "paused";
+        task.results = "MANUALLY PAUSED";
+        onPause?.(tasks, i);
+        return; // Exit pipeline execution
+      }
 
       // Update task status to running
       task.status = "running";
@@ -188,6 +203,8 @@ export class ClaudeExecutor {
     onProgress?: (tasks: TaskItem[], currentIndex: number) => void,
     onComplete?: (tasks: TaskItem[]) => void,
     onError?: (error: string, tasks: TaskItem[]) => void,
+    pauseChecker?: () => boolean,
+    onPause?: (tasks: TaskItem[], index: number) => void,
   ): Promise<void> {
     // Find the first paused task or the task after the last completed one
     let resumeIndex = tasks.findIndex((task) => task.status === "paused");
@@ -211,6 +228,15 @@ export class ClaudeExecutor {
     // Continue pipeline execution from the resume point
     for (let i = resumeIndex; i < tasks.length; i++) {
       const task = tasks[i];
+
+      // Check if pause was requested before starting this task
+      if (pauseChecker?.()) {
+        // Pause at this task
+        task.status = "paused";
+        task.results = "MANUALLY PAUSED";
+        onPause?.(tasks, i);
+        return; // Exit pipeline execution
+      }
 
       // Update task status to running
       task.status = "running";
@@ -325,12 +351,17 @@ export class ClaudeExecutor {
     options: TaskOptions,
   ): Promise<CommandResult> {
     const args = this.buildTaskCommand(task, model, options);
-    return await this.executeCommand(args, workingDirectory);
+    return await this.executeCommand(
+      args,
+      workingDirectory,
+      options.outputFormat,
+    );
   }
 
   protected async executeCommand(
     args: string[],
     cwd: string,
+    outputFormat?: string,
   ): Promise<CommandResult> {
     return new Promise((resolve) => {
       const child = spawn(args[0], args.slice(1), {
@@ -366,10 +397,18 @@ export class ClaudeExecutor {
 
         const exitCode = code ?? 0;
         if (exitCode === 0) {
+          // Extract sessionId if output format is JSON
+          let sessionId: string | undefined;
+          if (outputFormat === "json") {
+            const parsed = this.parseTaskResult(stdout, outputFormat);
+            sessionId = parsed.sessionId;
+          }
+
           resolve({
             success: true,
             output: stdout,
             exitCode,
+            sessionId,
           });
         } else {
           // if stderr is empty, fall back to stdout (so we catch "usage limit reached" there)
@@ -528,11 +567,13 @@ export class ClaudeExecutor {
   } {
     // Check both stdout and stderr for rate limit messages
     const fullOutput = `${output} ${stderr ?? ""}`;
-    const match = fullOutput.match(/Claude AI usage limit reached\|(\d+)/);
+    const match = fullOutput.match(
+      /Claude (AI|Code) usage limit reached\|(\d+)/,
+    );
     if (match) {
       return {
         isRateLimited: true,
-        resetTime: parseInt(match[1], 10) * 1000,
+        resetTime: parseInt(match[2], 10) * 1000,
       };
     }
     return { isRateLimited: false };

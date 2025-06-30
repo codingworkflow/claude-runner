@@ -17,6 +17,9 @@
     "ghcr.io/devcontainers/features/python:1": {
       "version": "3.12",
       "installTools": true
+    },
+    "ghcr.io/devcontainers/features/go:1": {
+      "version": "1.24.3"
     }
   },
   "customizations": {

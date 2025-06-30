@@ -1,11 +1,15 @@
 import { describe, it, expect } from "@jest/globals";
 import { WorkflowParser } from "../../../src/services/WorkflowParser";
-import { ClaudeWorkflow, ClaudeStep } from "../../../src/types/WorkflowTypes";
+import {
+  ClaudeWorkflow,
+  ClaudeStep,
+  ConditionType,
+} from "../../../src/types/WorkflowTypes";
 
-// Type for accessing private static methods in tests
-type WorkflowParserWithPrivates = typeof WorkflowParser & {
+// Interface for accessing private static methods in tests
+interface WorkflowParserWithPrivates {
   validateConditionalStep: (step: ClaudeStep) => void;
-};
+}
 
 describe("WorkflowParser", () => {
   describe("parseYaml", () => {
@@ -237,7 +241,7 @@ jobs:
 
   describe("validateConditionalStep", () => {
     it("should accept valid conditional step with check and condition", () => {
-      const validStep = {
+      const validStep: ClaudeStep = {
         id: "test-step",
         name: "Test Step",
         uses: "anthropics/claude-pipeline-action@v1",
@@ -249,14 +253,14 @@ jobs:
       };
 
       expect(() => {
-        (WorkflowParser as WorkflowParserWithPrivates).validateConditionalStep(
-          validStep,
-        );
+        (
+          WorkflowParser as unknown as WorkflowParserWithPrivates
+        ).validateConditionalStep(validStep);
       }).not.toThrow();
     });
 
     it("should accept step with check but no condition", () => {
-      const validStep = {
+      const validStep: ClaudeStep = {
         id: "test-step",
         name: "Test Step",
         uses: "anthropics/claude-pipeline-action@v1",
@@ -267,9 +271,9 @@ jobs:
       };
 
       expect(() => {
-        (WorkflowParser as WorkflowParserWithPrivates).validateConditionalStep(
-          validStep,
-        );
+        (
+          WorkflowParser as unknown as WorkflowParserWithPrivates
+        ).validateConditionalStep(validStep);
       }).not.toThrow();
     });
 
@@ -285,9 +289,9 @@ jobs:
       };
 
       expect(() => {
-        (WorkflowParser as WorkflowParserWithPrivates).validateConditionalStep(
-          invalidStep,
-        );
+        (
+          WorkflowParser as unknown as WorkflowParserWithPrivates
+        ).validateConditionalStep(invalidStep as ClaudeStep);
       }).toThrow("Check command in step 'Test Step' must be a string");
     });
 
@@ -304,9 +308,9 @@ jobs:
       };
 
       expect(() => {
-        (WorkflowParser as WorkflowParserWithPrivates).validateConditionalStep(
-          invalidStep,
-        );
+        (
+          WorkflowParser as unknown as WorkflowParserWithPrivates
+        ).validateConditionalStep(invalidStep as ClaudeStep);
       }).toThrow(
         "Invalid condition type in step 'Test Step': invalid_condition",
       );
@@ -319,14 +323,14 @@ jobs:
         uses: "anthropics/claude-pipeline-action@v1",
         with: {
           prompt: "Test prompt",
-          condition: "on_success",
+          condition: "on_success" as const,
         },
       };
 
       expect(() => {
-        (WorkflowParser as WorkflowParserWithPrivates).validateConditionalStep(
-          invalidStep,
-        );
+        (
+          WorkflowParser as unknown as WorkflowParserWithPrivates
+        ).validateConditionalStep(invalidStep as ClaudeStep);
       }).toThrow(
         "Step 'Test Step' has condition 'on_success' but no check command specified",
       );
@@ -336,20 +340,20 @@ jobs:
       const conditionTypes = ["on_success", "on_failure", "always"];
 
       conditionTypes.forEach((condition) => {
-        const validStep = {
+        const validStep: ClaudeStep = {
           id: `test-step-${condition}`,
           name: "Test Step",
           uses: "anthropics/claude-pipeline-action@v1",
           with: {
             prompt: "Test prompt",
             check: "npm test",
-            condition,
+            condition: condition as ConditionType,
           },
         };
 
         expect(() => {
           (
-            WorkflowParser as WorkflowParserWithPrivates
+            WorkflowParser as unknown as WorkflowParserWithPrivates
           ).validateConditionalStep(validStep);
         }).not.toThrow();
       });

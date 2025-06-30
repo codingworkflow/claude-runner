@@ -1,8 +1,16 @@
 import { spawn } from "child_process";
+import * as path from "path";
 import { ConfigurationService } from "./ConfigurationService";
 import { WorkflowService } from "./WorkflowService";
 import { WorkflowExecution, StepOutput } from "../types/WorkflowTypes";
 import { ClaudeDetectionService } from "./ClaudeDetectionService";
+import { WorkflowStateService, WorkflowState } from "./WorkflowStateService";
+import { WorkflowEngine } from "../core/services/WorkflowEngine";
+import { ClaudeExecutor } from "../core/services/ClaudeExecutor";
+import { VSCodeFileSystem } from "../adapters/vscode/VSCodeFileSystem";
+import { ILogger } from "../core/interfaces/ILogger";
+import { IConfigManager } from "../core/interfaces/IConfigManager";
+import { WorkflowJsonLogger } from "./WorkflowJsonLogger";
 
 export interface TaskOptions {
   allowAllTools?: boolean;
@@ -60,20 +68,60 @@ export class ClaudeCodeService {
     onComplete: (tasks: TaskItem[]) => void;
     onError: (error: string, tasks: TaskItem[]) => void;
   } | null = null;
+  private pauseAfterCurrentTask = false;
   private currentWorkflowExecution: WorkflowExecution | null = null;
+  private currentWorkflowPath?: string;
   private readonly pausedPipelines: Map<
     string,
     {
       tasks: TaskItem[];
       currentIndex: number;
       resetTime: number;
+      workflowPath?: string;
       onProgress: (tasks: TaskItem[], currentIndex: number) => void;
       onComplete: (tasks: TaskItem[]) => void;
       onError: (error: string, tasks: TaskItem[]) => void;
     }
   > = new Map();
+  private readonly workflowEngine: WorkflowEngine;
 
-  constructor(private readonly configService: ConfigurationService) {}
+  constructor(
+    private readonly configService: ConfigurationService,
+    private readonly workflowStateService?: WorkflowStateService,
+  ) {
+    // Create logger that outputs to console
+    const logger: ILogger = {
+      error: (message: string, ...args: unknown[]) =>
+        console.error(message, ...args),
+      warn: (message: string, ...args: unknown[]) =>
+        console.warn(message, ...args),
+      info: (_message: string, ..._args: unknown[]) => {},
+      debug: (_message: string, ..._args: unknown[]) => {},
+    };
+
+    // Create file system adapter
+    const fileSystem = new VSCodeFileSystem();
+
+    // Create config manager adapter
+    const configManager: IConfigManager = {
+      addSource: () => {}, // Not used in ClaudeExecutor
+      get: async () => undefined, // Not used in ClaudeExecutor
+      set: async () => {}, // Not used in ClaudeExecutor
+      validateModel: (model: string) => this.configService.validateModel(model),
+      validatePath: (path: string) => this.configService.validatePath(path),
+    };
+
+    // Create executor
+    const executor = new ClaudeExecutor(logger, configManager);
+
+    // Create WorkflowEngine with optional WorkflowStateService
+    this.workflowEngine = new WorkflowEngine(
+      logger,
+      fileSystem,
+      executor,
+      this.workflowStateService,
+    );
+  }
 
   async checkInstallation(): Promise<void> {
     const result = await ClaudeDetectionService.detectClaude("auto");
@@ -125,6 +173,7 @@ export class ClaudeCodeService {
     onProgress: (tasks: TaskItem[], currentIndex: number) => void,
     onComplete: (tasks: TaskItem[]) => void,
     onError: (error: string, tasks: TaskItem[]) => void,
+    workflowPath?: string,
   ): Promise<void> {
     this.currentPipelineExecution = {
       tasks: [...tasks],
@@ -134,7 +183,256 @@ export class ClaudeCodeService {
       onError,
     };
 
-    await this.executeTasksPipeline(model, rootPath, options);
+    // Store workflowPath for pause/resume functionality
+    if (workflowPath) {
+      this.currentWorkflowPath = workflowPath;
+    }
+
+    // If workflowPath is provided, use WorkflowEngine for JSON logging
+    if (workflowPath && this.workflowStateService) {
+      await this.executeTasksPipelineWithLogging(
+        tasks,
+        model,
+        rootPath,
+        options,
+        workflowPath,
+      );
+    } else {
+      await this.executeTasksPipeline(model, rootPath, options);
+    }
+  }
+
+  private async executeTasksPipelineWithLogging(
+    tasks: TaskItem[],
+    model: string,
+    rootPath: string,
+    options: TaskOptions,
+    workflowPath: string,
+  ): Promise<void> {
+    if (!this.workflowStateService) {
+      // Fallback to regular execution
+      await this.executeTasksPipeline(model, rootPath, options);
+      return;
+    }
+
+    try {
+      // Create a mock workflow from tasks for WorkflowEngine
+      const mockWorkflow = {
+        name: path.basename(workflowPath, path.extname(workflowPath)),
+        jobs: {
+          pipeline: {
+            steps: tasks.map((task, index) => ({
+              id: task.id,
+              name: task.name ?? `Step ${index + 1}`,
+              uses: "claude-code",
+              with: {
+                prompt: task.prompt,
+                model: task.model ?? model,
+                output_session: false,
+                resume_session: undefined,
+              },
+            })),
+          },
+        },
+      };
+
+      const execution = {
+        workflow: mockWorkflow,
+        inputs: {},
+        outputs: {},
+        status: "pending" as const,
+        currentStep: 0,
+      };
+
+      // Create workflow state for JSON logging
+      const workflowState = await this.workflowStateService.createWorkflowState(
+        execution,
+        workflowPath,
+      );
+
+      // Initialize JSON logger directly using same file system and logger
+      const fileSystem = new VSCodeFileSystem();
+      const jsonLoggerInstance: ILogger = {
+        error: (message: string, ...args: unknown[]) =>
+          console.error(message, ...args),
+        warn: (message: string, ...args: unknown[]) =>
+          console.warn(message, ...args),
+        info: (_message: string, ..._args: unknown[]) => {},
+        debug: (_message: string, ..._args: unknown[]) => {},
+      };
+      const jsonLogger = new WorkflowJsonLogger(fileSystem, jsonLoggerInstance);
+      await jsonLogger.initializeLog(workflowState, workflowPath);
+
+      // Execute tasks one by one with both UI updates and JSON logging
+      for (let i = 0; i < tasks.length; i++) {
+        const task = tasks[i];
+        if (!this.currentPipelineExecution) {
+          break; // Pipeline was cancelled
+        }
+
+        // Check if pause was requested before starting this task
+        if (this.pauseAfterCurrentTask) {
+          // Pause at this task
+          const pipelineId = `pipeline-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+          // Mark this task as paused
+          task.status = "paused";
+          task.results = "MANUALLY PAUSED";
+
+          // Store state for resume
+          this.pausedPipelines.set(pipelineId, {
+            tasks: this.currentPipelineExecution.tasks,
+            currentIndex: i,
+            resetTime: Date.now(),
+            workflowPath: this.currentWorkflowPath,
+            onProgress: this.currentPipelineExecution.onProgress,
+            onComplete: this.currentPipelineExecution.onComplete,
+            onError: this.currentPipelineExecution.onError,
+          });
+
+          // Update UI with paused state
+          this.currentPipelineExecution.onProgress(tasks, i);
+
+          // Clear flags
+          this.pauseAfterCurrentTask = false;
+          this.currentPipelineExecution = null;
+          return; // Exit pipeline execution
+        }
+
+        // Check if pipeline was cancelled/paused before starting this task
+        if (!this.currentPipelineExecution) {
+          return; // Pipeline was cancelled or paused
+        }
+
+        // Update task status to running
+        task.status = "running";
+        this.currentPipelineExecution.onProgress(tasks, i);
+
+        // Update JSON log for step start
+        if (this.workflowStateService) {
+          const stepResult = this.workflowStateService.createStepResult(
+            i,
+            task.id,
+            undefined,
+            false,
+          );
+          const updatedState =
+            await this.workflowStateService.updateWorkflowProgress(
+              workflowState.executionId,
+              stepResult,
+            );
+          if (updatedState) {
+            await jsonLogger.updateStepProgress(stepResult, updatedState);
+          }
+        }
+
+        try {
+          // Set up task options with session continuation
+          const taskOptions = {
+            ...options,
+            outputFormat: "json" as const, // Use JSON for session tracking
+          };
+
+          // If this task should continue from the previous one, set the resume session
+          if (i > 0) {
+            const previousTask = tasks[i - 1];
+            if (previousTask.sessionId && previousTask.status === "completed") {
+              taskOptions.resumeSessionId = previousTask.sessionId;
+            }
+          }
+
+          // Execute the task
+          const result = await this.executeTaskCommand(
+            task.prompt,
+            task.model ?? model,
+            rootPath,
+            taskOptions,
+          );
+
+          // Check again after async operation
+          if (!this.currentPipelineExecution) {
+            return; // Pipeline was cancelled or paused during task execution
+          }
+
+          if (result.success) {
+            task.status = "completed";
+            task.results = result.output;
+            task.sessionId = result.sessionId;
+
+            // Update JSON log for step completion
+            if (this.workflowStateService) {
+              const completedStepResult =
+                this.workflowStateService.completeStepResult(
+                  this.workflowStateService.createStepResult(
+                    i,
+                    task.id,
+                    result.sessionId,
+                    false,
+                  ),
+                  true,
+                  result.output,
+                );
+              const updatedState =
+                await this.workflowStateService.updateWorkflowProgress(
+                  workflowState.executionId,
+                  completedStepResult,
+                );
+              if (updatedState) {
+                await jsonLogger.updateStepProgress(
+                  completedStepResult,
+                  updatedState,
+                );
+              }
+            }
+          } else {
+            throw new Error(result.error ?? "Task execution failed");
+          }
+        } catch (error) {
+          task.status = "error";
+          task.results = error instanceof Error ? error.message : String(error);
+
+          // Update JSON log for step failure
+          if (this.workflowStateService) {
+            const failedStepResult =
+              this.workflowStateService.completeStepResult(
+                this.workflowStateService.createStepResult(
+                  i,
+                  task.id,
+                  undefined,
+                  false,
+                ),
+                false,
+                task.results,
+              );
+            const updatedState =
+              await this.workflowStateService.updateWorkflowProgress(
+                workflowState.executionId,
+                failedStepResult,
+              );
+            if (updatedState) {
+              await jsonLogger.updateStepProgress(
+                failedStepResult,
+                updatedState,
+              );
+            }
+          }
+
+          this.currentPipelineExecution.onProgress(tasks, i);
+          this.currentPipelineExecution.onError(task.results, tasks);
+          return;
+        }
+
+        this.currentPipelineExecution.onProgress(tasks, i);
+      }
+
+      // JSON log will be automatically marked as completed when all steps finish
+
+      this.currentPipelineExecution?.onComplete(tasks);
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      this.currentPipelineExecution?.onError(errorMessage, tasks);
+    }
   }
 
   private async executeTasksPipeline(
@@ -160,6 +458,35 @@ export class ClaudeCodeService {
       this.currentPipelineExecution.currentIndex = i;
       const task = tasks[i];
 
+      // Check if pause was requested before starting this task
+      if (this.pauseAfterCurrentTask) {
+        // Pause at this task
+        const pipelineId = `pipeline-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+        // Mark this task as paused
+        task.status = "paused";
+        task.results = "MANUALLY PAUSED";
+
+        // Store state for resume
+        this.pausedPipelines.set(pipelineId, {
+          tasks: this.currentPipelineExecution.tasks,
+          currentIndex: i,
+          resetTime: Date.now(),
+          workflowPath: this.currentWorkflowPath,
+          onProgress: this.currentPipelineExecution.onProgress,
+          onComplete: this.currentPipelineExecution.onComplete,
+          onError: this.currentPipelineExecution.onError,
+        });
+
+        // Update UI with paused state
+        this.currentPipelineExecution.onProgress(tasks, i);
+
+        // Clear flags
+        this.pauseAfterCurrentTask = false;
+        this.currentPipelineExecution = null;
+        return; // Exit pipeline execution
+      }
+
       // Evaluate condition to determine if task should run
       const workingDirectory = options.workingDirectory ?? rootPath;
       const conditionResult = await this.evaluateCondition(
@@ -177,6 +504,11 @@ export class ClaudeCodeService {
         continue;
       }
 
+      // Check if pipeline was cancelled/paused before starting this task
+      if (!this.currentPipelineExecution) {
+        return; // Pipeline was cancelled or paused
+      }
+
       // Update task status to running
       task.status = "running";
       onProgress([...tasks], i);
@@ -190,6 +522,12 @@ export class ClaudeCodeService {
           if (sourceTask?.sessionId) {
             taskOptions.resumeSessionId = sourceTask.sessionId;
           }
+        } else if (i > 0) {
+          // If no explicit resumeFromTaskId, continue from previous task if it completed successfully
+          const previousTask = tasks[i - 1];
+          if (previousTask.sessionId && previousTask.status === "completed") {
+            taskOptions.resumeSessionId = previousTask.sessionId;
+          }
         }
 
         // Use task-specific model if specified, otherwise use pipeline default
@@ -201,6 +539,11 @@ export class ClaudeCodeService {
           rootPath,
           taskOptions,
         );
+
+        // Check again after async operation
+        if (!this.currentPipelineExecution) {
+          return; // Pipeline was cancelled or paused during task execution
+        }
 
         if (!result.success) {
           const errorOutput =
@@ -221,6 +564,7 @@ export class ClaudeCodeService {
                 tasks,
                 currentIndex: i,
                 resetTime: rateLimitCheck.resetTime,
+                workflowPath: this.currentWorkflowPath,
                 onProgress,
                 onComplete,
                 onError,
@@ -245,20 +589,20 @@ export class ClaudeCodeService {
           task.results = errorOutput;
           previousStepSuccess = false;
           onProgress([...tasks], i);
+        } else {
+          // Extract session ID and result from output
+          const { sessionId, resultText } = this.parseTaskResult(
+            result.output,
+            taskOptions.outputFormat,
+          );
+
+          task.status = "completed";
+          task.results = resultText;
+          task.sessionId = sessionId;
+          previousStepSuccess = true;
+
+          onProgress([...tasks], i);
         }
-
-        // Extract session ID and result from output
-        const { sessionId, resultText } = this.parseTaskResult(
-          result.output,
-          taskOptions.outputFormat,
-        );
-
-        task.status = "completed";
-        task.results = resultText;
-        task.sessionId = sessionId;
-        previousStepSuccess = true;
-
-        onProgress([...tasks], i);
       } catch (error) {
         // Task failed with exception
         const errorMessage =
@@ -279,6 +623,7 @@ export class ClaudeCodeService {
               tasks,
               currentIndex: i,
               resetTime: rateLimitCheck.resetTime,
+              workflowPath: this.currentWorkflowPath,
               onProgress,
               onComplete,
               onError,
@@ -596,11 +941,11 @@ export class ClaudeCodeService {
     isRateLimited: boolean;
     resetTime?: number;
   } {
-    const match = output.match(/Claude AI usage limit reached\|(\d+)/);
+    const match = output.match(/Claude (AI|Code) usage limit reached\|(\d+)/);
     if (match) {
       return {
         isRateLimited: true,
-        resetTime: parseInt(match[1], 10) * 1000,
+        resetTime: parseInt(match[2], 10) * 1000,
       };
     }
     return { isRateLimited: false };
@@ -630,16 +975,30 @@ export class ClaudeCodeService {
       pausedState.tasks[resumeIndex].pausedUntil = undefined;
     }
 
-    // Continue pipeline execution
-    await this.executeTasksPipeline(
-      pausedState.tasks[resumeIndex]?.model ?? "auto",
-      "/",
-      {},
-    );
+    // Use the workflow state service if available for proper JSON logging
+    if (this.workflowStateService && pausedState.workflowPath) {
+      // Restore the workflow path for continued JSON logging
+      this.currentWorkflowPath = pausedState.workflowPath;
+
+      await this.executeTasksPipelineWithLogging(
+        pausedState.tasks,
+        pausedState.tasks[resumeIndex]?.model ?? "auto",
+        "/",
+        { outputFormat: "json" },
+        pausedState.workflowPath,
+      );
+    } else {
+      // Fallback to regular execution
+      await this.executeTasksPipeline(
+        pausedState.tasks[resumeIndex]?.model ?? "auto",
+        "/",
+        { outputFormat: "json" },
+      );
+    }
   }
 
   /**
-   * Execute a workflow
+   * Execute a workflow using WorkflowEngine with JSON logging
    */
   async executeWorkflow(
     execution: WorkflowExecution,
@@ -653,80 +1012,28 @@ export class ClaudeCodeService {
     ) => void,
     onComplete: () => void,
     onError: (error: string) => void,
+    workflowPath?: string,
   ): Promise<void> {
     this.currentWorkflowExecution = execution;
-    const steps = workflowService.getExecutionSteps(execution.workflow);
 
     try {
-      for (const { step, index } of steps) {
-        if (!this.currentWorkflowExecution) {
-          // Workflow was cancelled
-          return;
-        }
-
-        const stepId = step.id ?? `step-${index}`;
-        onStepProgress(stepId, "running");
-
-        // Resolve variables in the step
-        const resolvedStep = workflowService.resolveStepVariables(
-          step,
-          execution,
-        );
-
-        // Build task options from step configuration
-        const taskOptions: TaskOptions = {
-          allowAllTools: resolvedStep.with.allow_all_tools,
-          outputFormat: "json", // Always use JSON for workflows to capture session ID
-          workingDirectory: resolvedStep.with.working_directory ?? rootPath,
-          resumeSessionId: resolvedStep.with.resume_session,
-        };
-
-        try {
-          const result = await this.executeTaskCommand(
-            resolvedStep.with.prompt,
-            resolvedStep.with.model ?? defaultModel,
-            taskOptions.workingDirectory ?? rootPath,
-            taskOptions,
-          );
-
-          if (!result.success) {
-            throw new Error(result.error ?? "Task execution failed");
-          }
-
-          // Parse the result
-          const { sessionId, resultText } = this.parseTaskResult(
-            result.output,
-            "json",
-          );
-
-          const output: StepOutput = {
-            result: resultText,
-          };
-
-          // Add session_id to output if requested
-          if (resolvedStep.with.output_session && sessionId) {
-            output.session_id = sessionId;
-          }
-
-          // Update execution with output
-          workflowService.updateExecutionOutput(execution, stepId, output);
-          onStepProgress(stepId, "completed", output);
-        } catch (error) {
-          const errorMessage =
-            error instanceof Error ? error.message : String(error);
-          onStepProgress(stepId, "failed", { result: errorMessage });
-          throw error;
-        }
-      }
-
-      execution.status = "completed";
-      this.currentWorkflowExecution = null;
-      onComplete();
+      // Use WorkflowEngine to execute workflow with JSON logging
+      await this.workflowEngine.executeWorkflow(
+        execution,
+        {
+          model: defaultModel,
+          workingDirectory: rootPath,
+        },
+        onStepProgress,
+        onComplete,
+        onError,
+        workflowPath,
+      );
     } catch (error) {
-      execution.status = "failed";
-      execution.error = error instanceof Error ? error.message : String(error);
       this.currentWorkflowExecution = null;
-      onError(execution.error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      onError(errorMessage);
     }
   }
 
@@ -798,5 +1105,159 @@ export class ClaudeCodeService {
       const reason = `Check command execution failed: ${errorMessage}`;
       return { shouldRun: false, reason };
     }
+  }
+
+  // Enhanced pause/resume functionality for workflows
+  async pauseWorkflowExecution(
+    executionId: string,
+  ): Promise<WorkflowState | null> {
+    if (!this.workflowStateService) {
+      return null;
+    }
+
+    // Cancel current process if running
+    if (this.currentProcess) {
+      this.currentProcess.kill("SIGTERM");
+      this.currentProcess = null;
+    }
+
+    // Cancel current workflow execution
+    this.currentWorkflowExecution = null;
+
+    return await this.workflowStateService.pauseWorkflow(executionId, "manual");
+  }
+
+  async resumeWorkflowExecution(
+    executionId: string,
+  ): Promise<WorkflowState | null> {
+    if (!this.workflowStateService) {
+      return null;
+    }
+
+    const state = await this.workflowStateService.resumeWorkflow(executionId);
+    if (!state) {
+      return null;
+    }
+
+    // Restore workflow execution state
+    this.currentWorkflowExecution = state.execution;
+
+    return state;
+  }
+
+  async getResumableWorkflows(): Promise<WorkflowState[]> {
+    if (!this.workflowStateService) {
+      return [];
+    }
+
+    return await this.workflowStateService.getResumableWorkflows();
+  }
+
+  async deleteWorkflowState(executionId: string): Promise<void> {
+    if (this.workflowStateService) {
+      await this.workflowStateService.deleteWorkflowState(executionId);
+    }
+  }
+
+  // Enhanced pipeline pause for user control
+  async pausePipelineExecution(
+    reason: "manual" | "rate_limit" = "manual",
+  ): Promise<string | null> {
+    if (!this.currentPipelineExecution) {
+      return null;
+    }
+
+    // Cancel current process if running
+    if (this.currentProcess) {
+      this.currentProcess.kill("SIGTERM");
+      this.currentProcess = null;
+    }
+
+    // Generate unique pipeline ID
+    const pipelineId = `pipeline-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+    // Immediately pause the current task
+    const currentIndex = this.currentPipelineExecution.currentIndex;
+    const currentTask = this.currentPipelineExecution.tasks[currentIndex];
+
+    if (currentTask) {
+      // Mark current task as paused
+      currentTask.status = "paused";
+      currentTask.results = reason === "manual" ? "MANUALLY PAUSED" : "PAUSED";
+
+      // Update UI with paused state
+      this.currentPipelineExecution.onProgress(
+        this.currentPipelineExecution.tasks,
+        currentIndex,
+      );
+    }
+
+    // Store state for resume
+    this.pausedPipelines.set(pipelineId, {
+      tasks: this.currentPipelineExecution.tasks,
+      currentIndex: currentIndex,
+      resetTime: Date.now(),
+      workflowPath: this.currentWorkflowPath,
+      onProgress: this.currentPipelineExecution.onProgress,
+      onComplete: this.currentPipelineExecution.onComplete,
+      onError: this.currentPipelineExecution.onError,
+    });
+
+    // Clear current pipeline execution
+    this.currentPipelineExecution = null;
+
+    return pipelineId;
+  }
+
+  async resumePipelineExecution(pipelineId: string): Promise<boolean> {
+    const pausedState = this.pausedPipelines.get(pipelineId);
+    if (!pausedState) {
+      return false;
+    }
+
+    // Resume the pipeline
+    await this.resumePipeline(pipelineId);
+    return true;
+  }
+
+  getPausedPipelines(): Array<{
+    pipelineId: string;
+    tasks: TaskItem[];
+    currentIndex: number;
+    pausedAt: number;
+  }> {
+    const result: Array<{
+      pipelineId: string;
+      tasks: TaskItem[];
+      currentIndex: number;
+      pausedAt: number;
+    }> = [];
+
+    this.pausedPipelines.forEach((state, pipelineId) => {
+      result.push({
+        pipelineId,
+        tasks: [...state.tasks],
+        currentIndex: state.currentIndex,
+        pausedAt: state.resetTime,
+      });
+    });
+
+    return result;
+  }
+
+  isWorkflowPaused(): boolean {
+    return (
+      this.pausedPipelines.size > 0 ||
+      (this.currentPipelineExecution?.tasks.some(
+        (task) => task.status === "paused",
+      ) ??
+        false)
+    );
+  }
+
+  getCurrentExecutionId(): string | null {
+    return this.currentWorkflowExecution
+      ? `exec_${this.currentWorkflowExecution.workflow.name}_${Date.now()}`
+      : null;
   }
 }

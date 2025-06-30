@@ -88,6 +88,24 @@ export class RunnerController implements EventBus {
       case "cancelTask":
         void this.cancelTask();
         break;
+      case "pauseWorkflow":
+        void this.pauseWorkflow(cmd.executionId);
+        break;
+      case "resumeWorkflow":
+        void this.resumeWorkflow(cmd.executionId);
+        break;
+      case "pausePipeline":
+        void this.pausePipeline();
+        break;
+      case "resumePipeline":
+        void this.resumePipeline(cmd.pipelineId);
+        break;
+      case "getResumableWorkflows":
+        void this.getResumableWorkflows();
+        break;
+      case "deleteWorkflowState":
+        void this.deleteWorkflowState(cmd.executionId);
+        break;
       case "updateModel":
         this.updateModel(cmd.model);
         break;
@@ -211,9 +229,16 @@ export class RunnerController implements EventBus {
       discoveredWorkflows: [],
 
       // Task execution state
+      status: "idle",
       lastTaskResults: undefined,
       taskCompleted: false,
       taskError: false,
+
+      // Pause/Resume state
+      isPaused: false,
+      currentExecutionId: undefined,
+      pausedPipelines: [],
+      resumableWorkflows: [],
 
       // Chat state
       chatPrompt: "",
@@ -327,6 +352,7 @@ export class RunnerController implements EventBus {
 
       // Clear previous task state and set running status
       this.updateState({
+        status: "running",
         taskCompleted: false,
         taskError: false,
         lastTaskResults: undefined,
@@ -335,6 +361,7 @@ export class RunnerController implements EventBus {
       });
 
       const currentState = this.state$.value;
+
       await this.claudeCodeService.runTaskPipeline(
         pendingTasks,
         currentState.model,
@@ -358,9 +385,21 @@ export class RunnerController implements EventBus {
             (t) => t.id === runningTask?.id,
           );
 
+          // Check if any task is paused to update isPaused state
+          const hasPausedTask = newTasks.some(
+            (task) => task.status === "paused",
+          );
+          const pausedPipelines = this.claudeCodeService.getPausedPipelines();
+
+          // Update status to paused when pipeline is paused
+          const newStatus = hasPausedTask ? "paused" : currentState.status;
+
           this.updateState({
             tasks: newTasks,
             currentTaskIndex,
+            isPaused: hasPausedTask,
+            pausedPipelines,
+            status: newStatus,
           });
         },
         // onComplete callback
@@ -372,10 +411,14 @@ export class RunnerController implements EventBus {
           });
 
           this.updateState({
+            status: "idle",
             tasks: Array.from(taskMap.values()),
             taskCompleted: true,
             taskError: false,
             currentTaskIndex: undefined,
+            isPaused: false,
+            pausedPipelines: [],
+            currentExecutionId: undefined,
           });
 
           vscode.window.showInformationMessage(
@@ -391,15 +434,21 @@ export class RunnerController implements EventBus {
           });
 
           this.updateState({
+            status: "idle",
             tasks: Array.from(taskMap.values()),
             taskCompleted: true,
             taskError: true,
             currentTaskIndex: undefined,
             lastTaskResults: `Pipeline failed: ${error}`,
+            isPaused: false,
+            pausedPipelines: [],
+            currentExecutionId: undefined,
           });
 
           vscode.window.showErrorMessage(`Task pipeline failed: ${error}`);
         },
+        // Pass workflowPath for JSON logging if available
+        currentState.workflowPath,
       );
     } catch (error) {
       this.updateState({
@@ -418,10 +467,12 @@ export class RunnerController implements EventBus {
 
       // Clear task state on cancellation but keep tasks array
       this.updateState({
+        status: "idle",
         taskCompleted: false,
         taskError: false,
         lastTaskResults: undefined,
         currentTaskIndex: undefined,
+        isPaused: false,
       });
 
       vscode.window.showInformationMessage("Task cancelled");
@@ -634,6 +685,8 @@ export class RunnerController implements EventBus {
         return;
       }
 
+      // For all workflows and pipelines, convert to TaskItems and execute via task pipeline
+      // This preserves step-by-step UI display
       let tasks: TaskItem[];
       try {
         tasks = this.pipelineService.workflowToTaskItems(workflow);
@@ -652,12 +705,18 @@ export class RunnerController implements EventBus {
       }
 
       // Clear existing state and load new tasks
+      // Store workflowPath if this is a workflow file for JSON logging
+      const isWorkflowFile =
+        nameOrPath.includes("/.github/workflows/") ||
+        nameOrPath.endsWith(".yml");
+
       this.updateState({
         taskCompleted: false,
         taskError: false,
         lastTaskResults: undefined,
         currentTaskIndex: undefined,
         tasks,
+        workflowPath: isWorkflowFile ? nameOrPath : undefined,
       });
 
       const displayName =
@@ -875,6 +934,186 @@ export class RunnerController implements EventBus {
       await this.commandsService.deleteCommand(filePath);
       const currentState = this.state$.value;
       await this.scanCommands(currentState.rootPath);
+    }
+  }
+
+  // Pause/Resume workflow and pipeline methods
+  private async pauseWorkflow(executionId?: string): Promise<void> {
+    try {
+      const currentExecutionId =
+        executionId ?? this.claudeCodeService.getCurrentExecutionId();
+      if (!currentExecutionId) {
+        await vscode.window.showWarningMessage(
+          "No workflow currently running to pause",
+        );
+        return;
+      }
+
+      const pausedState =
+        await this.claudeCodeService.pauseWorkflowExecution(currentExecutionId);
+      if (pausedState) {
+        this.updateState({
+          isPaused: true,
+          currentExecutionId: pausedState.executionId,
+        });
+        await vscode.window.showInformationMessage(
+          `Workflow paused: ${pausedState.workflowName}`,
+        );
+      }
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      await vscode.window.showErrorMessage(
+        `Failed to pause workflow: ${errorMessage}`,
+      );
+    }
+  }
+
+  private async resumeWorkflow(executionId: string): Promise<void> {
+    try {
+      const resumedState =
+        await this.claudeCodeService.resumeWorkflowExecution(executionId);
+      if (resumedState) {
+        this.updateState({
+          isPaused: false,
+          currentExecutionId: resumedState.executionId,
+        });
+        await vscode.window.showInformationMessage(
+          `Workflow resumed: ${resumedState.workflowName}`,
+        );
+      } else {
+        await vscode.window.showWarningMessage(
+          `Cannot resume workflow: ${executionId}`,
+        );
+      }
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      await vscode.window.showErrorMessage(
+        `Failed to resume workflow: ${errorMessage}`,
+      );
+    }
+  }
+
+  private async pausePipeline(): Promise<void> {
+    try {
+      const pipelineId =
+        await this.claudeCodeService.pausePipelineExecution("manual");
+      if (!pipelineId) {
+        await vscode.window.showWarningMessage(
+          "No pipeline currently running to pause",
+        );
+        return;
+      }
+
+      // Update state immediately to reflect pause
+      this.updateState({
+        isPaused: true,
+        status: "paused",
+        pausedPipelines: this.claudeCodeService.getPausedPipelines(),
+      });
+
+      await vscode.window.showInformationMessage(
+        "Pipeline will pause after current task completes",
+      );
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      await vscode.window.showErrorMessage(
+        `Failed to pause pipeline: ${errorMessage}`,
+      );
+    }
+  }
+
+  private async resumePipeline(pipelineId: string): Promise<void> {
+    try {
+      const resumed =
+        await this.claudeCodeService.resumePipelineExecution(pipelineId);
+      if (!resumed) {
+        await vscode.window.showWarningMessage(
+          `Cannot resume pipeline: ${pipelineId}`,
+        );
+        return;
+      }
+
+      // Update state immediately to reflect resume
+      this.updateState({
+        isPaused: false,
+        status: "running",
+        pausedPipelines: this.claudeCodeService.getPausedPipelines(),
+      });
+
+      await vscode.window.showInformationMessage(
+        "Pipeline resumed successfully",
+      );
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      await vscode.window.showErrorMessage(
+        `Failed to resume pipeline: ${errorMessage}`,
+      );
+    }
+  }
+
+  private async getResumableWorkflows(): Promise<void> {
+    try {
+      const resumableWorkflows =
+        await this.claudeCodeService.getResumableWorkflows();
+      const resumableWorkflowsState = resumableWorkflows.map((workflow) => ({
+        executionId: workflow.executionId,
+        workflowName: workflow.workflowName,
+        workflowPath: workflow.workflowPath,
+        pausedAt: workflow.pausedAt ?? new Date().toISOString(),
+        currentStep: workflow.currentStep,
+        totalSteps: workflow.totalSteps,
+        canResume: workflow.canResume,
+      }));
+
+      this.updateState({
+        resumableWorkflows: resumableWorkflowsState,
+      });
+    } catch (error) {
+      console.error("Failed to get resumable workflows:", error);
+      this.updateState({
+        resumableWorkflows: [],
+      });
+    }
+  }
+
+  private async deleteWorkflowState(executionId: string): Promise<void> {
+    try {
+      await this.claudeCodeService.deleteWorkflowState(executionId);
+
+      // Refresh resumable workflows list
+      await this.getResumableWorkflows();
+
+      await vscode.window.showInformationMessage(
+        "Workflow state deleted successfully",
+      );
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      await vscode.window.showErrorMessage(
+        `Failed to delete workflow state: ${errorMessage}`,
+      );
+    }
+  }
+
+  public async refreshPauseResumeState(): Promise<void> {
+    try {
+      // Get current pause state
+      const isPaused = this.claudeCodeService.isWorkflowPaused();
+      const pausedPipelines = this.claudeCodeService.getPausedPipelines();
+
+      // Get resumable workflows
+      await this.getResumableWorkflows();
+
+      this.updateState({
+        isPaused,
+        pausedPipelines,
+      });
+    } catch (error) {
+      console.error("Failed to refresh pause/resume state:", error);
     }
   }
 }

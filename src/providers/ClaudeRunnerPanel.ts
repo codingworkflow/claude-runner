@@ -162,10 +162,8 @@ export class ClaudeRunnerPanel implements vscode.WebviewViewProvider {
 
   private updateWebview(state: UIState): void {
     if (this._view) {
-      const isTaskRunning = this.controller.isTaskRunning();
       const message: WebviewMessage = {
         ...state,
-        status: isTaskRunning ? "running" : "stopped",
         results: state.lastTaskResults,
         availablePipelines: this.availablePipelines,
         availableModels: this.controller.getAvailableModels(),

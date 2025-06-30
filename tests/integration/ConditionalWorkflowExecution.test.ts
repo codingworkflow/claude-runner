@@ -78,7 +78,7 @@ describe("Conditional Workflow Execution Integration", () => {
 
       await claudeService.runTaskPipeline(
         tasks,
-        "claude-3-5-sonnet-latest",
+        "claude-sonnet-4-20250514",
         "/test/workspace",
         {},
         () => {},
@@ -129,7 +129,7 @@ describe("Conditional Workflow Execution Integration", () => {
 
       await claudeService.runTaskPipeline(
         tasks,
-        "claude-3-5-sonnet-latest",
+        "claude-sonnet-4-20250514",
         "/test/workspace",
         {},
         () => {},
@@ -193,7 +193,7 @@ describe("Conditional Workflow Execution Integration", () => {
 
       await claudeService.runTaskPipeline(
         tasks,
-        "claude-3-5-sonnet-latest",
+        "claude-sonnet-4-20250514",
         "/test/workspace",
         {},
         (updatedTasks, index) => {
@@ -257,7 +257,7 @@ describe("Conditional Workflow Execution Integration", () => {
 
       await claudeService.runTaskPipeline(
         tasks,
-        "claude-3-5-sonnet-latest",
+        "claude-sonnet-4-20250514",
         "/test/workspace",
         {},
         () => {},
@@ -328,7 +328,7 @@ describe("Conditional Workflow Execution Integration", () => {
 
       await claudeService.runTaskPipeline(
         tasks,
-        "claude-3-5-sonnet-latest",
+        "claude-sonnet-4-20250514",
         "/test/workspace",
         {},
         () => {},
@@ -390,7 +390,7 @@ describe("Conditional Workflow Execution Integration", () => {
 
       await claudeService.runTaskPipeline(
         tasks,
-        "claude-3-5-sonnet-latest",
+        "claude-sonnet-4-20250514",
         "/test/workspace",
         {},
         () => {},
