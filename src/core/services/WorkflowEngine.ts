@@ -229,6 +229,9 @@ export class WorkflowEngine {
 
           // Update step completion in workflow state
           if (this.currentWorkflowState && this.workflowStateService) {
+            // Extract clean result from JSON output
+            const cleanOutput = this.extractCleanResult(result.output);
+
             const completedStepResult =
               this.workflowStateService.completeStepResult(
                 this.workflowStateService.createStepResult(
@@ -239,7 +242,7 @@ export class WorkflowEngine {
                   step.with.resume_session,
                 ),
                 true,
-                result.output,
+                cleanOutput,
               );
 
             const updatedState =
@@ -391,10 +394,16 @@ export class WorkflowEngine {
     step: ClaudeStep,
     execution: WorkflowExecution,
   ): ClaudeStep {
+    // Transform execution.outputs to match expected steps.stepId.outputs.key format
+    const steps: Record<string, { outputs: Record<string, unknown> }> = {};
+    for (const [stepId, output] of Object.entries(execution.outputs)) {
+      steps[stepId] = { outputs: output };
+    }
+
     const context = {
       inputs: execution.inputs,
       env: { ...execution.workflow.env },
-      steps: execution.outputs,
+      steps,
     };
 
     // Deep clone the step
@@ -533,6 +542,9 @@ export class WorkflowEngine {
 
           this.updateExecutionOutput(execution, stepId, output);
 
+          // Extract clean result from JSON output
+          const cleanOutput = this.extractCleanResult(result.output);
+
           const completedStepResult =
             this.workflowStateService.completeStepResult(
               this.workflowStateService.createStepResult(
@@ -543,7 +555,7 @@ export class WorkflowEngine {
                 step.with.resume_session,
               ),
               true,
-              result.output,
+              cleanOutput,
             );
 
           await this.workflowStateService.updateWorkflowProgress(
@@ -663,5 +675,17 @@ export class WorkflowEngine {
     output: StepOutput,
   ): void {
     execution.outputs[stepId] = output;
+  }
+
+  /**
+   * Extract clean result from JSON output for logging
+   */
+  private extractCleanResult(output: string): string {
+    try {
+      const jsonData = JSON.parse(output.trim());
+      return jsonData.result || output;
+    } catch {
+      return output;
+    }
   }
 }

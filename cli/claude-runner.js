@@ -349,8 +349,20 @@ class ClaudeRunnerCLI {
 
           if (result.success) {
             console.log(`  COMPLETED (${duration}ms)`);
+
+            // Extract clean result from JSON output if needed
+            let displayOutput = result.output;
+            if (taskOptions.outputFormat === "json") {
+              try {
+                const jsonData = JSON.parse(result.output.trim());
+                displayOutput = jsonData.result || result.output;
+              } catch {
+                // Keep original output if parsing fails
+              }
+            }
+
             console.log(
-              `  Output: ${result.output.substring(0, 200)}${result.output.length > 200 ? "..." : ""}`,
+              `  Output: ${displayOutput.substring(0, 200)}${displayOutput.length > 200 ? "..." : ""}`,
             );
 
             if (step.with.output_session && result.sessionId) {

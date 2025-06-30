@@ -137,6 +137,9 @@ const PipelinePanel: React.FC<PipelinePanelProps> = ({ disabled }) => {
         isTasksRunning={isTasksRunning}
         canRunTasks={canRunTasks}
         disabled={disabled}
+        status={status}
+        tasks={tasks}
+        currentTaskIndex={currentTaskIndex}
         addTask={addTask}
         cancelTask={actions.cancelTask}
         handleRunTasks={handleRunTasks}
