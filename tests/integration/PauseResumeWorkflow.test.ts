@@ -435,9 +435,18 @@ describe("Pause/Resume Workflow Integration", () => {
 
       // Resume pipeline
       if (pipelineId) {
+        // Mock the resumePipeline method to avoid actual execution
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const resumeSpy = jest
+          .spyOn(claudeCodeService as any, "resumePipeline")
+          .mockResolvedValue(undefined);
+
         const resumed =
           await claudeCodeService.resumePipelineExecution(pipelineId);
         expect(resumed).toBe(true);
+        expect(resumeSpy).toHaveBeenCalledWith(pipelineId);
+
+        resumeSpy.mockRestore();
       } else {
         fail("Pipeline ID should not be null");
       }
