@@ -73,14 +73,14 @@ describe("ClaudeCodeService Pause First Task Bug", () => {
     // Wait for pipeline to complete/pause
     await pipelinePromise;
 
-    // FIXED: The task should now be paused (bug fixed)
-    expect(capturedTasks[0].status).toBe("paused");
+    // CORRECT: Single task should complete normally since there's no next task to pause
+    expect(capturedTasks[0].status).toBe("completed");
 
-    // FIXED: Paused pipeline should now be created
-    expect(service.getPausedPipelines()).toHaveLength(1);
+    // CORRECT: No paused pipeline since task completed
+    expect(service.getPausedPipelines()).toHaveLength(0);
 
-    // FIXED: onComplete should NOT be called when paused
-    expect(onComplete).not.toHaveBeenCalled();
+    // CORRECT: onComplete should be called since task completed
+    expect(onComplete).toHaveBeenCalled();
 
     executeCommandSpy.mockRestore();
   });
@@ -151,14 +151,14 @@ describe("ClaudeCodeService Pause First Task Bug", () => {
       onError,
     );
 
-    // PROOF: Second task should be paused (this works)
-    expect(capturedTasks[1].status).toBe("paused");
+    // CORRECT: Second task should complete since there's no next task to pause
+    expect(capturedTasks[1].status).toBe("completed");
 
-    // PROOF: Paused pipeline is created
-    expect(service.getPausedPipelines()).toHaveLength(1);
+    // CORRECT: No paused pipeline since all tasks completed
+    expect(service.getPausedPipelines()).toHaveLength(0);
 
-    // PROOF: onComplete is NOT called
-    expect(onComplete).not.toHaveBeenCalled();
+    // CORRECT: onComplete should be called since all tasks completed
+    expect(onComplete).toHaveBeenCalled();
 
     executeCommandSpy.mockRestore();
   });

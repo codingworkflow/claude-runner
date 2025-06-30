@@ -35,33 +35,6 @@ button.secondary:hover:not(:disabled) {
   background-color: var(--vscode-button-secondaryHoverBackground);
 }
 
-button.success {
-  background-color: var(--vscode-testing-iconPassed);
-  color: var(--vscode-input-background);
-}
-
-button.success:hover:not(:disabled) {
-  background-color: var(--vscode-charts-green);
-}
-
-button.error {
-  background-color: var(--vscode-testing-iconFailed);
-  color: var(--vscode-input-background);
-}
-
-button.error:hover:not(:disabled) {
-  background-color: var(--vscode-errorForeground);
-}
-
-button.warning {
-  background-color: var(--vscode-charts-orange);
-  color: var(--vscode-input-background);
-}
-
-button.warning:hover:not(:disabled) {
-  background-color: var(--vscode-charts-yellow);
-}
-
 /* Button click feedback */
 button:active:not(:disabled) {
   transform: translateY(1px) scale(0.97);

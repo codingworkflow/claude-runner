@@ -13,6 +13,18 @@ import { WorkflowExecution, StepOutput } from "../types/WorkflowTypes";
 export class ClaudeService {
   private readonly executor: ClaudeExecutor;
   private readonly configManager: ConfigManager;
+  private pauseAfterCurrentTask = false;
+  private readonly pausedPipelines: Map<
+    string,
+    {
+      tasks: TaskItem[];
+      currentIndex: number;
+      resetTime: number;
+      onProgress: (tasks: TaskItem[], currentIndex: number) => void;
+      onComplete: (tasks: TaskItem[]) => void;
+      onError: (error: string, tasks: TaskItem[]) => void;
+    }
+  > = new Map();
 
   constructor() {
     const logger = new VSCodeLogger();
@@ -62,6 +74,9 @@ export class ClaudeService {
       onProgress,
       onComplete,
       onError,
+      () => this.pauseAfterCurrentTask,
+      (tasks, index) =>
+        this.onPipelinePaused(tasks, index, onProgress, onComplete, onError),
     );
   }
 
@@ -171,5 +186,82 @@ export class ClaudeService {
 
   isValidModelId(modelId: string): boolean {
     return modelId === "auto" || this.configManager.validateModel(modelId);
+  }
+
+  async pausePipelineExecution(): Promise<string | null> {
+    // Set pause flag - don't modify current task status yet
+    this.pauseAfterCurrentTask = true;
+
+    // Generate unique pipeline ID for resume
+    const pipelineId = `pipeline-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    return pipelineId;
+  }
+
+  async resumePipelineExecution(pipelineId: string): Promise<boolean> {
+    const pausedData = this.pausedPipelines.get(pipelineId);
+    if (!pausedData) {
+      return false;
+    }
+
+    // Resume from the paused task
+    await this.executor.resumePipeline(
+      pausedData.tasks,
+      "claude-3-5-sonnet-20241022", // Default model
+      "./", // Default working directory
+      {},
+      pausedData.onProgress,
+      pausedData.onComplete,
+      pausedData.onError,
+      () => this.pauseAfterCurrentTask,
+      (tasks, index) =>
+        this.onPipelinePaused(
+          tasks,
+          index,
+          pausedData.onProgress,
+          pausedData.onComplete,
+          pausedData.onError,
+        ),
+    );
+
+    this.pausedPipelines.delete(pipelineId);
+    return true;
+  }
+
+  getPausedPipelines(): Array<{
+    id: string;
+    pausedAt: number;
+    taskCount: number;
+  }> {
+    return Array.from(this.pausedPipelines.entries()).map(([id, data]) => ({
+      id,
+      pausedAt: data.resetTime,
+      taskCount: data.tasks.length,
+    }));
+  }
+
+  private onPipelinePaused(
+    tasks: TaskItem[],
+    index: number,
+    onProgress?: (tasks: TaskItem[], currentIndex: number) => void,
+    onComplete?: (tasks: TaskItem[]) => void,
+    onError?: (error: string, tasks: TaskItem[]) => void,
+  ): void {
+    // Generate pipeline ID
+    const pipelineId = `pipeline-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+    // Store state for resume
+    if (onProgress && onComplete && onError) {
+      this.pausedPipelines.set(pipelineId, {
+        tasks,
+        currentIndex: index,
+        resetTime: Date.now(),
+        onProgress,
+        onComplete,
+        onError,
+      });
+    }
+
+    // Clear pause flag
+    this.pauseAfterCurrentTask = false;
   }
 }

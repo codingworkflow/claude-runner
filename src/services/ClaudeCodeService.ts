@@ -293,9 +293,20 @@ export class ClaudeCodeService {
           // Update UI with paused state
           this.currentPipelineExecution.onProgress(tasks, i);
 
+          // Check if this is the last task or no pending tasks remain
+          const hasRemainingTasks = tasks
+            .slice(i + 1)
+            .some((t) => t.status === "pending");
+          const onComplete = this.currentPipelineExecution.onComplete;
+
           // Clear flags
           this.pauseAfterCurrentTask = false;
           this.currentPipelineExecution = null;
+
+          if (!hasRemainingTasks) {
+            // No more tasks to run, treat as completed
+            onComplete?.(tasks);
+          }
           return; // Exit pipeline execution
         }
 
@@ -481,9 +492,20 @@ export class ClaudeCodeService {
         // Update UI with paused state
         this.currentPipelineExecution.onProgress(tasks, i);
 
+        // Check if this is the last task or no pending tasks remain
+        const hasRemainingTasks = tasks
+          .slice(i + 1)
+          .some((t) => t.status === "pending");
+        const onComplete = this.currentPipelineExecution.onComplete;
+
         // Clear flags
         this.pauseAfterCurrentTask = false;
         this.currentPipelineExecution = null;
+
+        if (!hasRemainingTasks) {
+          // No more tasks to run, treat as completed
+          onComplete?.(tasks);
+        }
         return; // Exit pipeline execution
       }
 
@@ -1161,51 +1183,17 @@ export class ClaudeCodeService {
 
   // Enhanced pipeline pause for user control
   async pausePipelineExecution(
-    reason: "manual" | "rate_limit" = "manual",
+    _reason: "manual" | "rate_limit" = "manual",
   ): Promise<string | null> {
     if (!this.currentPipelineExecution) {
       return null;
     }
 
-    // Cancel current process if running
-    if (this.currentProcess) {
-      this.currentProcess.kill("SIGTERM");
-      this.currentProcess = null;
-    }
+    // Simply set the pause flag - let current task finish, pause before next
+    this.pauseAfterCurrentTask = true;
 
-    // Generate unique pipeline ID
+    // Generate unique pipeline ID for resume
     const pipelineId = `pipeline-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-
-    // Immediately pause the current task
-    const currentIndex = this.currentPipelineExecution.currentIndex;
-    const currentTask = this.currentPipelineExecution.tasks[currentIndex];
-
-    if (currentTask) {
-      // Mark current task as paused
-      currentTask.status = "paused";
-      currentTask.results = reason === "manual" ? "MANUALLY PAUSED" : "PAUSED";
-
-      // Update UI with paused state
-      this.currentPipelineExecution.onProgress(
-        this.currentPipelineExecution.tasks,
-        currentIndex,
-      );
-    }
-
-    // Store state for resume
-    this.pausedPipelines.set(pipelineId, {
-      tasks: this.currentPipelineExecution.tasks,
-      currentIndex: currentIndex,
-      resetTime: Date.now(),
-      workflowPath: this.currentWorkflowPath,
-      onProgress: this.currentPipelineExecution.onProgress,
-      onComplete: this.currentPipelineExecution.onComplete,
-      onError: this.currentPipelineExecution.onError,
-    });
-
-    // Clear current pipeline execution
-    this.currentPipelineExecution = null;
-
     return pipelineId;
   }
 

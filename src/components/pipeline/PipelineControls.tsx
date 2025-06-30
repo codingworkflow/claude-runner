@@ -92,7 +92,7 @@ const PipelineControls: React.FC<PipelineControlsProps> = ({
           <>
             {!isPaused ? (
               <Button
-                variant="warning"
+                variant="secondary"
                 onClick={onPausePipeline}
                 disabled={disabled || !onPausePipeline}
               >
@@ -107,7 +107,11 @@ const PipelineControls: React.FC<PipelineControlsProps> = ({
                 Resume
               </Button>
             )}
-            <Button variant="error" onClick={cancelTask} disabled={disabled}>
+            <Button
+              variant="secondary"
+              onClick={cancelTask}
+              disabled={disabled}
+            >
               Cancel Pipeline
             </Button>
           </>

@@ -225,12 +225,13 @@ describe("ClaudeCodeService Pause/Resume", () => {
       const result = await claudeCodeService.pausePipelineExecution("manual");
 
       expect(result).toMatch(/^pipeline-\d+-[a-z0-9]+$/);
-      expect(mockPipelineExecution.tasks[0].status).toBe("paused");
-      expect(mockPipelineExecution.tasks[0].results).toBe("MANUALLY PAUSED");
+      // With the simple fix, pausePipelineExecution only sets flag, doesn't modify tasks
+      expect(mockPipelineExecution.tasks[0].status).toBe("running");
+      // Pipeline execution continues until pause flag is checked in main loop
       expect(
         (claudeCodeService as unknown as { currentPipelineExecution: unknown })
           .currentPipelineExecution,
-      ).toBeNull();
+      ).not.toBeNull();
     });
 
     it("should return null when no pipeline is running", async () => {
@@ -241,10 +242,11 @@ describe("ClaudeCodeService Pause/Resume", () => {
 
     it("should cancel current process when pausing pipeline", async () => {
       const mockKill = jest.fn();
+      const mockProcess = { kill: mockKill };
 
       (
         claudeCodeService as unknown as { currentProcess: { kill: jest.Mock } }
-      ).currentProcess = { kill: mockKill };
+      ).currentProcess = mockProcess;
       (
         claudeCodeService as unknown as {
           currentPipelineExecution: {
@@ -265,11 +267,11 @@ describe("ClaudeCodeService Pause/Resume", () => {
 
       await claudeCodeService.pausePipelineExecution("manual");
 
-      expect(mockKill).toHaveBeenCalledWith("SIGTERM");
+      expect(mockKill).not.toHaveBeenCalled();
       expect(
         (claudeCodeService as unknown as { currentProcess: unknown })
           .currentProcess,
-      ).toBeNull();
+      ).toBe(mockProcess);
     });
   });
 

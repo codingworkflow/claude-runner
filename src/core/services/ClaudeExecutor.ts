@@ -98,6 +98,15 @@ export class ClaudeExecutor {
         task.status = "paused";
         task.results = "MANUALLY PAUSED";
         onPause?.(tasks, i);
+
+        // Check if this is the last task or no pending tasks remain
+        const hasRemainingTasks = tasks
+          .slice(i + 1)
+          .some((t) => t.status === "pending");
+        if (!hasRemainingTasks) {
+          // No more tasks to run, treat as completed
+          onComplete?.(tasks);
+        }
         return; // Exit pipeline execution
       }
 
@@ -235,6 +244,15 @@ export class ClaudeExecutor {
         task.status = "paused";
         task.results = "MANUALLY PAUSED";
         onPause?.(tasks, i);
+
+        // Check if this is the last task or no pending tasks remain
+        const hasRemainingTasks = tasks
+          .slice(i + 1)
+          .some((t) => t.status === "pending");
+        if (!hasRemainingTasks) {
+          // No more tasks to run, treat as completed
+          onComplete?.(tasks);
+        }
         return; // Exit pipeline execution
       }
 

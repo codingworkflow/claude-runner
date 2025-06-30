@@ -40,7 +40,7 @@ const TaskList: React.FC<TaskListProps> = ({
             />
             {tasks.length > 1 && (
               <Button
-                variant="error"
+                variant="secondary"
                 onClick={() => removeTask(task.id)}
                 disabled={isTasksRunning}
               >
