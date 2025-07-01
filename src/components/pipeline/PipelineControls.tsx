@@ -18,6 +18,10 @@ interface PipelineControlsProps {
   handleLoadPipeline: () => void;
   discoveredWorkflows?: { name: string; path: string }[];
 
+  // Clear pipeline functionality
+  isPipelineFinished?: boolean;
+  clearPipeline?: () => void;
+
   // Pause/Resume functionality
   isPaused?: boolean;
   pausedPipelines?: Array<{
@@ -58,6 +62,8 @@ const PipelineControls: React.FC<PipelineControlsProps> = ({
   setSelectedPipeline,
   handleLoadPipeline,
   discoveredWorkflows,
+  isPipelineFinished = false,
+  clearPipeline,
   isPaused = false,
   pausedPipelines = [],
   resumableWorkflows = [],
@@ -227,13 +233,25 @@ const PipelineControls: React.FC<PipelineControlsProps> = ({
             </Button>
           </>
         ) : (
-          <Button
-            variant="primary"
-            onClick={handleRunPipeline}
-            disabled={disabled || !canRunTasks || runClicked}
-          >
-            Run Pipeline
-          </Button>
+          <>
+            {isPipelineFinished ? (
+              <Button
+                variant="secondary"
+                onClick={clearPipeline}
+                disabled={disabled || !clearPipeline}
+              >
+                Clear Pipeline
+              </Button>
+            ) : (
+              <Button
+                variant="primary"
+                onClick={handleRunPipeline}
+                disabled={disabled || !canRunTasks || runClicked}
+              >
+                Run Pipeline
+              </Button>
+            )}
+          </>
         )}
       </div>
     </div>

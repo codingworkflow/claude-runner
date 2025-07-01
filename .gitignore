@@ -100,3 +100,4 @@ claude-runner-cli-*.tgz
 .claude/
 !.claude/command
 .github/workflows/*.json
+claude-runner

@@ -145,6 +145,9 @@ export class RunnerController implements EventBus {
       case "pipelineRemoveTask":
         this.pipelineRemoveTask(cmd.taskId);
         break;
+      case "pipelineClearAll":
+        this.pipelineClearAll();
+        break;
       case "pipelineUpdateTaskField":
         this.pipelineUpdateTaskField(cmd.taskId, cmd.field, cmd.value);
         break;
@@ -389,8 +392,7 @@ export class RunnerController implements EventBus {
           const hasPausedTask = newTasks.some(
             (task) => task.status === "paused",
           );
-          const pausedPipelines =
-            await this.claudeCodeService.getPausedPipelines();
+          const pausedPipelines = this.claudeCodeService.getPausedPipelines();
 
           // Update status to paused when pipeline is paused
           const newStatus = hasPausedTask ? "paused" : currentState.status;
@@ -614,6 +616,17 @@ export class RunnerController implements EventBus {
         tasks: currentState.tasks.filter((task) => task.id !== taskId),
       });
     }
+  }
+
+  private pipelineClearAll(): void {
+    this.updateState({
+      tasks: [],
+      currentTaskIndex: undefined,
+      status: "idle",
+      lastTaskResults: undefined,
+      taskCompleted: false,
+      taskError: false,
+    });
   }
 
   private pipelineUpdateTaskField(
@@ -1101,7 +1114,7 @@ export class RunnerController implements EventBus {
     try {
       // Get current pause state
       const isPaused = this.claudeCodeService.isWorkflowPaused();
-      const pausedPipelines = await this.claudeCodeService.getPausedPipelines();
+      const pausedPipelines = this.claudeCodeService.getPausedPipelines();
 
       // Get resumable workflows
       await this.getResumableWorkflows();

@@ -336,6 +336,7 @@ export interface ExtensionActions {
   loadPipeline: (name: string) => void;
   pipelineAddTask: (newTask: TaskItem) => void;
   pipelineRemoveTask: (taskId: string) => void;
+  pipelineClearAll: () => void;
   pipelineUpdateTaskField: (
     taskId: string,
     field: keyof TaskItem,
@@ -473,6 +474,10 @@ export const ExtensionProvider: React.FC<{ children: ReactNode }> = ({
 
     pipelineRemoveTask: (taskId: string) => {
       sendMessage("pipelineRemoveTask", { taskId });
+    },
+
+    pipelineClearAll: () => {
+      sendMessage("pipelineClearAll");
     },
 
     pipelineUpdateTaskField: (

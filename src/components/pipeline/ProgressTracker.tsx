@@ -105,7 +105,9 @@ const ProgressTracker: React.FC<ProgressTrackerProps> = ({
                     <h6>Output:</h6>
                   </div>
                   <div className="results-container">
-                    <pre className="results-text">{task.results}</pre>
+                    <pre className="results-text">
+                      {JSON.parse(task.results || "{}").result}
+                    </pre>
                   </div>
                 </div>
               )}

@@ -92,6 +92,10 @@ const PipelinePanel: React.FC<PipelinePanelProps> = ({ disabled }) => {
     }
   };
 
+  const clearPipeline = () => {
+    actions.pipelineClearAll();
+  };
+
   const removeTask = (taskId: string) => {
     if (tasks.length > 1) {
       actions.pipelineRemoveTask(taskId);
@@ -115,6 +119,11 @@ const PipelinePanel: React.FC<PipelinePanelProps> = ({ disabled }) => {
 
   const canRunTasks =
     tasks.some((task) => task.prompt.trim()) && !isTasksRunning;
+
+  const isPipelineFinished =
+    !isTasksRunning &&
+    tasks.some((t) => t.prompt.trim().length > 0) &&
+    tasks.some((t) => t.status === "completed" || t.status === "error");
 
   return (
     <div className="pipeline-panel">
@@ -157,6 +166,8 @@ const PipelinePanel: React.FC<PipelinePanelProps> = ({ disabled }) => {
         onPauseWorkflow={actions.pauseWorkflow}
         onResumeWorkflow={actions.resumeWorkflow}
         onDeleteWorkflowState={actions.deleteWorkflowState}
+        isPipelineFinished={isPipelineFinished}
+        clearPipeline={clearPipeline}
       />
 
       <PipelineDialog

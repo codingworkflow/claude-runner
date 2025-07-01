@@ -221,6 +221,7 @@ All changes must pass linting and TypeScript compilation.
 - Mock only external dependencies (VSCode API, file system, processes)
 - Test from simplest to most complex scenarios
 - Use `src/test/__mocks__/` for shared mocks
+- Don't over complicate tests logic and mock and introduce complexity
 
 **Test Structure:**
 

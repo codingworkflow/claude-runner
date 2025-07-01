@@ -272,27 +272,6 @@ export class ClaudeCodeService {
 
         // Check if pause was requested before starting this task
         if (this.pauseAfterCurrentTask) {
-          // Pause at this task
-          const pipelineId = `pipeline-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-
-          // Mark this task as paused
-          task.status = "paused";
-          task.results = "MANUALLY PAUSED";
-
-          // Store state for resume
-          this.pausedPipelines.set(pipelineId, {
-            tasks: this.currentPipelineExecution.tasks,
-            currentIndex: i,
-            resetTime: Date.now(),
-            workflowPath: this.currentWorkflowPath,
-            onProgress: this.currentPipelineExecution.onProgress,
-            onComplete: this.currentPipelineExecution.onComplete,
-            onError: this.currentPipelineExecution.onError,
-          });
-
-          // Update UI with paused state
-          this.currentPipelineExecution.onProgress(tasks, i);
-
           // Check if this is the last task or no pending tasks remain
           const hasRemainingTasks = tasks
             .slice(i + 1)
@@ -307,6 +286,26 @@ export class ClaudeCodeService {
             this.currentPipelineExecution = null;
             onComplete?.(tasks);
           } else {
+            // Only store paused state if there are remaining tasks
+            const pipelineId = `pipeline-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+            // Mark this task as paused
+            task.status = "paused";
+            task.results = "MANUALLY PAUSED";
+
+            // Store state for resume
+            this.pausedPipelines.set(pipelineId, {
+              tasks: this.currentPipelineExecution.tasks,
+              currentIndex: i,
+              resetTime: Date.now(),
+              workflowPath: this.currentWorkflowPath,
+              onProgress: this.currentPipelineExecution.onProgress,
+              onComplete: this.currentPipelineExecution.onComplete,
+              onError: this.currentPipelineExecution.onError,
+            });
+
+            // Update UI with paused state
+            this.currentPipelineExecution.onProgress(tasks, i);
             this.currentPipelineExecution = null;
           }
           return; // Exit pipeline execution
@@ -473,27 +472,6 @@ export class ClaudeCodeService {
 
       // Check if pause was requested before starting this task
       if (this.pauseAfterCurrentTask) {
-        // Pause at this task
-        const pipelineId = `pipeline-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-
-        // Mark this task as paused
-        task.status = "paused";
-        task.results = "MANUALLY PAUSED";
-
-        // Store state for resume
-        this.pausedPipelines.set(pipelineId, {
-          tasks: this.currentPipelineExecution.tasks,
-          currentIndex: i,
-          resetTime: Date.now(),
-          workflowPath: this.currentWorkflowPath,
-          onProgress: this.currentPipelineExecution.onProgress,
-          onComplete: this.currentPipelineExecution.onComplete,
-          onError: this.currentPipelineExecution.onError,
-        });
-
-        // Update UI with paused state
-        this.currentPipelineExecution.onProgress(tasks, i);
-
         // Check if this is the last task or no pending tasks remain
         const hasRemainingTasks = tasks
           .slice(i + 1)
@@ -508,6 +486,26 @@ export class ClaudeCodeService {
           this.currentPipelineExecution = null;
           onComplete?.(tasks);
         } else {
+          // Only store paused state if there are remaining tasks
+          const pipelineId = `pipeline-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+          // Mark this task as paused
+          task.status = "paused";
+          task.results = "MANUALLY PAUSED";
+
+          // Store state for resume
+          this.pausedPipelines.set(pipelineId, {
+            tasks: this.currentPipelineExecution.tasks,
+            currentIndex: i,
+            resetTime: Date.now(),
+            workflowPath: this.currentWorkflowPath,
+            onProgress: this.currentPipelineExecution.onProgress,
+            onComplete: this.currentPipelineExecution.onComplete,
+            onError: this.currentPipelineExecution.onError,
+          });
+
+          // Update UI with paused state
+          this.currentPipelineExecution.onProgress(tasks, i);
           this.currentPipelineExecution = null;
         }
         return; // Exit pipeline execution
@@ -1173,66 +1171,63 @@ export class ClaudeCodeService {
     // Set the pause flag - let current task finish, pause before next
     this.pauseAfterCurrentTask = true;
 
-    // Return the current workflow path as the "pipeline ID" since that's what we can resume from
-    return this.currentWorkflowPath ?? "current-pipeline";
+    // Return a pipeline ID that the execution loop will use when it actually pauses
+    // The actual pause state will be stored by the execution loop if there are more tasks
+    return `pipeline-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
   }
 
   async resumePipelineExecution(executionId: string): Promise<boolean> {
-    if (!this.workflowStateService) {
-      return false;
+    // First try to resume from in-memory paused pipelines
+    if (this.pausedPipelines.has(executionId)) {
+      await this.resumePipeline(executionId);
+      return true;
     }
 
-    // Use WorkflowStateService to resume from JSON log
-    try {
-      const resumed =
-        await this.workflowStateService.resumeWorkflow(executionId);
-      return resumed !== null;
-    } catch {
-      return false;
+    // Fallback to WorkflowStateService for persisted workflows
+    if (this.workflowStateService) {
+      try {
+        // Check if the workflow exists first
+        const workflowState =
+          await this.workflowStateService.getWorkflowState(executionId);
+        if (!workflowState || workflowState.status !== "paused") {
+          return false;
+        }
+
+        const resumed =
+          await this.workflowStateService.resumeWorkflow(executionId);
+        return resumed !== null;
+      } catch {
+        return false;
+      }
     }
+
+    return false;
   }
 
-  async getPausedPipelines(): Promise<
-    Array<{
+  getPausedPipelines(): Array<{
+    pipelineId: string;
+    tasks: TaskItem[];
+    currentIndex: number;
+    pausedAt: number;
+  }> {
+    // Always use in-memory map for synchronous access
+    const result: Array<{
       pipelineId: string;
       tasks: TaskItem[];
       currentIndex: number;
       pausedAt: number;
-    }>
-  > {
-    if (!this.workflowStateService) {
-      // Fallback to in-memory map
-      const result: Array<{
-        pipelineId: string;
-        tasks: TaskItem[];
-        currentIndex: number;
-        pausedAt: number;
-      }> = [];
+    }> = [];
 
-      this.pausedPipelines.forEach((state, pipelineId) => {
-        result.push({
-          pipelineId,
-          tasks: [...state.tasks],
-          currentIndex: state.currentIndex,
-          pausedAt: state.resetTime,
-        });
+    this.pausedPipelines.forEach((state, pipelineId) => {
+      result.push({
+        pipelineId,
+        tasks: [...state.tasks],
+        currentIndex: state.currentIndex,
+        pausedAt: state.resetTime,
       });
+    });
 
-      return result;
-    }
-
-    // Get paused workflows from WorkflowStateService (reads JSON logs)
-    const resumableWorkflows =
-      await this.workflowStateService.getResumableWorkflows();
-
-    return resumableWorkflows.map((workflow) => ({
-      pipelineId: workflow.executionId,
-      tasks: [], // Tasks will be loaded when resuming
-      currentIndex: workflow.currentStep,
-      pausedAt: workflow.pausedAt
-        ? new Date(workflow.pausedAt).getTime()
-        : Date.now(),
-    }));
+    return result;
   }
 
   isWorkflowPaused(): boolean {

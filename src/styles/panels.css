@@ -176,7 +176,7 @@
 .resume-config-group {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 4px;
   margin-bottom: 8px;
 }
 
@@ -184,7 +184,7 @@
 .resume-config-group label {
   font-size: var(--vscode-font-size);
   color: var(--vscode-foreground);
-  min-width: 80px;
+  min-width: 50px;
   font-weight: 500;
 }
 

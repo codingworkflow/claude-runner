@@ -1,5 +1,6 @@
 {
   "name": "Claude Runner VSCode Extension",
+  "runArgs": ["--name", "claude-runner-devcontainer"],
   "build": {
     "dockerfile": "./Dockerfile.devcontainer",
     "context": "..",

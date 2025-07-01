@@ -99,36 +99,65 @@ const TaskList: React.FC<TaskListProps> = ({
           )}
 
           <div className="condition-controls">
-            <div className="check-command-row">
-              <label className="inline-label">Command:</label>
-              <input
-                type="text"
-                value={task.check ?? ""}
-                onChange={(e) => updateTask(task.id, "check", e.target.value)}
-                placeholder="Optional check command (e.g., make lint)"
-                className="check-command-input-inline"
+            {(!task.check || task.check.trim() === "") &&
+            (!task.condition || task.condition === "always") ? (
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  updateTask(task.id, "check", "");
+                  updateTask(task.id, "condition", "on_success");
+                }}
                 disabled={isTasksRunning}
-              />
-            </div>
-            <div className="condition-row-inline">
-              <label className="inline-label">Condition:</label>
-              <select
-                value={task.condition ?? "always"}
-                onChange={(e) =>
-                  updateTask(
-                    task.id,
-                    "condition",
-                    e.target.value as ConditionType,
-                  )
-                }
-                disabled={isTasksRunning}
-                className="condition-select-inline"
               >
-                <option value="always">Always</option>
-                <option value="on_success">On Success</option>
-                <option value="on_failure">On Failure</option>
-              </select>
-            </div>
+                Add Condition Command
+              </Button>
+            ) : (
+              <>
+                <div className="check-command-row">
+                  <label className="inline-label">Command:</label>
+                  <input
+                    type="text"
+                    value={task.check ?? ""}
+                    onChange={(e) =>
+                      updateTask(task.id, "check", e.target.value)
+                    }
+                    placeholder="Optional check command (e.g., make lint)"
+                    className="check-command-input-inline"
+                    disabled={isTasksRunning}
+                  />
+                  <Button
+                    variant="secondary"
+                    onClick={() => {
+                      updateTask(task.id, "check", "");
+                      updateTask(task.id, "condition", "always");
+                    }}
+                    disabled={isTasksRunning}
+                    className="remove-condition-btn"
+                  >
+                    ×
+                  </Button>
+                </div>
+                <div className="condition-row-inline">
+                  <label className="inline-label">Condition:</label>
+                  <select
+                    value={task.condition ?? "always"}
+                    onChange={(e) =>
+                      updateTask(
+                        task.id,
+                        "condition",
+                        e.target.value as ConditionType,
+                      )
+                    }
+                    disabled={isTasksRunning}
+                    className="condition-select-inline"
+                  >
+                    <option value="always">Always</option>
+                    <option value="on_success">On Success</option>
+                    <option value="on_failure">On Failure</option>
+                  </select>
+                </div>
+              </>
+            )}
           </div>
         </div>
       ))}

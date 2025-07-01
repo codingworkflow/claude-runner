@@ -4,7 +4,6 @@ import Button from "../common/Button";
 import Toggle from "../common/Toggle";
 import PathSelector from "../common/PathSelector";
 import ModelSelector from "../common/ModelSelector";
-import ParallelTasksConfig from "../common/ParallelTasksConfig";
 import ClaudeVersionDisplay from "../common/ClaudeVersionDisplay";
 import { useExtension } from "../../contexts/ExtensionContext";
 
@@ -115,13 +114,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ disabled }) => {
           </div>
         </div>
       </Card>
-
-      {/* Parallel Tasks Configuration */}
-      <ParallelTasksConfig
-        parallelTasksCount={main.parallelTasksCount}
-        onUpdateParallelTasksCount={actions.updateParallelTasksCount}
-        disabled={disabled}
-      />
     </div>
   );
 };

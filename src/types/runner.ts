@@ -63,6 +63,7 @@ export type RunnerCommand =
   | { kind: "loadWorkflow"; workflowId: string }
   | { kind: "pipelineAddTask"; newTask: TaskItem }
   | { kind: "pipelineRemoveTask"; taskId: string }
+  | { kind: "pipelineClearAll" }
   | {
       kind: "pipelineUpdateTaskField";
       taskId: string;
@@ -191,6 +192,7 @@ export const RunnerCommandRegistry: {
     kind: "pipelineRemoveTask",
     taskId: isString(m.taskId) ? m.taskId : "",
   }),
+  pipelineClearAll: () => ({ kind: "pipelineClearAll" }),
   pipelineUpdateTaskField: (m) => ({
     kind: "pipelineUpdateTaskField",
     taskId: isString(m.taskId) ? m.taskId : "",

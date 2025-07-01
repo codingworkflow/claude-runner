@@ -19,11 +19,11 @@ jobs:
           prompt: |
             Create unit tests for src/services/CLIInstallationService.ts
             Target file: tests/unit/services/CLIInstallationService.test.ts
+            Remember Mocking Rules in CLAUDE.md
             Test cases:
             - CLI installation detection and validation
             - Installation path resolution across platforms
             - Installation failure handling and recovery
-            - Version compatibility checking
             - Installation status reporting
           model: auto
           allow_all_tools: true
@@ -35,6 +35,7 @@ jobs:
           prompt: |
             Create unit tests for src/services/ClaudeDetectionService.ts
             Target file: tests/unit/services/ClaudeDetectionService.test.ts
+            Remember Mocking Rules in CLAUDE.md
             Test cases:
             - Claude CLI detection in PATH
             - Detection across different operating systems
@@ -51,6 +52,7 @@ jobs:
           prompt: |
             Create unit tests for src/services/ClaudeService.ts
             Target file: tests/unit/services/ClaudeService.test.ts
+            Remember Mocking Rules in CLAUDE.md
             Test cases:
             - Core Claude service wrapper functionality
             - API communication and response handling
@@ -60,39 +62,6 @@ jobs:
           model: auto
           allow_all_tools: true
 
-      - id: task_claude_version_service_4
-        name: Create ClaudeVersionService.test.ts
-        uses: anthropics/claude-pipeline-action@v1
-        with:
-          prompt: |
-            Create unit tests for src/services/ClaudeVersionService.ts
-            Target file: tests/unit/services/ClaudeVersionService.test.ts
-            Test cases:
-            - Version detection and parsing
-            - Version compatibility checking
-            - Version comparison logic
-            - Update availability detection
-            - Version validation and error handling
-          model: auto
-          allow_all_tools: true
-
-      - id: task_commands_service_5
-        name: Create CommandsService.test.ts
-        uses: anthropics/claude-pipeline-action@v1
-        with:
-          prompt: |
-            Create unit tests for src/services/CommandsService.ts
-            Target file: tests/unit/services/CommandsService.test.ts
-            Test cases:
-            - Command execution and management
-            - Command validation and sanitization
-            - Command history tracking
-            - Command result processing
-            - Command error handling and recovery
-          model: auto
-          allow_all_tools: true
-
-      # Validation Step 1
       - id: validate_group_1
         name: Validate Group 1 - Run linting and tests
         uses: anthropics/claude-pipeline-action@v1
@@ -115,12 +84,10 @@ jobs:
           prompt: |
             Create unit tests for src/services/TerminalService.ts
             Target file: tests/unit/services/TerminalService.test.ts
+            Remember Mocking Rules in CLAUDE.md
             Test cases:
             - Terminal interaction and command execution
-            - Terminal output capture and processing
             - Terminal error handling
-            - Terminal session management
-            - Cross-platform terminal compatibility
           model: auto
           allow_all_tools: true
 
@@ -131,6 +98,7 @@ jobs:
           prompt: |
             Create unit tests for src/controllers/RunnerController.ts
             Target file: tests/unit/controllers/RunnerController.test.ts
+            Remember Mocking Rules in CLAUDE.md
             Test cases:
             - Main application controller orchestration
             - Service coordination and lifecycle
@@ -147,6 +115,7 @@ jobs:
           prompt: |
             Create unit tests for src/core/services/ClaudeExecutor.ts
             Target file: tests/unit/core/services/ClaudeExecutor.test.ts
+            Remember Mocking Rules in CLAUDE.md
             Test cases:
             - Core Claude execution engine functionality
             - Execution context management
@@ -163,12 +132,15 @@ jobs:
           prompt: |
             Create unit tests for src/core/services/WorkflowEngine.ts
             Target file: tests/unit/core/services/WorkflowEngine.test.ts
+            Remember Mocking Rules in CLAUDE.md
             Test cases:
             - Workflow execution engine functionality
             - Workflow step processing and sequencing
             - Workflow state transitions
             - Workflow error handling and rollback
             - Workflow performance optimization
+            If test got created do a full review, ensure it's complient with 
+            Mocking Rules in CLAUDE.md.
           model: auto
           allow_all_tools: true
 
@@ -179,6 +151,8 @@ jobs:
           prompt: |
             Create unit tests for src/services/WorkflowJsonLogger.ts
             Target file: tests/unit/services/WorkflowJsonLogger.test.ts
+            Ensure test don't duplicate core code and over mock the key logic
+            Remember Mocking Rules in CLAUDE.md
             Test cases:
             - JSON workflow logging functionality
             - Log format validation and structure
@@ -194,12 +168,15 @@ jobs:
         uses: anthropics/claude-pipeline-action@v1
         with:
           prompt: |
-            Run validation for the second group of 5 test files:
-            1. Run `make lint` to check code quality
-            2. Run `npm run test:unit` to execute unit tests
-            3. Verify all new test files pass
-            4. Check TypeScript compilation
-            5. Report any issues found and fix them
+            Run validation for the second group of 5 test files: 1. Run `make lint` to
+            check code quality 2. Run `npm run test:unit` to execute unit tests 3.
+            Verify all new test files pass 4. Check TypeScript compilation 5. Report
+            any issues found and fix them If you find any issue spin 3 agent to fix the
+            test / linting issues you may find, review compliance of tests with mock Rules
+            - tests/unit/core/services/WorkflowEngine.test.ts
+            - tests/unit/core/services/WorkflowEngine.test.ts
+            - tests/unit/core/services/ClaudeExecutor.test.ts
+            - tests/unit/controllers/RunnerController.test.ts
           model: auto
           allow_all_tools: true
 
@@ -211,6 +188,7 @@ jobs:
           prompt: |
             Create unit tests for src/components/common/Button.tsx
             Target file: tests/unit/components/common/Button.test.tsx
+            Remember Mocking Rules in CLAUDE.md
             Test cases:
             - Button component rendering and props
             - Button click event handling
@@ -227,6 +205,7 @@ jobs:
           prompt: |
             Create unit tests for src/components/common/Input.tsx
             Target file: tests/unit/components/common/Input.test.tsx
+            Remember Mocking Rules in CLAUDE.md
             Test cases:
             - Input field validation and state management
             - Input value changes and event handling
@@ -243,6 +222,7 @@ jobs:
           prompt: |
             Create unit tests for src/components/common/Toggle.tsx
             Target file: tests/unit/components/common/Toggle.test.tsx
+            Remember Mocking Rules in CLAUDE.md
             Test cases:
             - Toggle switch functionality and state changes
             - Toggle event handling and callbacks
@@ -259,6 +239,7 @@ jobs:
           prompt: |
             Create unit tests for src/components/common/ModelSelector.tsx
             Target file: tests/unit/components/common/ModelSelector.test.tsx
+            Remember Mocking Rules in CLAUDE.md
             Test cases:
             - Model selection and validation
             - Model dropdown functionality and options
@@ -275,6 +256,7 @@ jobs:
           prompt: |
             Create unit tests for src/components/common/CommandForm.tsx
             Target file: tests/unit/components/common/CommandForm.test.tsx
+            Remember Mocking Rules in CLAUDE.md
             Test cases:
             - Command form validation and submission
             - Form field interactions and state management
@@ -307,6 +289,7 @@ jobs:
           prompt: |
             Create unit tests for src/components/common/CommandList.tsx
             Target file: tests/unit/components/common/CommandList.test.tsx
+            Remember Mocking Rules in CLAUDE.md
             Test cases:
             - Command list display and rendering
             - Command list item interactions
@@ -323,6 +306,7 @@ jobs:
           prompt: |
             Create unit tests for src/components/common/TabNavigation.tsx
             Target file: tests/unit/components/common/TabNavigation.test.tsx
+            Remember Mocking Rules in CLAUDE.md
             Test cases:
             - Tab navigation and state management
             - Tab switching and active state
@@ -339,6 +323,7 @@ jobs:
           prompt: |
             Create unit tests for src/components/panels/ChatPanel.tsx
             Target file: tests/unit/components/panels/ChatPanel.test.tsx
+            Remember Mocking Rules in CLAUDE.md
             Test cases:
             - Chat interface functionality and message handling
             - Chat message display and formatting
@@ -355,6 +340,7 @@ jobs:
           prompt: |
             Create unit tests for src/utils/ShellDetection.ts
             Target file: tests/unit/utils/ShellDetection.test.ts
+            Remember Mocking Rules in CLAUDE.md
             Test cases:
             - Shell detection across different platforms
             - Shell type identification and validation
@@ -371,6 +357,7 @@ jobs:
           prompt: |
             Create unit tests for src/utils/detectParallelTasksCount.ts
             Target file: tests/unit/utils/detectParallelTasksCount.test.ts
+            Remember Mocking Rules in CLAUDE.md
             Test cases:
             - Parallel task count detection logic
             - System resource analysis and optimization
@@ -403,6 +390,7 @@ jobs:
           prompt: |
             Create unit tests for src/utils/errorHandlers.ts
             Target file: tests/unit/utils/errorHandlers.test.ts
+            Remember Mocking Rules in CLAUDE.md
             Test cases:
             - Error handling and recovery mechanisms
             - Error classification and categorization
@@ -419,6 +407,7 @@ jobs:
           prompt: |
             Create unit tests for src/utils/responseHandlers.ts
             Target file: tests/unit/utils/responseHandlers.test.ts
+            Remember Mocking Rules in CLAUDE.md
             Test cases:
             - Response processing and formatting
             - Response validation and sanitization
@@ -435,12 +424,11 @@ jobs:
           prompt: |
             Create unit tests for src/utils/webviewHelpers.ts
             Target file: tests/unit/utils/webviewHelpers.test.ts
+            Remember Mocking Rules in CLAUDE.md
             Test cases:
             - Webview utility functions and helpers
             - Webview communication and messaging
             - Webview state management and persistence
-            - Webview security and validation
-            - Webview performance optimization
           model: auto
           allow_all_tools: true
 
@@ -451,6 +439,7 @@ jobs:
           prompt: |
             Create unit tests for src/hooks/useCommandForm.ts
             Target file: tests/unit/hooks/useCommandForm.test.ts
+            Remember Mocking Rules in CLAUDE.md
             Test cases:
             - Command form hook behavior and state management
             - Form validation and error handling
@@ -467,6 +456,7 @@ jobs:
           prompt: |
             Create unit tests for src/components/hooks/useVSCodeAPI.ts
             Target file: tests/unit/components/hooks/useVSCodeAPI.test.ts
+            Remember Mocking Rules in CLAUDE.md
             Test cases:
             - VSCode API communication hook functionality
             - API message handling and routing
@@ -499,6 +489,7 @@ jobs:
           prompt: |
             Create unit tests for src/components/webview/MessageRouter.ts
             Target file: tests/unit/components/webview/MessageRouter.test.ts
+            Remember Mocking Rules in CLAUDE.md
             Test cases:
             - Webview message routing functionality
             - Message validation and sanitization
@@ -515,6 +506,7 @@ jobs:
           prompt: |
             Create unit tests for src/adapters/vscode/VSCodeConfigSource.ts
             Target file: tests/unit/adapters/vscode/VSCodeConfigSource.test.ts
+            Remember Mocking Rules in CLAUDE.md
             Test cases:
             - VSCode configuration source adapter functionality
             - Configuration reading and writing
@@ -531,6 +523,7 @@ jobs:
           prompt: |
             Create unit tests for src/adapters/vscode/VSCodeFileSystem.ts
             Target file: tests/unit/adapters/vscode/VSCodeFileSystem.test.ts
+            Remember Mocking Rules in CLAUDE.md
             Test cases:
             - VSCode file system operations and management
             - File reading and writing functionality
@@ -547,6 +540,7 @@ jobs:
           prompt: |
             Create unit tests for src/adapters/vscode/VSCodeLogger.ts
             Target file: tests/unit/adapters/vscode/VSCodeLogger.test.ts
+            Remember Mocking Rules in CLAUDE.md
             Test cases:
             - VSCode logging adapter functionality
             - Log level management and filtering
@@ -563,6 +557,7 @@ jobs:
           prompt: |
             Create unit tests for src/adapters/vscode/VSCodeNotification.ts
             Target file: tests/unit/adapters/vscode/VSCodeNotification.test.ts
+            Remember Mocking Rules in CLAUDE.md
             Test cases:
             - VSCode notification system functionality
             - Notification display and management
@@ -595,6 +590,7 @@ jobs:
           prompt: |
             Create unit tests for src/adapters/storage/WorkflowStorageAdapter.ts
             Target file: tests/unit/adapters/storage/WorkflowStorageAdapter.test.ts
+            Remember Mocking Rules in CLAUDE.md
             Test cases:
             - Workflow storage operations and management
             - Workflow data serialization and persistence
@@ -611,6 +607,7 @@ jobs:
           prompt: |
             Create unit tests for src/core/models/Task.ts
             Target file: tests/unit/core/models/Task.test.ts
+            Remember Mocking Rules in CLAUDE.md
             Test cases:
             - Task model validation and operations
             - Task state management and transitions
@@ -627,6 +624,7 @@ jobs:
           prompt: |
             Create unit tests for src/core/models/Workflow.ts
             Target file: tests/unit/core/models/Workflow.test.ts
+            Remember Mocking Rules in CLAUDE.md
             Test cases:
             - Workflow model and state management
             - Workflow validation and structure
@@ -643,6 +641,7 @@ jobs:
           prompt: |
             Create unit tests for src/models/ClaudeModels.ts
             Target file: tests/unit/models/ClaudeModels.test.ts
+            Remember Mocking Rules in CLAUDE.md
             Test cases:
             - Claude model definitions and validation
             - Model capability and feature checking
@@ -659,6 +658,7 @@ jobs:
           prompt: |
             Create unit tests for src/components/UnifiedApp.tsx
             Target file: tests/unit/components/UnifiedApp.test.tsx
+            Remember Mocking Rules in CLAUDE.md
             Test cases:
             - Main application component integration
             - Application state management and lifecycle

@@ -146,6 +146,27 @@ const UsageReportPanel: React.FC<UsageReportPanelProps> = ({
               <option value="month">Last 30 Days</option>
               <option value="hourly">Hourly</option>
             </select>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "4px",
+                marginLeft: "16px",
+              }}
+            >
+              <input
+                id="auto-refresh-global"
+                type="checkbox"
+                checked={autoRefresh}
+                onChange={(e) =>
+                  actions.updateUsageState({ autoRefresh: e.target.checked })
+                }
+                disabled={disabled || loading}
+              />
+              <label htmlFor="auto-refresh-global" style={{ fontSize: "12px" }}>
+                auto refresh
+              </label>
+            </div>
           </div>
         </div>
 
@@ -247,27 +268,6 @@ const UsageReportPanel: React.FC<UsageReportPanelProps> = ({
                 />
               </div>
             </div>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "4px",
-                marginTop: "8px",
-              }}
-            >
-              <input
-                id="auto-refresh"
-                type="checkbox"
-                checked={autoRefresh}
-                onChange={(e) =>
-                  actions.updateUsageState({ autoRefresh: e.target.checked })
-                }
-                disabled={disabled || loading}
-              />
-              <label htmlFor="auto-refresh" style={{ fontSize: "12px" }}>
-                auto refresh
-              </label>
-            </div>
             {limitValue > 0 && report && (
               <div style={{ marginTop: "8px" }}>
                 <div style={{ fontSize: "12px", marginBottom: "4px" }}>
@@ -332,7 +332,7 @@ const UsageReportPanel: React.FC<UsageReportPanelProps> = ({
         {report && !loading && (
           <div className="usage-report-content">
             <div className="report-summary">
-              <h4>{getPeriodLabel(selectedPeriod)} Summary</h4>
+              <h4>{getPeriodLabel(selectedPeriod)}</h4>
               <p className="date-range">
                 {report.startDate} to {report.endDate}
               </p>

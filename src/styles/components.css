@@ -396,6 +396,17 @@ select:focus {
   min-width: 200px;
 }
 
+.remove-condition-btn {
+  padding: 2px 6px !important;
+  font-size: 12px !important;
+  min-width: auto;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .condition-select-inline {
   min-width: 120px;
 }
