@@ -125,9 +125,12 @@ describe("Resume Functionality", () => {
       const mockJobLog: JobLog = {
         workflowName: "test-workflow",
         workflowFile: "test.yml",
+        executionId: "20240101T100000001",
         totalSteps: 5,
         lastCompletedStep: 2, // Completed steps 0, 1, 2 (3 steps total)
         startTime: "2024-01-01T10:00:00Z",
+        lastUpdateTime: "2024-01-01T10:05:00Z",
+        status: "running",
         steps: [],
       };
 
@@ -139,7 +142,7 @@ describe("Resume Functionality", () => {
 
       // Simulate the resume logic from lines 336-360
       let startFromStep = 0;
-      let existingJobLog = null;
+      let existingJobLog: JobLog | null = null;
       const jobLogPath = MockedJobLogManager.getJobLogPath(workflowPath);
 
       if (options.resume) {
@@ -204,9 +207,12 @@ describe("Resume Functionality", () => {
       const mockJobLog: JobLog = {
         workflowName: "fresh-workflow",
         workflowFile: "fresh.yml",
+        executionId: "20240101T100000002",
         totalSteps: 3,
         lastCompletedStep: -1, // No steps completed yet
         startTime: "2024-01-01T10:00:00Z",
+        lastUpdateTime: "2024-01-01T10:00:00Z",
+        status: "running",
         steps: [],
       };
 
@@ -237,9 +243,12 @@ describe("Resume Functionality", () => {
       const mockJobLog: JobLog = {
         workflowName: "completed-workflow",
         workflowFile: "completed.yml",
+        executionId: "20240101T100000003",
         totalSteps: 3,
         lastCompletedStep: 2, // All 3 steps completed (0, 1, 2)
         startTime: "2024-01-01T10:00:00Z",
+        lastUpdateTime: "2024-01-01T10:01:00Z",
+        status: "completed",
         steps: [],
       };
 
@@ -373,7 +382,7 @@ describe("Resume Functionality", () => {
         }
       } catch (error) {
         // Should gracefully handle the error
-        expect(error.message).toBe("File read error");
+        expect((error as Error).message).toBe("File read error");
       }
 
       expect(startFromStep).toBe(0); // Should remain at default

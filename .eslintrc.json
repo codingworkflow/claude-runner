@@ -7,7 +7,8 @@
     "project": [
       "./tsconfig.json",
       "./tsconfig.test.json",
-      "./tsconfig.cli.json"
+      "./tsconfig.cli.json",
+      "./tsconfig.cli-tests.json"
     ],
     "ecmaFeatures": {
       "jsx": true
@@ -64,7 +65,11 @@
       }
     },
     {
-      "files": ["**/test/**/*.{ts,tsx}", "**/utils/testUsageReport.ts"],
+      "files": [
+        "**/test/**/*.{ts,tsx}",
+        "**/tests/**/*.{ts,tsx}",
+        "**/utils/testUsageReport.ts"
+      ],
       "rules": {
         "@typescript-eslint/no-explicit-any": "off",
         "no-console": "off",

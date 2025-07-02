@@ -3,24 +3,24 @@
   "compilerOptions": {
     "target": "ES2020",
     "module": "CommonJS",
-    "outDir": "./cli/dist",
+    "outDir": "./cli/dist/tests",
     "rootDir": "./",
     "declaration": false,
     "declarationMap": false,
     "sourceMap": false,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "types": ["jest", "node"]
   },
   "include": [
+    "cli/tests/**/*",
+    "cli/src/**/*",
     "src/core/**/*",
     "src/services/ClaudeDetectionService.ts",
-    "src/adapters/vscode/VSCodeLogger.ts",
-    "cli/src/**/*"
+    "src/adapters/vscode/VSCodeLogger.ts"
   ],
   "exclude": [
-    "src/**/*.test.ts",
-    "src/**/*.spec.ts",
     "src/components/**/*",
     "src/providers/**/*",
     "src/controllers/**/*"

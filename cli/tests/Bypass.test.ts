@@ -129,7 +129,8 @@ describe("Bypass Functionality", () => {
 
     it("should add --dangerously-skip-permissions when allowAllTools is true", () => {
       const args: string[] = ["claude"];
-      const options = { allowAllTools: true };
+      const options: { bypassPermissions?: boolean; allowAllTools?: boolean } =
+        { allowAllTools: true };
 
       if (
         (options.bypassPermissions ?? false) ||
@@ -144,7 +145,8 @@ describe("Bypass Functionality", () => {
 
     it("should add --dangerously-skip-permissions when both bypassPermissions and allowAllTools are true", () => {
       const args: string[] = ["claude"];
-      const options = { bypassPermissions: true, allowAllTools: true };
+      const options: { bypassPermissions?: boolean; allowAllTools?: boolean } =
+        { bypassPermissions: true, allowAllTools: true };
 
       if (
         (options.bypassPermissions ?? false) ||
@@ -159,7 +161,8 @@ describe("Bypass Functionality", () => {
 
     it("should not add --dangerously-skip-permissions when neither option is true", () => {
       const args: string[] = ["claude"];
-      const options = {};
+      const options: { bypassPermissions?: boolean; allowAllTools?: boolean } =
+        {};
 
       if (
         (options.bypassPermissions ?? false) ||
@@ -284,7 +287,12 @@ describe("Bypass Functionality", () => {
     it("should prioritize bypass over allowedTools when bypass is enabled", () => {
       // Simulate the logic from ClaudeExecutor where bypass takes precedence
       const args: string[] = ["claude"];
-      const options = {
+      const options: {
+        bypassPermissions?: boolean;
+        allowAllTools?: boolean;
+        allowedTools?: string[];
+        disallowedTools?: string[];
+      } = {
         bypassPermissions: true,
         allowedTools: ["file", "bash"],
         disallowedTools: ["web"],
@@ -311,7 +319,12 @@ describe("Bypass Functionality", () => {
 
     it("should use allowedTools when bypass is not enabled", () => {
       const args: string[] = ["claude"];
-      const options = {
+      const options: {
+        bypassPermissions?: boolean;
+        allowAllTools?: boolean;
+        allowedTools?: string[];
+        disallowedTools?: string[];
+      } = {
         bypassPermissions: false,
         allowedTools: ["file", "bash"],
         disallowedTools: ["web"],
@@ -342,21 +355,21 @@ describe("Bypass Functionality", () => {
   describe("workflow execution bypass mapping", () => {
     it("should map CLI autoAccept option to executor bypassPermissions", () => {
       // Simulate the mapping from claude-runner.js line 411: bypassPermissions: options.autoAccept
-      const cliOptions = { autoAccept: true };
+      const cliOptions: { autoAccept?: boolean } = { autoAccept: true };
       const executorOptions = { bypassPermissions: cliOptions.autoAccept };
 
       expect(executorOptions.bypassPermissions).toBe(true);
     });
 
     it("should map CLI autoAccept false to executor bypassPermissions false", () => {
-      const cliOptions = { autoAccept: false };
+      const cliOptions: { autoAccept?: boolean } = { autoAccept: false };
       const executorOptions = { bypassPermissions: cliOptions.autoAccept };
 
       expect(executorOptions.bypassPermissions).toBe(false);
     });
 
     it("should handle missing autoAccept option", () => {
-      const cliOptions = {};
+      const cliOptions: { autoAccept?: boolean } = {};
       const executorOptions = { bypassPermissions: cliOptions.autoAccept };
 
       expect(executorOptions.bypassPermissions).toBeUndefined();

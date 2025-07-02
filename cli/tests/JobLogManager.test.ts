@@ -4,8 +4,8 @@
  */
 
 import * as fs from "fs/promises";
-import { JobLogManager } from "../../../cli/src/utils/JobLogManager";
-import { JobLog, JobLogStep } from "../../../cli/src/types/JobLog";
+import { JobLogManager } from "../src/utils/JobLogManager";
+import { JobLog, JobLogStep } from "../src/types/JobLog";
 
 // Mock fs module for testing
 jest.mock("fs/promises");

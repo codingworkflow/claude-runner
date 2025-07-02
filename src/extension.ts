@@ -5,7 +5,7 @@ import { UsageLogsWebviewProvider } from "./providers/UsageLogsWebviewProvider";
 import { ClaudeCodeService } from "./services/ClaudeCodeService";
 import { ClaudeService } from "./services/ClaudeService";
 import { TerminalService } from "./services/TerminalService";
-import { CLIInstallationService } from "./services/CLIInstallationService";
+// import { CLIInstallationService } from "./services/CLIInstallationService"; // DISABLED
 import { ConfigurationService } from "./services/ConfigurationService";
 import { ClaudeDetectionService } from "./services/ClaudeDetectionService";
 import { UsageReportService } from "./services/UsageReportService";
@@ -165,8 +165,8 @@ export async function activate(context: vscode.ExtensionContext) {
     logsService,
   );
 
-  // Set up CLI to be available in terminal
-  await CLIInstallationService.setupCLI(context);
+  // Set up CLI to be available in terminal - DISABLED
+  // await CLIInstallationService.setupCLI(context);
 
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider(
@@ -190,7 +190,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
 export function deactivate() {
   claudeRunnerPanel?.dispose();
-  CLIInstallationService.cleanupCLI();
+  // CLI cleanup disabled - CLIInstallationService.cleanupCLI();
 }
 
 function showClaudeRunnerPanel(
