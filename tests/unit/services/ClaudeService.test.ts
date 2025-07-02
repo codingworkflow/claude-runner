@@ -140,7 +140,7 @@ MockedVSCodeConfigSource.mockImplementation(
     ({
       get: jest.fn(),
       set: jest.fn(),
-    }) as unknown,
+    }) as unknown as jest.Mocked<VSCodeConfigSource>,
 );
 // @ts-expect-error - Mock implementation for testing
 MockedConfigManager.mockImplementation(() => mockConfigManager);

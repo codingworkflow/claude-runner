@@ -7,6 +7,7 @@ module.exports = {
     showWarningMessage: jest.fn(),
     createWebviewPanel: jest.fn(),
     showOpenDialog: jest.fn(),
+    withProgress: jest.fn(),
   },
   commands: {
     executeCommand: jest.fn(),
@@ -35,5 +36,10 @@ module.exports = {
     Workspace: 1,
     Global: 2,
     WorkspaceFolder: 3,
+  },
+  ProgressLocation: {
+    Notification: 15,
+    Window: 10,
+    SourceControl: 1,
   },
 };

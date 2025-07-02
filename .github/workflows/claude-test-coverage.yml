@@ -674,12 +674,15 @@ jobs:
         uses: anthropics/claude-pipeline-action@v1
         with:
           prompt: |
-            Run comprehensive validation for all created test files:
-            1. Run `make lint` to check code quality across all files
-            2. Run `npm run test:unit` to execute complete unit test suite
-            3. Run `npm run test:unit:coverage` to check coverage improvement
-            4. Verify TypeScript compilation for entire project
-            5. Generate final test coverage report
-            6. Identify any remaining issues and provide recommendations
+            Run comprehensive validation for all created test files: 1. Run `make lint`
+            to check code quality across all files 2. Run `npm run test:unit` to
+            execute complete unit test suite 3. Run `npm run test:unit:coverage` to
+            check coverage improvement 4. Verify TypeScript compilation for entire
+            project 5. Generate final test coverage report 6. Identify any remaining
+            issues and provide recommendations 7. Spin 5 agents to do full review of
+            the tests mocks, goal here ensure that tests are not dulicating ou app
+            business logic and code and creating comlexity, focus on the unit tests so
+            do deep review and write a doc listing the issues you found docs
+            docs/tests_review.md
           model: auto
           allow_all_tools: true
