@@ -442,13 +442,24 @@ describe("WorkflowJsonLogger", () => {
 
       const originalTime = logger.getCurrentLog()?.last_update_time;
 
-      // Wait a tiny bit to ensure time difference
-      await new Promise((resolve) => setTimeout(resolve, 1));
+      // Mock Date to ensure time difference
+      const mockDate = new Date("2023-01-01T10:10:00.000Z");
+      jest.spyOn(global, "Date").mockImplementation((...args: unknown[]) => {
+        if (args.length === 0) {
+          return mockDate;
+        }
+        return new (Date as unknown as new (...args: unknown[]) => Date)(
+          ...args,
+        );
+      });
 
       await logger.updateStepProgress(stepResult, mockWorkflowState);
 
       const currentLog = logger.getCurrentLog();
+      expect(currentLog?.last_update_time).toBe("2023-01-01T10:10:00.000Z");
       expect(currentLog?.last_update_time).not.toBe(originalTime);
+
+      jest.restoreAllMocks();
     });
   });
 
@@ -462,15 +473,26 @@ describe("WorkflowJsonLogger", () => {
     it("should update workflow status and last_update_time", async () => {
       const originalTime = logger.getCurrentLog()?.last_update_time;
 
-      // Wait a tiny bit to ensure time difference
-      await new Promise((resolve) => setTimeout(resolve, 1));
+      // Mock Date to ensure time difference
+      const mockDate = new Date("2023-01-01T10:05:00.000Z");
+      jest.spyOn(global, "Date").mockImplementation((...args: unknown[]) => {
+        if (args.length === 0) {
+          return mockDate;
+        }
+        return new (Date as unknown as new (...args: unknown[]) => Date)(
+          ...args,
+        );
+      });
 
       await logger.updateWorkflowStatus("completed");
 
       const currentLog = logger.getCurrentLog();
       expect(currentLog?.status).toBe("completed");
+      expect(currentLog?.last_update_time).toBe("2023-01-01T10:05:00.000Z");
       expect(currentLog?.last_update_time).not.toBe(originalTime);
       expect(mockFileSystem.writeFile).toHaveBeenCalled();
+
+      jest.restoreAllMocks();
     });
 
     it("should handle all valid status values", async () => {
@@ -844,7 +866,8 @@ describe("WorkflowJsonLogger", () => {
       // Simulate corrupted internal state
       const currentLog = logger.getCurrentLog();
       if (currentLog) {
-        (currentLog as any).steps = null;
+        // @ts-expect-error - intentionally corrupting state for testing
+        (currentLog as JsonLogFormat).steps = null as unknown as JsonLogStep[];
       }
 
       const stepResult: WorkflowStepResult = {
@@ -995,7 +1018,7 @@ describe("WorkflowJsonLogger", () => {
         stepId: "step1",
         status: "completed",
         output: undefined,
-        sessionId: null as any,
+        sessionId: null as unknown as string,
         outputSession: false,
       };
 

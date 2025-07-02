@@ -4,7 +4,7 @@
     "target": "ES2020",
     "module": "CommonJS",
     "outDir": "./cli/dist",
-    "rootDir": "./src",
+    "rootDir": "./",
     "declaration": false,
     "declarationMap": false,
     "sourceMap": false,
@@ -15,7 +15,9 @@
   "include": [
     "src/core/**/*",
     "src/services/ClaudeDetectionService.ts",
-    "src/adapters/vscode/VSCodeLogger.ts"
+    "src/adapters/vscode/VSCodeLogger.ts",
+    "cli/src/**/*",
+    "cli/tests/**/*"
   ],
   "exclude": [
     "src/**/*.test.ts",

@@ -27,24 +27,24 @@ import { ClaudeDetectionService } from "../../../src/services/ClaudeDetectionSer
 
 // Create typed mock objects with explicit any typing for jest compatibility
 const mockClaudeExecutor = {
-  executeTask: jest.fn() as any,
-  executePipeline: jest.fn() as any,
-  resumePipeline: jest.fn() as any,
-  cancelCurrentTask: jest.fn() as any,
-  isTaskRunning: jest.fn() as any,
-  validateClaudeCommand: jest.fn() as any,
-  formatCommandPreview: jest.fn() as any,
+  executeTask: jest.fn(),
+  executePipeline: jest.fn(),
+  resumePipeline: jest.fn(),
+  cancelCurrentTask: jest.fn(),
+  isTaskRunning: jest.fn(),
+  validateClaudeCommand: jest.fn(),
+  formatCommandPreview: jest.fn(),
 };
 
 const mockConfigManager = {
-  addSource: jest.fn() as any,
-  validateModel: jest.fn() as any,
+  addSource: jest.fn(),
+  validateModel: jest.fn(),
 };
 
 const mockWorkflowService = {
-  getExecutionSteps: jest.fn() as any,
-  resolveStepVariables: jest.fn() as any,
-  updateExecutionOutput: jest.fn() as any,
+  getExecutionSteps: jest.fn(),
+  resolveStepVariables: jest.fn(),
+  updateExecutionOutput: jest.fn(),
 };
 
 // Mock implementations
@@ -68,11 +68,11 @@ const MockedWorkflowService = WorkflowService as jest.MockedClass<
 >;
 
 // Setup constructor implementations
-MockedClaudeExecutor.mockImplementation(() => mockClaudeExecutor as any);
-MockedVSCodeLogger.mockImplementation(() => ({}) as any);
-MockedVSCodeConfigSource.mockImplementation(() => ({}) as any);
-MockedConfigManager.mockImplementation(() => mockConfigManager as any);
-MockedWorkflowService.mockImplementation(() => mockWorkflowService as any);
+MockedClaudeExecutor.mockImplementation(() => mockClaudeExecutor);
+MockedVSCodeLogger.mockImplementation(() => ({}));
+MockedVSCodeConfigSource.mockImplementation(() => ({}));
+MockedConfigManager.mockImplementation(() => mockConfigManager);
+MockedWorkflowService.mockImplementation(() => mockWorkflowService);
 
 describe("ClaudeService", () => {
   let service: ClaudeService;
@@ -330,7 +330,7 @@ describe("ClaudeService", () => {
 
       await service.executeWorkflow(
         mockExecution,
-        mockWorkflowService as any,
+        mockWorkflowService as unknown as WorkflowService,
         "claude-3-5-sonnet-20241022",
         "/workspace",
         onStepProgress,
@@ -370,7 +370,7 @@ describe("ClaudeService", () => {
 
       await service.executeWorkflow(
         mockExecution,
-        mockWorkflowService as any,
+        mockWorkflowService as unknown as WorkflowService,
         "claude-3-5-sonnet-20241022",
         "/workspace",
         onStepProgress,
@@ -414,7 +414,7 @@ describe("ClaudeService", () => {
 
       await service.executeWorkflow(
         mockExecution,
-        mockWorkflowService as any,
+        mockWorkflowService as unknown as WorkflowService,
         "claude-3-5-sonnet-20241022",
         "/workspace",
         onStepProgress,
@@ -456,7 +456,7 @@ describe("ClaudeService", () => {
 
       await service.executeWorkflow(
         mockExecution,
-        mockWorkflowService as any,
+        mockWorkflowService as unknown as WorkflowService,
         "claude-3-5-sonnet-20241022",
         "/workspace",
         onStepProgress,
@@ -497,7 +497,7 @@ describe("ClaudeService", () => {
 
       await service.executeWorkflow(
         mockExecution,
-        mockWorkflowService as any,
+        mockWorkflowService as unknown as WorkflowService,
         "claude-3-5-sonnet-20241022",
         "/workspace",
         onStepProgress,
@@ -606,7 +606,8 @@ describe("ClaudeService", () => {
 
       // Simulate pipeline being paused by calling the internal method
       const pausedId = "pipeline-123-abc";
-      (service as any).pausedPipelines.set(pausedId, {
+      // @ts-expect-error - accessing private property for testing
+      service.pausedPipelines.set(pausedId, {
         tasks: mockTasks,
         currentIndex: 1,
         resetTime: Date.now(),
@@ -648,7 +649,8 @@ describe("ClaudeService", () => {
         onError: jest.fn(),
       };
 
-      (service as any).pausedPipelines.set("pipeline-123", mockData);
+      // @ts-expect-error - accessing private property for testing
+      service.pausedPipelines.set("pipeline-123", mockData);
 
       const pipelines = service.getPausedPipelines();
 
@@ -705,6 +707,167 @@ describe("ClaudeService", () => {
     });
   });
 
+  describe("retry mechanisms", () => {
+    it("should handle retry logic through executor", async () => {
+      // Reset mock before configuring specific behavior
+      mockClaudeExecutor.executeTask.mockReset();
+      mockClaudeExecutor.executeTask.mockResolvedValue({
+        taskId: "retry-test",
+        success: true,
+        output: "Task succeeded",
+        executionTimeMs: 2000,
+      });
+
+      const result = await service.executeTask(
+        "retry test",
+        "claude-3-5-sonnet-20241022",
+        "/workspace",
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.output).toBe("Task succeeded");
+      expect(mockClaudeExecutor.executeTask).toHaveBeenCalledWith(
+        "retry test",
+        "claude-3-5-sonnet-20241022",
+        "/workspace",
+        {},
+      );
+    });
+
+    it("should handle pipeline retry scenarios", async () => {
+      const mockTasks: TaskItem[] = [
+        { id: "task1", prompt: "First task", status: "pending" },
+      ];
+
+      mockClaudeExecutor.executePipeline
+        .mockRejectedValueOnce(new Error("Pipeline temporary failure"))
+        .mockResolvedValueOnce(undefined);
+
+      await expect(
+        service.executePipeline(
+          mockTasks,
+          "claude-3-5-sonnet-20241022",
+          "/workspace",
+        ),
+      ).rejects.toThrow("Pipeline temporary failure");
+
+      await expect(
+        service.executePipeline(
+          mockTasks,
+          "claude-3-5-sonnet-20241022",
+          "/workspace",
+        ),
+      ).resolves.toBeUndefined();
+    });
+
+    it("should handle API timeout scenarios", async () => {
+      // Reset mock before configuring specific behavior
+      mockClaudeExecutor.executeTask.mockReset();
+      mockClaudeExecutor.executeTask.mockRejectedValue(
+        new Error("Request timeout"),
+      );
+
+      await expect(
+        service.executeTask(
+          "timeout test",
+          "claude-3-5-sonnet-20241022",
+          "/workspace",
+          { allowAllTools: false },
+        ),
+      ).rejects.toThrow("Request timeout");
+    });
+
+    it("should handle network connectivity issues", async () => {
+      mockClaudeExecutor.executeTask.mockRejectedValue(
+        new Error("Network unreachable"),
+      );
+
+      await expect(
+        service.executeTask(
+          "network test",
+          "claude-3-5-sonnet-20241022",
+          "/workspace",
+        ),
+      ).rejects.toThrow("Network unreachable");
+    });
+  });
+
+  describe("API communication", () => {
+    it("should handle successful API responses", async () => {
+      const mockResponse: TaskResult = {
+        taskId: "test-123",
+        success: true,
+        output: "API response received",
+        executionTimeMs: 1500,
+        sessionId: "session-456",
+      };
+
+      mockClaudeExecutor.executeTask.mockResolvedValue(mockResponse);
+
+      const result = await service.executeTask(
+        "API test",
+        "claude-3-5-sonnet-20241022",
+        "/workspace",
+      );
+
+      expect(result).toEqual(mockResponse);
+      expect(result.sessionId).toBe("session-456");
+    });
+
+    it("should handle API error responses", async () => {
+      const mockErrorResponse: TaskResult = {
+        taskId: "error-123",
+        success: false,
+        output: "",
+        error: "API error: Invalid model",
+        executionTimeMs: 500,
+      };
+
+      mockClaudeExecutor.executeTask.mockResolvedValue(mockErrorResponse);
+
+      const result = await service.executeTask(
+        "error test",
+        "invalid-model",
+        "/workspace",
+      );
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe("API error: Invalid model");
+    });
+
+    it("should handle malformed API responses", async () => {
+      mockClaudeExecutor.executeTask.mockResolvedValue({
+        taskId: "malformed-123",
+        success: true,
+        output: null as unknown as string,
+        executionTimeMs: 1000,
+      });
+
+      const result = await service.executeTask(
+        "malformed test",
+        "claude-3-5-sonnet-20241022",
+        "/workspace",
+      );
+
+      expect(result.taskId).toBe("malformed-123");
+      expect(result.success).toBe(true);
+    });
+
+    it("should handle API rate limiting", async () => {
+      mockClaudeExecutor.executeTask.mockRejectedValue(
+        new Error("Rate limit exceeded"),
+      );
+
+      await expect(
+        service.executeTask(
+          "rate limit test",
+          "claude-3-5-sonnet-20241022",
+          "/workspace",
+        ),
+      ).rejects.toThrow("Rate limit exceeded");
+    });
+  });
+
   describe("error handling", () => {
     it("should handle string errors in workflow execution", async () => {
       const onStepProgress = jest.fn();
@@ -747,7 +910,7 @@ describe("ClaudeService", () => {
 
       await service.executeWorkflow(
         mockExecution,
-        mockWorkflowService as any,
+        mockWorkflowService as unknown as WorkflowService,
         "claude-3-5-sonnet-20241022",
         "/workspace",
         onStepProgress,
@@ -784,7 +947,7 @@ describe("ClaudeService", () => {
       await expect(
         service.executeWorkflow(
           mockExecution,
-          mockWorkflowService as any,
+          mockWorkflowService as unknown as WorkflowService,
           "claude-3-5-sonnet-20241022",
           "/workspace",
           onStepProgress,
@@ -874,7 +1037,7 @@ describe("ClaudeService", () => {
 
       await service.executeWorkflow(
         mockExecution,
-        mockWorkflowService as any,
+        mockWorkflowService as unknown as WorkflowService,
         "claude-3-5-sonnet-20241022",
         "/workspace",
         onStepProgress,
@@ -884,6 +1047,76 @@ describe("ClaudeService", () => {
 
       expect(onError).toHaveBeenCalledWith("Task execution failed");
       expect(mockExecution.error).toBe("Task execution failed");
+    });
+  });
+
+  describe("advanced service lifecycle", () => {
+    it("should handle service initialization errors gracefully", () => {
+      MockedVSCodeLogger.mockImplementation(() => {
+        throw new Error("Logger initialization failed");
+      });
+
+      expect(() => new ClaudeService()).toThrow("Logger initialization failed");
+
+      MockedVSCodeLogger.mockImplementation(() => ({}));
+    });
+
+    it("should handle config source initialization errors", () => {
+      MockedVSCodeConfigSource.mockImplementation(() => {
+        throw new Error("Config source initialization failed");
+      });
+
+      expect(() => new ClaudeService()).toThrow(
+        "Config source initialization failed",
+      );
+
+      MockedVSCodeConfigSource.mockImplementation(() => ({}));
+    });
+
+    it("should handle executor initialization errors", () => {
+      MockedClaudeExecutor.mockImplementation(() => {
+        throw new Error("Executor initialization failed");
+      });
+
+      expect(() => new ClaudeService()).toThrow(
+        "Executor initialization failed",
+      );
+
+      MockedClaudeExecutor.mockImplementation(() => mockClaudeExecutor);
+    });
+
+    it("should maintain state integrity across operations", async () => {
+      expect(service.isTaskRunning()).toBeDefined();
+      expect(service.getPausedPipelines()).toEqual([]);
+
+      await service.pausePipelineExecution();
+      // @ts-expect-error - accessing private property for testing
+      expect(service.pauseAfterCurrentTask).toBe(true);
+
+      service.cancelCurrentTask();
+      expect(mockClaudeExecutor.cancelCurrentTask).toHaveBeenCalled();
+    });
+
+    it("should handle service disposal and cleanup", () => {
+      const initialPipelineCount = service.getPausedPipelines().length;
+
+      // @ts-expect-error - accessing private property for testing
+      service.pausedPipelines.set("test-cleanup", {
+        tasks: [],
+        currentIndex: 0,
+        resetTime: Date.now(),
+        onProgress: jest.fn(),
+        onComplete: jest.fn(),
+        onError: jest.fn(),
+      });
+
+      expect(service.getPausedPipelines().length).toBeGreaterThan(
+        initialPipelineCount,
+      );
+
+      // @ts-expect-error - accessing private property for testing
+      service.pausedPipelines.clear();
+      expect(service.getPausedPipelines()).toEqual([]);
     });
   });
 
@@ -939,25 +1172,23 @@ describe("ClaudeService", () => {
 
     it("should handle pause flag state changes correctly", async () => {
       // Initial state should be false
-      expect((service as any).pauseAfterCurrentTask).toBe(false);
+      // @ts-expect-error - accessing private property for testing
+      expect(service.pauseAfterCurrentTask).toBe(false);
 
       // After pause request, flag should be true
       await service.pausePipelineExecution();
-      expect((service as any).pauseAfterCurrentTask).toBe(true);
+      // @ts-expect-error - accessing private property for testing
+      expect(service.pauseAfterCurrentTask).toBe(true);
 
       // Simulate pipeline pause callback which should reset the flag
       const mockTasks: TaskItem[] = [
         { id: "task1", prompt: "Task 1", status: "pending" },
       ];
 
-      (service as any).onPipelinePaused(
-        mockTasks,
-        0,
-        jest.fn(),
-        jest.fn(),
-        jest.fn(),
-      );
-      expect((service as any).pauseAfterCurrentTask).toBe(false);
+      // @ts-expect-error - accessing private method for testing
+      service.onPipelinePaused(mockTasks, 0, jest.fn(), jest.fn(), jest.fn());
+      // @ts-expect-error - accessing private property for testing
+      expect(service.pauseAfterCurrentTask).toBe(false);
     });
 
     it("should clean up paused pipeline data after resume", async () => {
@@ -972,7 +1203,8 @@ describe("ClaudeService", () => {
       };
 
       // Add pipeline data
-      (service as any).pausedPipelines.set(pipelineId, mockData);
+      // @ts-expect-error - accessing private property for testing
+      service.pausedPipelines.set(pipelineId, mockData);
       expect(service.getPausedPipelines()).toHaveLength(1);
 
       // Resume should clean up the data
@@ -981,6 +1213,87 @@ describe("ClaudeService", () => {
 
       expect(result).toBe(true);
       expect(service.getPausedPipelines()).toHaveLength(0);
+    });
+  });
+
+  describe("advanced configuration scenarios", () => {
+    it("should handle configuration source failures", () => {
+      mockConfigManager.addSource.mockImplementation(() => {
+        throw new Error("Failed to add config source");
+      });
+
+      expect(() => new ClaudeService()).toThrow("Failed to add config source");
+
+      mockConfigManager.addSource.mockImplementation(() => {});
+    });
+
+    it("should validate different model configurations", () => {
+      const testCases = [
+        { model: "auto", expected: true },
+        {
+          model: "claude-3-5-sonnet-20241022",
+          configResult: true,
+          expected: true,
+        },
+        { model: "claude-3-opus-20240229", configResult: true, expected: true },
+        { model: "invalid-model", configResult: false, expected: false },
+        { model: "", configResult: false, expected: false },
+      ];
+
+      testCases.forEach(({ model, configResult, expected }) => {
+        if (configResult !== undefined) {
+          mockConfigManager.validateModel.mockReturnValue(configResult);
+        }
+
+        const result = service.isValidModelId(model);
+        expect(result).toBe(expected);
+      });
+    });
+
+    it("should handle config manager validation errors", () => {
+      mockConfigManager.validateModel.mockImplementation(() => {
+        throw new Error("Config validation service unavailable");
+      });
+
+      expect(() => service.isValidModelId("test-model")).toThrow(
+        "Config validation service unavailable",
+      );
+
+      mockConfigManager.validateModel.mockImplementation(() => true);
+    });
+
+    it("should handle complex initialization dependencies", () => {
+      let loggerCallCount = 0;
+      let configSourceCallCount = 0;
+      let configManagerCallCount = 0;
+      let executorCallCount = 0;
+
+      MockedVSCodeLogger.mockImplementation(() => {
+        loggerCallCount++;
+        return {};
+      });
+
+      MockedVSCodeConfigSource.mockImplementation(() => {
+        configSourceCallCount++;
+        return {};
+      });
+
+      MockedConfigManager.mockImplementation(() => {
+        configManagerCallCount++;
+        return mockConfigManager;
+      });
+
+      MockedClaudeExecutor.mockImplementation(() => {
+        executorCallCount++;
+        return mockClaudeExecutor;
+      });
+
+      new ClaudeService();
+
+      expect(loggerCallCount).toBe(1);
+      expect(configSourceCallCount).toBe(1);
+      expect(configManagerCallCount).toBe(1);
+      expect(executorCallCount).toBe(1);
     });
   });
 
@@ -1090,7 +1403,7 @@ describe("ClaudeService", () => {
 
       await service.executeWorkflow(
         mockExecution,
-        mockWorkflowService as any,
+        mockWorkflowService as unknown as WorkflowService,
         "claude-3-5-sonnet-20241022",
         "/workspace",
         onStepProgress,
@@ -1114,6 +1427,155 @@ describe("ClaudeService", () => {
         result: "Complex step completed",
         session_id: "new-session-789",
       });
+    });
+  });
+
+  describe("core service wrapper functionality", () => {
+    it("should properly wrap executor methods", () => {
+      const methods = [
+        "executeTask",
+        "executePipeline",
+        "cancelCurrentTask",
+        "isTaskRunning",
+        "validateClaudeCommand",
+        "formatCommandPreview",
+      ];
+
+      methods.forEach((method) => {
+        expect(
+          typeof (service as unknown as Record<string, unknown>)[method],
+        ).toBe("function");
+      });
+    });
+
+    it("should delegate calls to executor correctly", async () => {
+      mockClaudeExecutor.executeTask.mockResolvedValue({
+        taskId: "delegation-test",
+        success: true,
+        output: "Delegated successfully",
+        executionTimeMs: 1000,
+      });
+
+      await service.executeTask(
+        "test task",
+        "claude-3-5-sonnet-20241022",
+        "/workspace",
+        { allowAllTools: true },
+      );
+      expect(mockClaudeExecutor.executeTask).toHaveBeenCalledWith(
+        "test task",
+        "claude-3-5-sonnet-20241022",
+        "/workspace",
+        { allowAllTools: true },
+      );
+
+      service.cancelCurrentTask();
+      expect(mockClaudeExecutor.cancelCurrentTask).toHaveBeenCalled();
+
+      mockClaudeExecutor.isTaskRunning.mockReturnValue(true);
+      expect(service.isTaskRunning()).toBe(true);
+    });
+
+    it("should maintain executor state consistency", () => {
+      mockClaudeExecutor.isTaskRunning.mockReturnValue(false);
+      expect(service.isTaskRunning()).toBe(false);
+
+      mockClaudeExecutor.isTaskRunning.mockReturnValue(true);
+      expect(service.isTaskRunning()).toBe(true);
+    });
+
+    it("should handle executor method failures gracefully", async () => {
+      mockClaudeExecutor.validateClaudeCommand.mockRejectedValue(
+        new Error("Validation failed"),
+      );
+
+      await expect(
+        service.validateClaudeCommand("claude-3-5-sonnet-20241022"),
+      ).rejects.toThrow("Validation failed");
+
+      mockClaudeExecutor.formatCommandPreview.mockImplementation(() => {
+        throw new Error("Preview failed");
+      });
+
+      expect(() =>
+        service.formatCommandPreview(
+          "test",
+          "claude-3-5-sonnet-20241022",
+          "/workspace",
+          {},
+        ),
+      ).toThrow("Preview failed");
+    });
+  });
+
+  describe("service state management", () => {
+    it("should manage pause state correctly", async () => {
+      // @ts-expect-error - accessing private property for testing
+      expect(service.pauseAfterCurrentTask).toBe(false);
+
+      const pipelineId = await service.pausePipelineExecution();
+      // @ts-expect-error - accessing private property for testing
+      expect(service.pauseAfterCurrentTask).toBe(true);
+      expect(pipelineId).toMatch(/^pipeline-\d+-[a-z0-9]{9}$/);
+
+      // Simulate pipeline pause callback
+      // @ts-expect-error - accessing private method for testing
+      service.onPipelinePaused(
+        [{ id: "task1", prompt: "Test", status: "pending" }],
+        0,
+        jest.fn(),
+        jest.fn(),
+        jest.fn(),
+      );
+      // @ts-expect-error - accessing private property for testing
+      expect(service.pauseAfterCurrentTask).toBe(false);
+    });
+
+    it("should manage paused pipelines map correctly", () => {
+      const initialCount = service.getPausedPipelines().length;
+
+      // @ts-expect-error - accessing private property for testing
+      service.pausedPipelines.set("test-id-1", {
+        tasks: [{ id: "task1", prompt: "Task 1", status: "pending" }],
+        currentIndex: 0,
+        resetTime: 1000,
+        onProgress: jest.fn(),
+        onComplete: jest.fn(),
+        onError: jest.fn(),
+      });
+
+      // @ts-expect-error - accessing private property for testing
+      service.pausedPipelines.set("test-id-2", {
+        tasks: [{ id: "task2", prompt: "Task 2", status: "pending" }],
+        currentIndex: 1,
+        resetTime: 2000,
+        onProgress: jest.fn(),
+        onComplete: jest.fn(),
+        onError: jest.fn(),
+      });
+
+      const pipelines = service.getPausedPipelines();
+      expect(pipelines.length).toBe(initialCount + 2);
+      expect(pipelines.find((p) => p.id === "test-id-1")).toEqual({
+        id: "test-id-1",
+        pausedAt: 1000,
+        taskCount: 1,
+      });
+      expect(pipelines.find((p) => p.id === "test-id-2")).toEqual({
+        id: "test-id-2",
+        pausedAt: 2000,
+        taskCount: 1,
+      });
+    });
+
+    it("should handle pipeline ID generation uniqueness", async () => {
+      const ids = new Set();
+      for (let i = 0; i < 10; i++) {
+        const id = await service.pausePipelineExecution();
+        expect(ids.has(id)).toBe(false);
+        ids.add(id);
+      }
+      expect(ids.size).toBe(10);
     });
   });
 });

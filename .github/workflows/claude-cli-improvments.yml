@@ -1,0 +1,311 @@
+name: claude-cli-improvements
+on:
+  workflow_dispatch:
+    inputs:
+      description:
+        description: CLI Improvement Implementation Pipeline
+        required: false
+        type: string
+
+jobs:
+  pipeline:
+    name: CLI Feature Implementation
+    runs-on: ubuntu-latest
+    steps:
+      - id: analyze_current_cli
+        name: Analyze Current CLI Structure
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: |
+            Read and analyze the existing documentation and code structure:
+            
+            1. Review /workspaces/vsix/claude-code-docs/docs/cli_improvment.md for detailed Go CLI analysis
+            2. Review /workspaces/vsix/claude-code-docs/docs/cli_plan.md for implementation plan
+            3. Examine /workspaces/vsix/claude-runner/cli/claude-runner.js current structure
+            
+            Based on the comprehensive analysis already done, extract the key implementation points:
+            - Exact code locations for flag parsing modifications in parseGlobalOptions()
+            - Current rate limit handling in the TS CLI vs Go CLI sophisticated approach
+            - Session management differences between implementations
+            - Job log structure requirements from Go CLI analysis
+            
+            Reference the existing analysis to identify the most critical gaps and provide focused implementation guidance for the next steps.
+          model: auto
+          allow_all_tools: true
+          output_session: true
+
+      - id: implement_job_log_types
+        name: Create Job Log Type Definitions
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: |
+            Using the implementation plan from /workspaces/vsix/claude-code-docs/docs/cli_plan.md Phase 1, Step 1.1:
+            
+            Create file: cli/src/types/JobLog.ts
+            
+            Implement the exact TypeScript interfaces specified in the plan:
+            - JobLogStep interface with all required fields (stepIndex, stepId, stepName, status, startTime, endTime, durationMs, output, error, sessionId, resumeSession)
+            - JobLog interface matching the Go CLI structure exactly
+            - Use the status types: 'completed' | 'failed' | 'running' for steps
+            - Use the status types: 'running' | 'paused' | 'completed' | 'failed' for jobs
+            
+            This must match the Go CLI's internal/types/job_log.go JobLog and JobLogStep structures for full compatibility.
+          model: auto
+          allow_all_tools: true
+          resume_session: ${{ steps.analyze_current_cli.outputs.session_id }}
+
+      - id: implement_job_log_manager
+        name: Create Job Log Manager Utility
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: |
+            Using the implementation plan from /workspaces/vsix/claude-code-docs/docs/cli_plan.md Phase 1, Step 1.2:
+            
+            Create file: cli/src/utils/JobLogManager.ts
+            
+            Implement the exact JobLogManager class specified in the plan with all static methods:
+            - getJobLogPath() - Generate .job.json path like Go CLI's GetJobLogPath()
+            - saveJobLog() and loadJobLog() - File persistence matching Go CLI's SaveToFile/LoadFromFile
+            - createJobLog() - Initialize new log matching Go CLI's NewJobLog()
+            - addStep() - Add/update steps with deduplication like Go CLI's AddStep()
+            
+            Reference the Go CLI analysis in cli_improvment.md showing the exact job log structure and ensure the TS implementation creates compatible .job.json files.
+          model: auto
+          allow_all_tools: true
+          resume_session: ${{ steps.analyze_current_cli.outputs.session_id }}
+
+      - id: implement_resume_flag_parsing
+        name: Add Resume and Bypass Flag Parsing
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: |
+            Modify the existing CLI to add flag parsing:
+            
+            Update cli/claude-runner.js:
+            
+            1. Modify parseGlobalOptions method to detect:
+               - --resume or -r flag → options.resume = true
+               - --yes or -y flag → options.autoAccept = true
+            
+            2. Update showHelp method to document new flags:
+               - Add resume flag documentation
+               - Add bypass flag documentation with warning
+               - Add usage examples with both flags
+            
+            3. Ensure backward compatibility with existing flags
+            4. Add validation that flags are used only with 'run' command
+            
+            Show exact code modifications with before/after sections.
+          model: auto
+          allow_all_tools: true
+
+      - id: implement_rate_limit_detection
+        name: Implement Rate Limit Detection and Handling
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: |
+            Based on the detailed Go CLI analysis in /workspaces/vsix/claude-code-docs/docs/cli_improvment.md:
+            
+            Implement rate limit detection exactly matching the Go CLI's internal/executor/ratelimit.go:
+            
+            1. detectRateLimit() function:
+               - Use regex pattern: /Claude AI usage limit reached\|(\d+)/
+               - Parse Unix timestamp and calculate wait time
+               - Return RateLimitInfo object with isLimited, resetTime, waitTime
+            
+            2. waitForRateLimit() function matching Go CLI's waitForReset():
+               - 30-minute maximum wait time
+               - 30-second progress updates showing remaining time
+               - Graceful interruption handling
+               - Clear user messages during wait
+            
+            3. Integration with retry logic:
+               - 3 retry attempts maximum
+               - 90% of timeout as cumulative wait guard
+               - Session preservation during retries
+               - EXIT 1 handling from Claude CLI process
+            
+            This must handle the exact rate limit format and timing behavior as the Go CLI for consistency.
+          model: auto
+          allow_all_tools: true
+
+      - id: implement_resume_logic
+        name: Implement Resume Workflow Logic
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: |
+            Using the implementation plan from /workspaces/vsix/claude-code-docs/docs/cli_plan.md Phase 2 (Steps 2.2 and 2.3):
+            
+            Implement resume functionality in runWorkflow method exactly as specified:
+            
+            1. Resume detection logic from Step 2.2:
+               - Load existing job log when -r flag is used
+               - Show progress: "📄 Found job log" and "⏯️ Last completed step: X/Y"
+               - Calculate startFromStep = lastCompletedStep + 1
+               - Clear job log for fresh runs (non-resume)
+            
+            2. Step execution loop from Step 2.3:
+               - Skip completed steps with "⏭️ Skipping completed step" message
+               - Track currentStepIndex correctly
+               - Create JobLogStep entries with proper timing
+               - Save job log after each step completion/failure
+            
+            3. Session continuity matching Go CLI's session management:
+               - Restore session IDs from job log for resume operations
+               - Handle session references like ${{ steps.X.outputs.session_id }}
+            
+            Reference the Go CLI's main.go runTUI() function lines 219-244 for exact resume behavior.
+          model: auto
+          allow_all_tools: true
+          resume_session: ${{ steps.analyze_current_cli.outputs.session_id }}
+
+      - id: implement_bypass_functionality
+        name: Implement Bypass Permission Mode
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: |
+            Using the implementation plan from /workspaces/vsix/claude-code-docs/docs/cli_plan.md Phase 3:
+            
+            Implement bypass functionality exactly matching the Go CLI's internal/executor/claude.go lines 118-121:
+            
+            1. Modify ClaudeExecutor (Step 3.2):
+               - Add bypassPermissions parameter to executeTask method
+               - Add --dangerously-skip-permissions flag when bypass is enabled OR allow_all_tools is true
+               - Match Go CLI's logic: if (e.autoAccept || step.AllowAllTools)
+            
+            2. Update runWorkflow (Step 3.3):
+               - Display warning: "\x1b[33m⚠️ Bypassing Permissions\x1b[0m"
+               - Pass bypassPermissions: options.autoAccept to taskOptions
+               - Show exact warning format from Go CLI main.go lines 155-158
+            
+            3. Reference the Go CLI analysis in cli_improvment.md showing the bypass implementation with autoAccept flag and --dangerously-skip-permissions integration.
+            
+            Must match the Go CLI's security model and warning display exactly.
+          model: auto
+          allow_all_tools: true
+
+      - id: create_unit_tests
+        name: Create Comprehensive Unit Tests
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: |
+            Using the test specifications from /workspaces/vsix/claude-code-docs/docs/cli_plan.md Phase 1-3:
+            
+            Create the exact unit tests specified in the plan:
+            
+            1. cli/tests/JobLogManager.test.ts (from Step 1.3):
+               - Test createJobLog with correct structure
+               - Test addStep and lastCompletedStep updates  
+               - Test getJobLogPath generation
+               - Use the exact test cases provided in the plan
+            
+            2. cli/tests/Resume.test.ts (from Step 2.4):
+               - Test resume flag parsing
+               - Test startFromStep calculation logic
+               - Use the exact test structure from the plan
+            
+            3. cli/tests/Bypass.test.ts (from Step 3.4):
+               - Test bypass flag parsing
+               - Test --dangerously-skip-permissions addition to commands
+               - Mock ClaudeExecutor and verify command construction
+            
+            4. Additional integration tests referencing the existing testing framework in /workspaces/vsix/claude-runner/tests/
+            
+            Follow the existing Jest setup and mocking patterns used in the project. Spin 3 agents for tests
+          model: auto
+          allow_all_tools: true
+
+      - id: create_integration_test
+        name: Create Integration Test Workflow
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: |
+            Using the integration test plan from /workspaces/vsix/claude-code-docs/docs/cli_plan.md Phase 4:
+            
+            Create integration tests using the existing /workspaces/vsix/claude-runner/.github/workflows/claude-integration-test.yml workflow:
+            
+            Test scenarios from Step 4.1:
+            1. Normal execution: ./claude-runner run .github/workflows/claude-integration-test.yml
+            2. Bypass mode: ./claude-runner run .github/workflows/claude-integration-test.yml -y
+            3. Resume after interruption: Run, Ctrl+C, then ./claude-runner run ... -r
+            4. Combined flags: ./claude-runner run .github/workflows/claude-integration-test.yml -r -y
+            
+            The test workflow has 3 Claude steps with session continuity - perfect for testing:
+            - Task 1 (random number with output_session)
+            - Task 2 (another random number)  
+            - Task 3 (resume from Task 1's session)
+            
+            Create automated test script that validates:
+            - Job log file creation (.job.json)
+            - Resume step skipping behavior
+            - Bypass warning display
+            - Session ID preservation across resume
+            - Rate limit detection and waiting
+            
+            Reference the testing checklist from the plan for complete coverage.
+          model: auto
+          allow_all_tools: true
+
+      - id: update_documentation
+        name: Update CLI Documentation
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: |
+            Update CLI documentation for the new features:
+            
+            1. Update cli/README.md:
+               - Add resume functionality section with examples
+               - Add bypass mode section with security warnings
+               - Add job log file explanation
+               - Include troubleshooting section for rate limits
+               - Add examples of flag combinations
+            
+            2. Create migration guide:
+               - How to upgrade from old CLI version
+               - New features overview
+               - Breaking changes (if any)
+               - Best practices for using new flags
+            
+            3. Add inline code documentation:
+               - JSDoc comments for new functions
+               - Type annotations where missing
+               - Clear parameter descriptions
+            
+            Ensure documentation is clear and includes practical examples.
+          model: auto
+          allow_all_tools: true
+
+      - id: validation_and_summary
+        name: Validate Implementation and Create Summary
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: |
+            Using the success criteria from /workspaces/vsix/claude-code-docs/docs/cli_plan.md:
+            
+            Validate the complete implementation against the plan:
+            
+            1. Success Criteria Checklist:
+               - ✅ CLI accepts `-r` and `-y` flags
+               - ✅ Job logs are created and persisted correctly  
+               - ✅ Resume skips completed steps and continues from correct position
+               - ✅ Bypass mode adds `--dangerously-skip-permissions` to Claude calls
+               - ✅ All unit tests pass
+               - ✅ Integration test with existing workflow succeeds
+               - ✅ Help documentation is updated
+            
+            2. Feature Parity Verification with Go CLI:
+               - Compare with /workspaces/vsix/claude-code-docs/docs/cli_improvment.md analysis
+               - Verify job log format compatibility (.job.json structure)
+               - Confirm rate limit handling matches Go CLI's ratelimit.go
+               - Validate bypass mode security model alignment
+            
+            3. Final Implementation Summary:
+               - List all created/modified files from the file structure in the plan
+               - Reference the testing checklist completion
+               - Confirm TypeScript CLI now has production-grade features
+               - Document any remaining gaps or future improvements
+            
+            Create comprehensive validation report ready for code review and deployment.
+          model: auto
+          allow_all_tools: true
+          resume_session: ${{ steps.analyze_current_cli.outputs.session_id }}

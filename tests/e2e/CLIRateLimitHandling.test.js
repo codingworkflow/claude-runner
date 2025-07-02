@@ -70,7 +70,7 @@ ${steps
 
   // Mock the ClaudeExecutor to simulate rate limit scenarios
   const originalExecuteTask =
-    require("../../cli/dist/core/services/ClaudeExecutor").ClaudeExecutor
+    require("../../cli/dist/src/core/services/ClaudeExecutor").ClaudeExecutor
       .prototype.executeTask;
 
   test("should handle rate limit and auto-retry after wait", async () => {

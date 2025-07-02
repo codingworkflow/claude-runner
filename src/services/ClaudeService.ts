@@ -112,6 +112,7 @@ export class ClaudeService {
         // Build task options from step configuration
         const taskOptions: TaskOptions = {
           allowAllTools: resolvedStep.with.allow_all_tools,
+          bypassPermissions: resolvedStep.with.bypass_permissions,
           outputFormat: "json", // Always use JSON for workflows to capture session ID
           workingDirectory: resolvedStep.with.working_directory ?? rootPath,
           resumeSessionId: resolvedStep.with.resume_session,

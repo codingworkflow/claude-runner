@@ -7,6 +7,12 @@ import {
 } from "../models/Task";
 import { ILogger, IConfigManager } from "../interfaces";
 
+interface RateLimitInfo {
+  isLimited: boolean;
+  resetTime?: Date;
+  waitTime?: number; // milliseconds
+}
+
 export class ClaudeExecutor {
   private currentProcess: ReturnType<typeof spawn> | null = null;
 
@@ -78,6 +84,102 @@ export class ClaudeExecutor {
     }
   }
 
+  async executeTaskWithRetry(
+    task: string,
+    model: string,
+    workingDirectory: string,
+    options: TaskOptions = {},
+    maxRetries: number = 3,
+  ): Promise<CommandResult> {
+    let totalWaitTime = 0;
+    const maxCumulativeWait = 90 * 60 * 1000; // 90% of timeout (2 hours) = 108 minutes
+    let sessionId: string | undefined = options.resumeSessionId;
+
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        // Preserve session ID across retries for continuity
+        const retryOptions = { ...options };
+        if (sessionId && attempt > 0) {
+          retryOptions.resumeSessionId = sessionId;
+        }
+
+        const args = this.buildTaskCommand(task, model, retryOptions);
+        const result = await this.executeCommand(
+          args,
+          workingDirectory,
+          retryOptions.outputFormat,
+        );
+
+        if (result.success) {
+          return result;
+        }
+
+        // Store session ID for potential retry
+        if (result.sessionId) {
+          sessionId = result.sessionId;
+        }
+
+        // Handle EXIT 1 from Claude CLI process - check for rate limit
+        if (result.exitCode === 1) {
+          const rateLimitInfo = this.detectRateLimit(
+            result.output ?? "",
+            result.error,
+          );
+
+          if (rateLimitInfo.isLimited && attempt < maxRetries - 1) {
+            if (
+              totalWaitTime + (rateLimitInfo.waitTime ?? 0) >
+              maxCumulativeWait
+            ) {
+              throw new Error(
+                `Cumulative wait time would exceed timeout limit`,
+              );
+            }
+
+            totalWaitTime += rateLimitInfo.waitTime ?? 0;
+            this.logger.info(
+              `Rate limit detected, attempt ${attempt + 1}/${maxRetries}. Waiting...`,
+            );
+            await this.waitForRateLimit(rateLimitInfo);
+            continue;
+          }
+        }
+
+        // Non-rate-limit error or final attempt
+        throw new Error(result.error ?? "Command execution failed");
+      } catch (error) {
+        if (attempt === maxRetries - 1) {
+          throw error;
+        }
+
+        // Check if this is a rate limit error in the exception
+        const errorMessage =
+          error instanceof Error ? error.message : String(error);
+        const rateLimitInfo = this.detectRateLimit("", errorMessage);
+
+        if (rateLimitInfo.isLimited) {
+          if (
+            totalWaitTime + (rateLimitInfo.waitTime ?? 0) >
+            maxCumulativeWait
+          ) {
+            throw new Error(`Cumulative wait time would exceed timeout limit`);
+          }
+
+          totalWaitTime += rateLimitInfo.waitTime ?? 0;
+          this.logger.info(
+            `Rate limit detected in error, attempt ${attempt + 1}/${maxRetries}. Waiting...`,
+          );
+          await this.waitForRateLimit(rateLimitInfo);
+          continue;
+        }
+
+        throw error;
+      }
+    }
+
+    throw new Error("Maximum retries exceeded");
+  }
+
   async executePipeline(
     tasks: TaskItem[],
     model: string,
@@ -139,20 +241,20 @@ export class ClaudeExecutor {
           const errorOutput =
             result.error ?? result.output ?? "Task execution failed";
 
-          // Check for rate limit in both output and error message
+          // Check for rate limit and handle with retry logic
           const rateLimitCheck = this.detectRateLimit(
-            result.output || "",
+            result.output ?? "",
             result.error,
           );
 
-          if (rateLimitCheck.isRateLimited) {
+          if (rateLimitCheck.isLimited) {
             task.status = "paused";
-            task.pausedUntil = rateLimitCheck.resetTime;
-            task.results = `Rate limited - waiting for reset until ${new Date(rateLimitCheck.resetTime ?? 0).toLocaleString()}`;
+            task.pausedUntil = rateLimitCheck.resetTime?.getTime();
+            task.results = `Rate limited - waiting for reset until ${rateLimitCheck.resetTime?.toLocaleString()}`;
             onProgress?.(tasks, i);
 
             this.logger.warn(
-              `Rate limit detected, pausing pipeline execution until ${new Date(rateLimitCheck.resetTime ?? 0).toLocaleString()}`,
+              `Rate limit detected, pausing pipeline execution until ${rateLimitCheck.resetTime?.toLocaleString()}`,
             );
 
             // Store the failed task index for resumption
@@ -285,20 +387,20 @@ export class ClaudeExecutor {
           const errorOutput =
             result.error ?? result.output ?? "Task execution failed";
 
-          // Check for rate limit in both output and error message
+          // Check for rate limit and handle with retry logic
           const rateLimitCheck = this.detectRateLimit(
-            result.output || "",
+            result.output ?? "",
             result.error,
           );
 
-          if (rateLimitCheck.isRateLimited) {
+          if (rateLimitCheck.isLimited) {
             task.status = "paused";
-            task.pausedUntil = rateLimitCheck.resetTime;
-            task.results = `Rate limited - waiting for reset until ${new Date(rateLimitCheck.resetTime ?? 0).toLocaleString()}`;
+            task.pausedUntil = rateLimitCheck.resetTime?.getTime();
+            task.results = `Rate limited (resume) - waiting for reset until ${rateLimitCheck.resetTime?.toLocaleString()}`;
             onProgress?.(tasks, i);
 
             this.logger.warn(
-              `Rate limit detected during resume, pausing pipeline execution until ${new Date(rateLimitCheck.resetTime ?? 0).toLocaleString()}`,
+              `Rate limit detected during resume, pausing pipeline execution until ${rateLimitCheck.resetTime?.toLocaleString()}`,
             );
 
             // Store the failed task index for resumption
@@ -503,7 +605,11 @@ export class ClaudeExecutor {
       }
     }
 
-    if (options.allowAllTools) {
+    // Match Go CLI logic: if (e.autoAccept || step.AllowAllTools)
+    if (
+      (options.bypassPermissions ?? false) ||
+      (options.allowAllTools ?? false)
+    ) {
       args.push("--dangerously-skip-permissions");
     } else {
       if (options.allowedTools && options.allowedTools.length > 0) {
@@ -576,24 +682,74 @@ export class ClaudeExecutor {
     return `'${arg.replace(/'/g, "'\"'\"'")}'`;
   }
 
-  private detectRateLimit(
-    output: string,
-    stderr?: string,
-  ): {
-    isRateLimited: boolean;
-    resetTime?: number;
-  } {
-    // Check both stdout and stderr for rate limit messages
+  private detectRateLimit(output: string, stderr?: string): RateLimitInfo {
+    // Use exact pattern from Go CLI internal/executor/ratelimit.go
+    const pattern = /Claude AI usage limit reached\|(\d+)/;
     const fullOutput = `${output} ${stderr ?? ""}`;
-    const match = fullOutput.match(
-      /Claude (AI|Code) usage limit reached\|(\d+)/,
-    );
-    if (match) {
-      return {
-        isRateLimited: true,
-        resetTime: parseInt(match[2], 10) * 1000,
-      };
+
+    const match = pattern.exec(fullOutput);
+    if (!match) {
+      return { isLimited: false };
     }
-    return { isRateLimited: false };
+
+    const timestampStr = match[1];
+    const resetTimestamp = parseInt(timestampStr, 10);
+
+    // Handle invalid timestamps
+    if (isNaN(resetTimestamp)) {
+      return { isLimited: false };
+    }
+
+    const resetTime = new Date(resetTimestamp * 1000); // Convert Unix timestamp to milliseconds
+    const waitTime = resetTime.getTime() - Date.now();
+
+    return {
+      isLimited: true,
+      resetTime,
+      waitTime: Math.max(0, waitTime),
+    };
+  }
+
+  private async waitForRateLimit(
+    rateLimitInfo: RateLimitInfo,
+    maxWaitTime: number = 30 * 60 * 1000, // 30 minutes maximum
+  ): Promise<void> {
+    if (!rateLimitInfo.isLimited || !rateLimitInfo.waitTime) {
+      return;
+    }
+
+    const waitTime = Math.min(rateLimitInfo.waitTime, maxWaitTime);
+
+    if (waitTime <= 0) {
+      return;
+    }
+
+    const endTime = Date.now() + waitTime;
+    const waitMinutes = Math.round(waitTime / 1000 / 60);
+
+    this.logger.warn(
+      `Rate limit detected. Waiting ${waitMinutes} minutes until ${rateLimitInfo.resetTime?.toLocaleString()}`,
+    );
+
+    // Show progress updates every 30 seconds
+    const updateInterval = 30 * 1000;
+    let lastUpdate = Date.now();
+
+    while (Date.now() < endTime) {
+      const remaining = endTime - Date.now();
+
+      if (Date.now() - lastUpdate >= updateInterval) {
+        const remainingMinutes = Math.ceil(remaining / 1000 / 60);
+        this.logger.info(
+          `Waiting for rate limit reset... ${remainingMinutes} minutes remaining`,
+        );
+        lastUpdate = Date.now();
+      }
+
+      // Sleep for 1 second
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+    }
+
+    this.logger.info("Rate limit wait period completed");
   }
 }

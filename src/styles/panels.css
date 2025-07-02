@@ -709,6 +709,48 @@
   font-size: 0.85em;
 }
 
+/* Model breakdown styles */
+.model-breakdown {
+  margin: 8px 0;
+  padding: 8px;
+  background-color: var(--vscode-editor-background);
+  border-radius: 3px;
+  border: 1px solid var(--vscode-panel-border);
+}
+
+.model-entry {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 0;
+  font-size: 0.8em;
+}
+
+.model-entry:not(:last-child) {
+  border-bottom: 1px solid var(--vscode-panel-border);
+  margin-bottom: 4px;
+  padding-bottom: 4px;
+}
+
+.model-name {
+  font-weight: 500;
+  color: var(--vscode-foreground);
+  flex: 1;
+}
+
+.model-cost {
+  font-family: var(--vscode-editor-font-family);
+  font-weight: 600;
+  color: var(--vscode-charts-green);
+  margin-right: 8px;
+}
+
+.model-tokens {
+  font-family: var(--vscode-editor-font-family);
+  color: var(--vscode-descriptionForeground);
+  font-size: 0.75em;
+}
+
 /* Logs specific styles */
 .logs-content {
   display: flex;

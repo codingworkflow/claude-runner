@@ -6,6 +6,7 @@ export type ConditionType = "on_success" | "on_failure" | "always";
 
 export interface TaskOptions {
   allowAllTools?: boolean;
+  bypassPermissions?: boolean;
   outputFormat?: "text" | "json" | "stream-json";
   maxTurns?: number;
   verbose?: boolean;

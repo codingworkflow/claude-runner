@@ -680,58 +680,39 @@ export class UsageReportService {
       let totalCacheReadTokens = 0;
       let totalCost = 0;
 
-      // Process each hour individually
+      // Process each hour individually - one row per model per hour
       for (const hourData of hourlyData) {
-        const hourModels = new Set<string>();
-        let hourInputTokens = 0;
-        let hourOutputTokens = 0;
-        let hourCacheCreateTokens = 0;
-        let hourCacheReadTokens = 0;
-        let hourCost = 0;
+        const hourLabel = this.formatHour(hourData.hour);
 
-        // Aggregate data for this hour
         for (const [model, stats] of Object.entries(hourData.models)) {
-          if (model !== "<synthetic>") {
-            hourModels.add(model);
-            allModels.add(model);
+          if (model === "<synthetic>" || model === "unknown") {
+            continue;
           }
 
-          hourInputTokens += stats.input;
-          hourOutputTokens += stats.output;
-          hourCacheCreateTokens += stats.cacheCreate;
-          hourCacheReadTokens += stats.cacheRead;
-          hourCost += stats.cost;
-        }
+          const totalTokens =
+            stats.input + stats.output + stats.cacheCreate + stats.cacheRead;
 
-        // Only include hours that have activity
-        if (
-          hourInputTokens > 0 ||
-          hourOutputTokens > 0 ||
-          hourCacheCreateTokens > 0 ||
-          hourCacheReadTokens > 0
-        ) {
-          const hourTotalTokens =
-            hourInputTokens +
-            hourOutputTokens +
-            hourCacheCreateTokens +
-            hourCacheReadTokens;
+          // Only include models that have activity
+          if (totalTokens > 0) {
+            hourlyReports.push({
+              date: hourLabel,
+              models: [model],
+              inputTokens: stats.input,
+              outputTokens: stats.output,
+              cacheCreateTokens: stats.cacheCreate,
+              cacheReadTokens: stats.cacheRead,
+              totalTokens,
+              costUSD: stats.cost,
+            });
 
-          hourlyReports.push({
-            date: this.formatHour(hourData.hour),
-            models: Array.from(hourModels).filter((m) => m !== "unknown"),
-            inputTokens: hourInputTokens,
-            outputTokens: hourOutputTokens,
-            cacheCreateTokens: hourCacheCreateTokens,
-            cacheReadTokens: hourCacheReadTokens,
-            totalTokens: hourTotalTokens,
-            costUSD: hourCost,
-          });
-
-          totalInputTokens += hourInputTokens;
-          totalOutputTokens += hourOutputTokens;
-          totalCacheCreateTokens += hourCacheCreateTokens;
-          totalCacheReadTokens += hourCacheReadTokens;
-          totalCost += hourCost;
+            // Accumulate period-level totals
+            totalInputTokens += stats.input;
+            totalOutputTokens += stats.output;
+            totalCacheCreateTokens += stats.cacheCreate;
+            totalCacheReadTokens += stats.cacheRead;
+            totalCost += stats.cost;
+            allModels.add(model);
+          }
         }
       }
 

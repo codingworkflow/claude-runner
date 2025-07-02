@@ -5,12 +5,13 @@ const path = require("path");
 const fs = require("fs");
 
 // Import from compiled core modules - ZERO duplication!
-const { ClaudeExecutor } = require("./dist/core/services/ClaudeExecutor");
-const { ConfigManager } = require("./dist/core/services/ConfigManager");
-const { WorkflowParser } = require("./dist/core/services/WorkflowParser");
+const { ClaudeExecutor } = require("./dist/src/core/services/ClaudeExecutor");
+const { ConfigManager } = require("./dist/src/core/services/ConfigManager");
+const { WorkflowParser } = require("./dist/src/core/services/WorkflowParser");
 const {
   ClaudeDetectionService,
-} = require("./dist/services/ClaudeDetectionService");
+} = require("./dist/src/services/ClaudeDetectionService");
+const { JobLogManager } = require("./dist/cli/src/utils/JobLogManager");
 
 // External dependency
 const yaml = require("js-yaml");
@@ -73,6 +74,14 @@ class ClaudeRunnerCLI {
     // Parse global options
     const options = this.parseGlobalOptions(args);
 
+    // Validate flags are only used with 'run' command
+    if (command !== "run" && (options.resume || options.autoAccept)) {
+      console.error(
+        "ERROR: --resume and --yes flags can only be used with the run command",
+      );
+      process.exit(1);
+    }
+
     switch (command) {
       case "list":
         await this.listWorkflows(args[1] || ".github/workflows", options);
@@ -98,6 +107,8 @@ class ClaudeRunnerCLI {
         await this.runWorkflow(args[1], {
           verbose: args.includes("--verbose"),
           executionPath: options.executionPath,
+          resume: options.resume,
+          autoAccept: options.autoAccept,
         });
         break;
 
@@ -110,6 +121,8 @@ class ClaudeRunnerCLI {
   parseGlobalOptions(args) {
     const options = {
       executionPath: process.cwd(), // Default to current working directory
+      resume: false,
+      autoAccept: false,
     };
 
     for (let i = 0; i < args.length; i++) {
@@ -120,6 +133,10 @@ class ClaudeRunnerCLI {
           console.error("ERROR: --path requires a directory argument");
           process.exit(1);
         }
+      } else if (args[i] === "--resume" || args[i] === "-r") {
+        options.resume = true;
+      } else if (args[i] === "--yes" || args[i] === "-y") {
+        options.autoAccept = true;
       }
     }
 
@@ -147,6 +164,15 @@ class ClaudeRunnerCLI {
     console.log(
       "  --path, -p <directory>                  - Set execution directory (default: current)",
     );
+    console.log(
+      "  --resume, -r                            - Resume from last failed step (run command only)",
+    );
+    console.log(
+      "  --yes, -y                               - Auto-accept prompts without confirmation (run command only)",
+    );
+    console.log(
+      "                                            WARNING: Use with caution - bypasses safety prompts",
+    );
     console.log("");
     console.log("Examples:");
     console.log("  claude-runner list");
@@ -158,6 +184,9 @@ class ClaudeRunnerCLI {
       "  claude-runner run .github/workflows/claude-test.yml --verbose",
     );
     console.log("  claude-runner run workflow.yml --path /path/to/project");
+    console.log("  claude-runner run workflow.yml --resume --verbose");
+    console.log("  claude-runner run workflow.yml --yes --path /custom/path");
+    console.log("  claude-runner run workflow.yml -r -y --verbose");
   }
 
   async listWorkflows(directory, options = {}) {
@@ -304,16 +333,84 @@ class ClaudeRunnerCLI {
 
     console.log(`Workflow: ${workflow.name}`);
     console.log(`Found ${totalClaudeSteps} Claude steps to execute`);
+
+    // Resume functionality - Step 2.2 from implementation plan
+    let startFromStep = 0;
+    let existingJobLog = null;
+    const jobLogPath = JobLogManager.getJobLogPath(fullPath);
+
+    if (options.resume) {
+      existingJobLog = await JobLogManager.loadJobLog(jobLogPath);
+      if (existingJobLog) {
+        console.log(`📄 Found job log: ${jobLogPath}`);
+        console.log(
+          `⏯️  Last completed step: ${existingJobLog.lastCompletedStep + 1}/${existingJobLog.totalSteps}`,
+        );
+
+        if (existingJobLog.lastCompletedStep >= 0) {
+          startFromStep = existingJobLog.lastCompletedStep + 1;
+          console.log(`🚀 Resuming from step ${startFromStep + 1}\n`);
+        }
+      } else {
+        console.log(`⚠️  No job log found for resume: ${jobLogPath}`);
+      }
+    } else {
+      // Clear existing job log for fresh start (matches Go CLI main.go:82-86)
+      try {
+        await JobLogManager.removeJobLog(fullPath);
+      } catch {
+        // File doesn't exist, that's fine
+      }
+    }
+
+    // Create new job log if not resuming or no existing log
+    const jobLog =
+      existingJobLog ||
+      JobLogManager.createJobLog(workflow.name, fullPath, totalClaudeSteps);
+
+    // Display warning when bypassing permissions
+    if (options.autoAccept) {
+      console.log(`\x1b[33m⚠️  Bypassing Permissions\x1b[0m\n`);
+    }
+
     console.log("Executing workflow...\n");
 
     const sessions = new Map();
+
+    // Restore session IDs from job log for resume operations (session continuity)
+    if (existingJobLog) {
+      for (const step of existingJobLog.steps) {
+        if (step.sessionId && step.status === "completed") {
+          sessions.set(step.stepId, step.sessionId);
+          if (options.verbose) {
+            console.log(
+              `🔗 Restored session for ${step.stepId}: ${step.sessionId}`,
+            );
+          }
+        }
+      }
+    }
+
+    // Step tracking for resume functionality - Step 2.3 from implementation plan
+    let currentStepIndex = 0;
 
     for (const [jobName, job] of Object.entries(workflow.jobs)) {
       console.log(`\nJob: ${job.name || jobName}`);
 
       for (const step of job.steps) {
         if (step.uses && step.uses.includes("claude-pipeline-action")) {
-          console.log(`\n  Step: ${step.name || step.id}`);
+          // Skip if we're resuming and this step is already completed
+          if (currentStepIndex < startFromStep) {
+            console.log(
+              `⏭️  Skipping completed step ${currentStepIndex + 1}: ${step.name || step.id}`,
+            );
+            currentStepIndex++;
+            continue;
+          }
+
+          console.log(
+            `\n  Step ${currentStepIndex + 1}: ${step.name || step.id}`,
+          );
           if (options.verbose) {
             console.log(`  Prompt: ${step.with.prompt}`);
             console.log(`  Model: ${step.with.model || "auto"}`);
@@ -322,6 +419,7 @@ class ClaudeRunnerCLI {
           const taskOptions = {
             outputFormat: step.with.output_session ? "json" : "text",
             allowAllTools: step.with.allow_all_tools,
+            bypassPermissions: options.autoAccept,
             resumeSessionId: undefined,
           };
 
@@ -334,6 +432,16 @@ class ClaudeRunnerCLI {
               console.log(`  Resuming session: ${taskOptions.resumeSessionId}`);
             }
           }
+
+          const stepStartTime = new Date();
+          const logStep = {
+            stepIndex: currentStepIndex,
+            stepId: step.id || `step-${currentStepIndex}`,
+            stepName: step.name || step.id || `Step ${currentStepIndex + 1}`,
+            status: "running",
+            startTime: stepStartTime.toISOString(),
+            durationMs: 0,
+          };
 
           const startTime = Date.now();
 
@@ -371,6 +479,17 @@ class ClaudeRunnerCLI {
                 console.log(`  Session ID stored: ${result.sessionId}`);
               }
             }
+
+            // Update job log for successful completion
+            const endTime = new Date();
+            logStep.endTime = endTime.toISOString();
+            logStep.durationMs = endTime.getTime() - stepStartTime.getTime();
+            logStep.status = "completed";
+            logStep.output = result.output;
+            logStep.sessionId = result.sessionId;
+
+            JobLogManager.addStep(jobLog, logStep);
+            await JobLogManager.saveJobLog(jobLog, jobLogPath);
           } else {
             // Check for rate limit before failing
             const rateLimitMatch = (result.error || "").match(
@@ -423,10 +542,29 @@ class ClaudeRunnerCLI {
                       );
                     }
                   }
+
+                  // Update job log for successful retry completion
+                  const endTime = new Date();
+                  logStep.endTime = endTime.toISOString();
+                  logStep.durationMs =
+                    endTime.getTime() - stepStartTime.getTime();
+                  logStep.status = "completed";
+                  logStep.output = retryResult.output;
+                  logStep.sessionId = retryResult.sessionId;
+
+                  JobLogManager.addStep(jobLog, logStep);
+                  await JobLogManager.saveJobLog(jobLog, jobLogPath);
                 } else {
                   console.error(
                     `  FAILED after retry (${retryDuration}ms): ${retryResult.error}`,
                   );
+
+                  // Update job log for retry failure
+                  logStep.status = "failed";
+                  logStep.error = retryResult.error;
+                  JobLogManager.addStep(jobLog, logStep);
+                  await JobLogManager.saveJobLog(jobLog, jobLogPath);
+
                   process.exit(1);
                 }
               } else {
@@ -457,21 +595,54 @@ class ClaudeRunnerCLI {
                       );
                     }
                   }
+
+                  // Update job log for successful immediate retry completion
+                  const endTime = new Date();
+                  logStep.endTime = endTime.toISOString();
+                  logStep.durationMs =
+                    endTime.getTime() - stepStartTime.getTime();
+                  logStep.status = "completed";
+                  logStep.output = retryResult.output;
+                  logStep.sessionId = retryResult.sessionId;
+
+                  JobLogManager.addStep(jobLog, logStep);
+                  await JobLogManager.saveJobLog(jobLog, jobLogPath);
                 } else {
                   console.error(
                     `  FAILED after immediate retry: ${retryResult.error}`,
                   );
+
+                  // Update job log for immediate retry failure
+                  logStep.status = "failed";
+                  logStep.error = retryResult.error;
+                  JobLogManager.addStep(jobLog, logStep);
+                  await JobLogManager.saveJobLog(jobLog, jobLogPath);
+
                   process.exit(1);
                 }
               }
             } else {
               console.error(`  FAILED (${duration}ms): ${result.error}`);
+
+              // Update job log for failure
+              logStep.status = "failed";
+              logStep.error = result.error;
+              JobLogManager.addStep(jobLog, logStep);
+              await JobLogManager.saveJobLog(jobLog, jobLogPath);
+
               process.exit(1);
             }
           }
+
+          // Increment step index after processing each Claude step
+          currentStepIndex++;
         }
       }
     }
+
+    // Mark workflow as completed
+    jobLog.status = "completed";
+    await JobLogManager.saveJobLog(jobLog, jobLogPath);
 
     console.log("\nWorkflow execution completed successfully!");
     if (options.verbose) {

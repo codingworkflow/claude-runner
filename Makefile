@@ -71,7 +71,9 @@ setup-ci:
 build:
 	@echo "Compiling TypeScript..."
 	@npm run compile || true
-	@echo "Extension compiled successfully"
+	@echo "Building CLI components..."
+	@npm run build-cli
+	@echo "Extension and CLI compiled successfully"
 
 # Build CLI components
 build-cli:

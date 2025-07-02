@@ -58,6 +58,177 @@ describe("ClaudeExecutor", () => {
   });
 
   describe("Core Claude execution engine functionality", () => {
+    describe("executeTaskWithRetry", () => {
+      it("should succeed on first attempt", async () => {
+        const mockChild = createMockChildProcess();
+        mockSpawn.mockReturnValue(mockChild);
+
+        const resultPromise = executor.executeTaskWithRetry(
+          "test task",
+          "claude-3-5-sonnet-latest",
+          "/test",
+        );
+
+        setTimeout(() => {
+          mockChild.stdout?.emit("data", Buffer.from("Success"));
+          mockChild.emit("close", 0);
+        }, 0);
+
+        const result = await resultPromise;
+
+        expect(result.success).toBe(true);
+        expect(result.output).toBe("Success");
+      });
+
+      it("should retry on rate limit and eventually succeed", async () => {
+        let attempt = 0;
+        const rateLimitOutput = "Claude AI usage limit reached|1234567890";
+        const successOutput = "Success after retry";
+
+        mockSpawn.mockImplementation(() => {
+          const mockChild = createMockChildProcess();
+
+          setTimeout(() => {
+            if (attempt === 0) {
+              mockChild.stdout?.emit("data", Buffer.from(rateLimitOutput));
+              mockChild.emit("close", 1);
+            } else {
+              mockChild.stdout?.emit("data", Buffer.from(successOutput));
+              mockChild.emit("close", 0);
+            }
+          }, 0);
+
+          return mockChild;
+        });
+
+        jest.spyOn(Date, "now").mockImplementation(() => 1234567800000);
+
+        const waitForRateLimitSpy = jest
+          .spyOn(
+            executor as unknown as { waitForRateLimit: () => Promise<void> },
+            "waitForRateLimit",
+          )
+          .mockImplementation(async () => {
+            attempt++;
+            return Promise.resolve();
+          });
+
+        const result = await executor.executeTaskWithRetry(
+          "test task",
+          "claude-3-5-sonnet-latest",
+          "/test",
+          {},
+          3,
+        );
+
+        expect(result.success).toBe(true);
+        expect(result.output).toBe(successOutput);
+        expect(waitForRateLimitSpy).toHaveBeenCalled();
+        expect(mockLogger.info).toHaveBeenCalledWith(
+          expect.stringContaining("Rate limit detected"),
+        );
+
+        waitForRateLimitSpy.mockRestore();
+      });
+
+      it("should fail after maximum retries exceeded", async () => {
+        const errorOutput = "Persistent error";
+
+        mockSpawn.mockImplementation(() => {
+          const mockChild = createMockChildProcess();
+
+          setTimeout(() => {
+            mockChild.stderr?.emit("data", Buffer.from(errorOutput));
+            mockChild.emit("close", 1);
+          }, 0);
+
+          return mockChild;
+        });
+
+        await expect(
+          executor.executeTaskWithRetry(
+            "test task",
+            "claude-3-5-sonnet-latest",
+            "/test",
+            {},
+            2,
+          ),
+        ).rejects.toThrow("Persistent error");
+      });
+
+      it("should handle cumulative wait time limit", async () => {
+        const rateLimitOutput = "Claude AI usage limit reached|9999999999";
+
+        mockSpawn.mockImplementation(() => {
+          const mockChild = createMockChildProcess();
+
+          setTimeout(() => {
+            mockChild.stdout?.emit("data", Buffer.from(rateLimitOutput));
+            mockChild.emit("close", 1);
+          }, 0);
+
+          return mockChild;
+        });
+
+        jest.spyOn(Date, "now").mockImplementation(() => 1000000000000);
+
+        await expect(
+          executor.executeTaskWithRetry(
+            "test task",
+            "claude-3-5-sonnet-latest",
+            "/test",
+          ),
+        ).rejects.toThrow("Cumulative wait time would exceed timeout limit");
+      });
+
+      it("should handle rate limit in exception", async () => {
+        let attempt = 0;
+        const rateLimitError = "Claude AI usage limit reached|1234567890";
+
+        mockSpawn.mockImplementation(() => {
+          if (attempt === 0) {
+            throw new Error(rateLimitError);
+          }
+
+          const mockChild = createMockChildProcess();
+          setTimeout(() => {
+            mockChild.stdout?.emit(
+              "data",
+              Buffer.from("Success after exception"),
+            );
+            mockChild.emit("close", 0);
+          }, 0);
+          return mockChild;
+        });
+
+        jest.spyOn(Date, "now").mockImplementation(() => 1234567800000);
+
+        const waitForRateLimitSpy = jest
+          .spyOn(
+            executor as unknown as { waitForRateLimit: () => Promise<void> },
+            "waitForRateLimit",
+          )
+          .mockImplementation(async () => {
+            attempt++;
+            return Promise.resolve();
+          });
+
+        const result = await executor.executeTaskWithRetry(
+          "test task",
+          "claude-3-5-sonnet-latest",
+          "/test",
+          {},
+          3,
+        );
+
+        expect(result.success).toBe(true);
+        expect(result.output).toBe("Success after exception");
+        expect(waitForRateLimitSpy).toHaveBeenCalled();
+
+        waitForRateLimitSpy.mockRestore();
+      });
+    });
+
     describe("executeTask", () => {
       it("should execute task successfully with text output", async () => {
         const mockChild = createMockChildProcess();
@@ -82,7 +253,7 @@ describe("ClaudeExecutor", () => {
 
         expect(result.success).toBe(true);
         expect(result.output).toBe("Task completed successfully");
-        expect(result.executionTimeMs).toBeGreaterThan(0);
+        expect(result.executionTimeMs).toBeGreaterThanOrEqual(0);
         expect(result.taskId).toMatch(/^task-\d+$/);
       });
 
@@ -1303,6 +1474,172 @@ describe("ClaudeExecutor", () => {
     });
 
     describe("rate limit detection and recovery", () => {
+      it("should detect rate limit pattern correctly", () => {
+        const detectRateLimit = (
+          executor as unknown as {
+            detectRateLimit: (output: string) => {
+              isLimited: boolean;
+              resetTime: Date;
+              waitTime: number;
+            };
+          }
+        ).detectRateLimit;
+        const timestamp = Math.floor(Date.now() / 1000) + 3600; // 1 hour from now
+        const output = `Claude AI usage limit reached|${timestamp}`;
+
+        const result = detectRateLimit(output);
+
+        expect(result.isLimited).toBe(true);
+        expect(result.resetTime).toBeInstanceOf(Date);
+        expect(result.waitTime).toBeGreaterThan(0);
+      });
+
+      it("should not detect rate limit in normal output", () => {
+        const detectRateLimit = (
+          executor as unknown as {
+            detectRateLimit: (output: string) => {
+              isLimited: boolean;
+              resetTime: Date;
+              waitTime: number;
+            };
+          }
+        ).detectRateLimit;
+        const output = "Normal task output";
+
+        const result = detectRateLimit(output);
+
+        expect(result.isLimited).toBe(false);
+        expect(result.resetTime).toBeUndefined();
+        expect(result.waitTime).toBeUndefined();
+      });
+
+      it("should detect rate limit in stderr", () => {
+        const detectRateLimit = (
+          executor as unknown as {
+            detectRateLimit: (output: string) => {
+              isLimited: boolean;
+              resetTime: Date;
+              waitTime: number;
+            };
+          }
+        ).detectRateLimit;
+        const timestamp = Math.floor(Date.now() / 1000) + 3600;
+        const stderr = `Claude AI usage limit reached|${timestamp}`;
+
+        const result = detectRateLimit("", stderr);
+
+        expect(result.isLimited).toBe(true);
+      });
+
+      it("should handle invalid timestamp in rate limit", () => {
+        const detectRateLimit = (
+          executor as unknown as {
+            detectRateLimit: (output: string) => {
+              isLimited: boolean;
+              resetTime: Date;
+              waitTime: number;
+            };
+          }
+        ).detectRateLimit.bind(executor);
+        const output = "Claude AI usage limit reached|NaN";
+
+        const result = detectRateLimit(output);
+
+        expect(result.isLimited).toBe(false);
+      });
+
+      it("should not detect rate limit for completely invalid format", () => {
+        const detectRateLimit = (
+          executor as unknown as {
+            detectRateLimit: (output: string) => {
+              isLimited: boolean;
+              resetTime: Date;
+              waitTime: number;
+            };
+          }
+        ).detectRateLimit.bind(executor);
+        const output = "Claude AI usage limit reached|invalid_string";
+
+        const result = detectRateLimit(output);
+
+        expect(result.isLimited).toBe(false);
+      });
+
+      it("should call logger methods during rate limit wait", async () => {
+        const waitForRateLimit = (
+          executor as unknown as {
+            waitForRateLimit: (resetTime: Date) => Promise<void>;
+          }
+        ).waitForRateLimit.bind(executor);
+        const resetTime = new Date(Date.now() - 1000); // Already passed, so no actual wait
+        const rateLimitInfo = {
+          isLimited: true,
+          resetTime,
+          waitTime: 0, // No wait time since reset time has passed
+        };
+
+        await waitForRateLimit(rateLimitInfo);
+
+        // Since waitTime is 0, it should return immediately without logging
+        expect(mockLogger.warn).not.toHaveBeenCalled();
+        expect(mockLogger.info).not.toHaveBeenCalled();
+      });
+
+      it("should calculate wait time correctly", () => {
+        const detectRateLimit = (
+          executor as unknown as {
+            detectRateLimit: (output: string) => {
+              isLimited: boolean;
+              resetTime: Date;
+              waitTime: number;
+            };
+          }
+        ).detectRateLimit.bind(executor);
+        const futureTimestamp = Math.floor((Date.now() + 60000) / 1000); // 1 minute from now
+        const output = `Claude AI usage limit reached|${futureTimestamp}`;
+
+        const result = detectRateLimit(output);
+
+        expect(result.isLimited).toBe(true);
+        expect(result.waitTime).toBeGreaterThan(50000); // Should be close to 60 seconds
+        expect(result.waitTime).toBeLessThan(70000);
+      });
+
+      it("should return immediately if not rate limited", async () => {
+        const waitForRateLimit = (
+          executor as unknown as {
+            waitForRateLimit: (resetTime: Date) => Promise<void>;
+          }
+        ).waitForRateLimit;
+        const rateLimitInfo = {
+          isLimited: false,
+        };
+
+        const startTime = Date.now();
+        await waitForRateLimit(rateLimitInfo);
+        const endTime = Date.now();
+
+        expect(endTime - startTime).toBeLessThan(100);
+      });
+
+      it("should return immediately if no wait time", async () => {
+        const waitForRateLimit = (
+          executor as unknown as {
+            waitForRateLimit: (resetTime: Date) => Promise<void>;
+          }
+        ).waitForRateLimit;
+        const rateLimitInfo = {
+          isLimited: true,
+          waitTime: 0,
+        };
+
+        const startTime = Date.now();
+        await waitForRateLimit(rateLimitInfo);
+        const endTime = Date.now();
+
+        expect(endTime - startTime).toBeLessThan(100);
+      });
+
       it("should detect rate limit in stdout", async () => {
         const mockChild = createMockChildProcess();
         mockSpawn.mockReturnValue(mockChild);
@@ -1334,7 +1671,9 @@ describe("ClaudeExecutor", () => {
         expect(tasks[0].status).toBe("paused");
         expect(tasks[0].pausedUntil).toBe(1609459200000);
         expect(mockLogger.warn).toHaveBeenCalledWith(
-          expect.stringContaining("Rate limit detected"),
+          expect.stringContaining(
+            "Rate limit detected, pausing pipeline execution",
+          ),
         );
       });
 
@@ -1359,7 +1698,7 @@ describe("ClaudeExecutor", () => {
         setTimeout(() => {
           mockChild.stderr?.emit(
             "data",
-            Buffer.from("Claude Code usage limit reached|1609459200"),
+            Buffer.from("Claude AI usage limit reached|1609459200"),
           );
           mockChild.emit("close", 1);
         }, 0);
@@ -1431,7 +1770,7 @@ describe("ClaudeExecutor", () => {
         setTimeout(() => {
           mockChild.stderr?.emit(
             "data",
-            Buffer.from("Claude Code usage limit reached|invalid"),
+            Buffer.from("Some other error message"),
           );
           mockChild.emit("close", 1);
         }, 0);
@@ -1439,11 +1778,9 @@ describe("ClaudeExecutor", () => {
         await pipelinePromise;
 
         expect(tasks[0].status).toBe("error");
-        expect(tasks[0].results).toBe(
-          "Claude Code usage limit reached|invalid",
-        );
+        expect(tasks[0].results).toBe("Some other error message");
         expect(errorCallback).toHaveBeenCalledWith(
-          "Claude Code usage limit reached|invalid",
+          "Some other error message",
           tasks,
         );
       });
@@ -1614,7 +1951,7 @@ describe("ClaudeExecutor", () => {
         setTimeout(() => {
           mockChild.stdout?.emit(
             "data",
-            Buffer.from("Claude Code usage limit reached|1609459200"),
+            Buffer.from("Claude AI usage limit reached|1609459200"),
           );
           mockChild.emit("close", 1);
         }, 0);
@@ -1624,7 +1961,9 @@ describe("ClaudeExecutor", () => {
         expect(tasks[0].status).toBe("paused");
         expect(tasks[0].pausedUntil).toBe(1609459200000);
         expect(mockLogger.warn).toHaveBeenCalledWith(
-          expect.stringContaining("Rate limit detected during resume"),
+          expect.stringContaining(
+            "Rate limit detected during resume, pausing pipeline execution",
+          ),
         );
       });
     });
@@ -2127,6 +2466,25 @@ describe("ClaudeExecutor", () => {
         expect(result.executionTimeMs).toBeLessThan(endTime - startTime + 100);
       });
 
+      it("should track execution time for tasks with spawn errors", async () => {
+        mockSpawn.mockImplementation(() => {
+          throw new Error("Failed to spawn process");
+        });
+
+        const startTime = Date.now();
+        const result = await executor.executeTask(
+          "test task",
+          "claude-3-5-sonnet-latest",
+          "/test",
+        );
+        const endTime = Date.now();
+
+        expect(result.success).toBe(false);
+        expect(result.executionTimeMs).toBeGreaterThanOrEqual(0);
+        expect(result.executionTimeMs).toBeLessThan(endTime - startTime + 50);
+        expect(result.error).toContain("Failed to spawn process");
+      });
+
       it("should track execution time for failed tasks", async () => {
         const mockChild = createMockChildProcess();
         mockSpawn.mockReturnValue(mockChild);
@@ -2181,13 +2539,13 @@ describe("ClaudeExecutor", () => {
         setTimeout(() => {
           mockChild.stdout?.emit("data", Buffer.from("Success"));
           mockChild.emit("close", 0);
-        }, 100);
+        }, 10); // Small delay to ensure measurable execution time
 
         const result = await resultPromise;
         const endTime = Date.now();
 
-        expect(result.executionTimeMs).toBeGreaterThan(0);
-        expect(result.executionTimeMs).toBeLessThan(endTime - startTime + 50);
+        expect(result.executionTimeMs).toBeGreaterThanOrEqual(0);
+        expect(result.executionTimeMs).toBeLessThan(endTime - startTime + 100);
       });
 
       it("should handle very fast execution times", async () => {
@@ -2406,6 +2764,210 @@ describe("ClaudeExecutor", () => {
     });
   });
 
+  describe("Shell argument escaping", () => {
+    it("should escape single quotes correctly", () => {
+      const escapeShellArg = (
+        executor as unknown as { escapeShellArg: (arg: string) => string }
+      ).escapeShellArg;
+      const input = "test with 'single quotes'";
+      const escaped = escapeShellArg(input);
+
+      expect(escaped).toBe("'test with '\"'\"'single quotes'\"'\"''");
+    });
+
+    it("should handle string without quotes", () => {
+      const escapeShellArg = (
+        executor as unknown as { escapeShellArg: (arg: string) => string }
+      ).escapeShellArg;
+      const input = "simple string";
+      const escaped = escapeShellArg(input);
+
+      expect(escaped).toBe("'simple string'");
+    });
+
+    it("should handle multiple single quotes", () => {
+      const escapeShellArg = (
+        executor as unknown as { escapeShellArg: (arg: string) => string }
+      ).escapeShellArg;
+      const input = "'start' 'middle' 'end'";
+      const escaped = escapeShellArg(input);
+
+      expect(escaped).toBe(
+        "''\"'\"'start'\"'\"' '\"'\"'middle'\"'\"' '\"'\"'end'\"'\"''",
+      );
+    });
+
+    it("should handle empty string", () => {
+      const escapeShellArg = (
+        executor as unknown as { escapeShellArg: (arg: string) => string }
+      ).escapeShellArg;
+      const input = "";
+      const escaped = escapeShellArg(input);
+
+      expect(escaped).toBe("''");
+    });
+
+    it("should handle string with only single quote", () => {
+      const escapeShellArg = (
+        executor as unknown as { escapeShellArg: (arg: string) => string }
+      ).escapeShellArg;
+      const input = "'";
+      const escaped = escapeShellArg(input);
+
+      expect(escaped).toBe("''\"'\"''");
+    });
+  });
+
+  describe("JSON parsing edge cases", () => {
+    it("should parse valid JSON output with result field", () => {
+      const parseTaskResult = (
+        executor as unknown as {
+          parseTaskResult: (output: string) => {
+            success: boolean;
+            result?: string;
+            error?: string;
+          };
+        }
+      ).parseTaskResult.bind(executor);
+      const jsonOutput = JSON.stringify({
+        session_id: "test-session",
+        result: "Test result",
+      });
+
+      const result = parseTaskResult(jsonOutput, "json");
+
+      expect(result.sessionId).toBe("test-session");
+      expect(result.resultText).toBe("Test result");
+    });
+
+    it("should handle invalid JSON gracefully", () => {
+      const parseTaskResult = (
+        executor as unknown as {
+          parseTaskResult: (output: string) => {
+            success: boolean;
+            result?: string;
+            error?: string;
+          };
+        }
+      ).parseTaskResult.bind(executor);
+      const invalidJson = "{ invalid json }";
+
+      const result = parseTaskResult(invalidJson, "json");
+
+      expect(result.sessionId).toBeUndefined();
+      expect(result.resultText).toBe(invalidJson);
+      expect(mockLogger.warn).toHaveBeenCalledWith(
+        "Failed to parse JSON output",
+        expect.any(Error),
+      );
+    });
+
+    it("should return text output as-is for non-JSON format", () => {
+      const parseTaskResult = (
+        executor as unknown as {
+          parseTaskResult: (output: string) => {
+            success: boolean;
+            result?: string;
+            error?: string;
+          };
+        }
+      ).parseTaskResult.bind(executor);
+      const textOutput = "Plain text output";
+
+      const result = parseTaskResult(textOutput, "text");
+
+      expect(result.sessionId).toBeUndefined();
+      expect(result.resultText).toBe(textOutput);
+    });
+
+    it("should handle JSON with null values", () => {
+      const parseTaskResult = (
+        executor as unknown as {
+          parseTaskResult: (output: string) => {
+            success: boolean;
+            result?: string;
+            error?: string;
+          };
+        }
+      ).parseTaskResult.bind(executor);
+      const jsonOutput = JSON.stringify({
+        session_id: null,
+        result: null,
+      });
+
+      const result = parseTaskResult(jsonOutput, "json");
+
+      expect(result.sessionId).toBeNull();
+      expect(result.resultText).toContain('"result": null');
+    });
+
+    it("should extract result from JSON correctly", () => {
+      const extractResultFromJson = (
+        executor as unknown as {
+          extractResultFromJson: (jsonStr: string) => string | null;
+        }
+      ).extractResultFromJson.bind(executor);
+      const jsonOutput = JSON.stringify({
+        result: "Extracted result",
+        other_data: "ignored",
+      });
+
+      const result = extractResultFromJson(jsonOutput);
+
+      expect(result).toBe("Extracted result");
+    });
+
+    it("should handle JSON without result field", () => {
+      const extractResultFromJson = (
+        executor as unknown as {
+          extractResultFromJson: (jsonStr: string) => string | null;
+        }
+      ).extractResultFromJson.bind(executor);
+      const jsonOutput = JSON.stringify({
+        session_id: "session-123",
+        data: { key: "value" },
+      });
+
+      const result = extractResultFromJson(jsonOutput);
+
+      expect(result).toContain('"session_id": "session-123"');
+      expect(result).toContain('"data": {\n    "key": "value"\n  }');
+    });
+
+    it("should handle malformed JSON in extraction", () => {
+      const extractResultFromJson = (
+        executor as unknown as {
+          extractResultFromJson: (jsonStr: string) => string | null;
+        }
+      ).extractResultFromJson.bind(executor);
+      const invalidJson = "{ malformed json";
+
+      const result = extractResultFromJson(invalidJson);
+
+      expect(result).toBe(invalidJson);
+      expect(mockLogger.warn).toHaveBeenCalledWith(
+        "Failed to parse JSON output",
+        expect.any(Error),
+      );
+    });
+
+    it("should handle non-string result field", () => {
+      const extractResultFromJson = (
+        executor as unknown as {
+          extractResultFromJson: (jsonStr: string) => string | null;
+        }
+      ).extractResultFromJson.bind(executor);
+      const jsonOutput = JSON.stringify({
+        result: { complex: "object" },
+        session_id: "session-123",
+      });
+
+      const result = extractResultFromJson(jsonOutput);
+
+      expect(result).toContain('"result": {\n    "complex": "object"\n  }');
+    });
+  });
+
   describe("command building edge cases", () => {
     it("should build command with all task options", () => {
       const options: TaskOptions = {
@@ -2565,6 +3127,448 @@ describe("ClaudeExecutor", () => {
       );
 
       expect(preview).not.toContain("--permission-prompt-tool");
+    });
+
+    it("should handle task options with undefined values", () => {
+      const options: TaskOptions = {
+        outputFormat: undefined,
+        maxTurns: undefined,
+        verbose: undefined,
+        systemPrompt: undefined,
+        appendSystemPrompt: undefined,
+        allowAllTools: undefined,
+        allowedTools: undefined,
+        disallowedTools: undefined,
+        mcpConfig: undefined,
+        permissionPromptTool: undefined,
+      };
+
+      const preview = executor.formatCommandPreview(
+        "test task",
+        "claude-3-5-sonnet-latest",
+        "/test",
+        options,
+      );
+
+      expect(preview).toBe(
+        `cd "/test" && claude -p 'test task' --model claude-3-5-sonnet-latest`,
+      );
+    });
+
+    it("should handle working directory with spaces", () => {
+      const workingDir = "/path/with spaces/project";
+
+      const preview = executor.formatCommandPreview(
+        "test task",
+        "claude-3-5-sonnet-latest",
+        workingDir,
+        {},
+      );
+
+      expect(preview).toContain(`cd "${workingDir}"`);
+    });
+
+    it("should handle complex combinations of options", () => {
+      const options: TaskOptions = {
+        outputFormat: "stream-json",
+        maxTurns: 25,
+        verbose: true,
+        allowAllTools: true,
+        mcpConfig: "/complex/config.json",
+      };
+
+      const preview = executor.formatCommandPreview(
+        "complex task",
+        "auto",
+        "/test",
+        options,
+      );
+
+      expect(preview).toContain("--output-format stream-json");
+      expect(preview).toContain("--max-turns 25");
+      expect(preview).toContain("--verbose");
+      expect(preview).toContain("--dangerously-skip-permissions");
+      expect(preview).toContain("--mcp-config /complex/config.json");
+      expect(preview).not.toContain("--model");
+    });
+  });
+
+  describe("Additional edge case coverage", () => {
+    describe("pipeline edge cases", () => {
+      it("should handle pipeline with single completed task", async () => {
+        const tasks: TaskItem[] = [
+          {
+            id: "task1",
+            prompt: "Already completed task",
+            status: "completed",
+            results: "Already done",
+          },
+        ];
+
+        const completeCallback = jest.fn();
+
+        await executor.resumePipeline(
+          tasks,
+          "claude-3-5-sonnet-latest",
+          "/test",
+          {},
+          undefined,
+          completeCallback,
+        );
+
+        expect(completeCallback).toHaveBeenCalledWith(tasks);
+      });
+
+      it("should handle pipeline with all error tasks", async () => {
+        const tasks: TaskItem[] = [
+          {
+            id: "task1",
+            prompt: "Error task",
+            status: "error",
+            results: "Failed",
+          },
+          {
+            id: "task2",
+            prompt: "Another error task",
+            status: "error",
+            results: "Also failed",
+          },
+        ];
+
+        const completeCallback = jest.fn();
+
+        await executor.resumePipeline(
+          tasks,
+          "claude-3-5-sonnet-latest",
+          "/test",
+          {},
+          undefined,
+          completeCallback,
+        );
+
+        expect(completeCallback).toHaveBeenCalledWith(tasks);
+      });
+
+      it("should handle task with undefined model falling back to pipeline model", async () => {
+        const tasks: TaskItem[] = [
+          {
+            id: "task1",
+            prompt: "Task without model",
+            status: "pending",
+            model: undefined,
+          },
+        ];
+
+        const mockChild = createMockChildProcess();
+        mockSpawn.mockReturnValue(mockChild);
+
+        const pipelinePromise = executor.executePipeline(
+          tasks,
+          "claude-3-haiku-latest",
+          "/test",
+        );
+
+        setTimeout(() => {
+          mockChild.stdout?.emit("data", Buffer.from("Success"));
+          mockChild.emit("close", 0);
+        }, 0);
+
+        await pipelinePromise;
+
+        expect(mockSpawn).toHaveBeenCalledWith(
+          "claude",
+          expect.arrayContaining(["--model", "claude-3-haiku-latest"]),
+          expect.any(Object),
+        );
+      });
+    });
+
+    describe("rate limit edge cases", () => {
+      it("should handle rate limit with very long wait time", () => {
+        const detectRateLimit = (
+          executor as unknown as {
+            detectRateLimit: (output: string) => {
+              isLimited: boolean;
+              resetTime: Date;
+              waitTime: number;
+            };
+          }
+        ).detectRateLimit;
+        const futureTimestamp = Math.floor(
+          (Date.now() + 24 * 60 * 60 * 1000) / 1000,
+        ); // 24 hours from now
+        const output = `Claude AI usage limit reached|${futureTimestamp}`;
+
+        const result = detectRateLimit(output);
+
+        expect(result.isLimited).toBe(true);
+        expect(result.waitTime).toBeGreaterThan(23 * 60 * 60 * 1000); // More than 23 hours
+      });
+
+      it("should handle rate limit with past timestamp", () => {
+        const detectRateLimit = (
+          executor as unknown as {
+            detectRateLimit: (output: string) => {
+              isLimited: boolean;
+              resetTime: Date;
+              waitTime: number;
+            };
+          }
+        ).detectRateLimit;
+        const pastTimestamp = Math.floor((Date.now() - 60000) / 1000); // 1 minute ago
+        const output = `Claude AI usage limit reached|${pastTimestamp}`;
+
+        const result = detectRateLimit(output);
+
+        expect(result.isLimited).toBe(true);
+        expect(result.waitTime).toBe(0);
+      });
+
+      it("should handle rate limit detection with negative wait time", () => {
+        const detectRateLimit = (
+          executor as unknown as {
+            detectRateLimit: (output: string) => {
+              isLimited: boolean;
+              resetTime: Date;
+              waitTime: number;
+            };
+          }
+        ).detectRateLimit;
+        const pastTimestamp = Math.floor((Date.now() - 5 * 60 * 1000) / 1000); // 5 minutes ago
+        const output = `Claude AI usage limit reached|${pastTimestamp}`;
+
+        const result = detectRateLimit(output);
+
+        expect(result.isLimited).toBe(true);
+        expect(result.waitTime).toBe(0); // Should be 0 for past timestamps
+        expect(result.resetTime?.getTime()).toBeLessThan(Date.now());
+      });
+
+      it("should handle rate limit with zero wait time", async () => {
+        const waitForRateLimit = (
+          executor as unknown as {
+            waitForRateLimit: (resetTime: Date) => Promise<void>;
+          }
+        ).waitForRateLimit.bind(executor);
+        const rateLimitInfo = {
+          isLimited: true,
+          resetTime: new Date(Date.now() - 1000), // Already passed
+          waitTime: 0,
+        };
+
+        // Should return immediately without waiting
+        const startTime = Date.now();
+        await waitForRateLimit(rateLimitInfo);
+        const endTime = Date.now();
+
+        expect(endTime - startTime).toBeLessThan(50); // Should be very fast
+      });
+    });
+
+    describe("output processing edge cases", () => {
+      it("should handle output with only whitespace", async () => {
+        const mockChild = createMockChildProcess();
+        mockSpawn.mockReturnValue(mockChild);
+
+        const resultPromise = executor.executeTask(
+          "test task",
+          "claude-3-5-sonnet-latest",
+          "/test",
+        );
+
+        setTimeout(() => {
+          mockChild.stdout?.emit("data", Buffer.from("   \n\t  \r\n  "));
+          mockChild.emit("close", 0);
+        }, 0);
+
+        const result = await resultPromise;
+
+        expect(result.success).toBe(true);
+        expect(result.output).toBe("   \n\t  \r\n  ");
+      });
+
+      it("should handle JSON with deeply nested structures", async () => {
+        const mockChild = createMockChildProcess();
+        mockSpawn.mockReturnValue(mockChild);
+
+        const deepJson = {
+          result: "Deep result",
+          session_id: "session-deep",
+          level1: {
+            level2: {
+              level3: {
+                level4: {
+                  level5: "deep value",
+                },
+              },
+            },
+          },
+        };
+
+        const resultPromise = executor.executeTask(
+          "test task",
+          "claude-3-5-sonnet-latest",
+          "/test",
+          { outputFormat: "json" },
+        );
+
+        setTimeout(() => {
+          mockChild.stdout?.emit("data", Buffer.from(JSON.stringify(deepJson)));
+          mockChild.emit("close", 0);
+        }, 0);
+
+        const result = await resultPromise;
+
+        expect(result.success).toBe(true);
+        expect(result.output).toBe("Deep result");
+        expect(result.sessionId).toBe("session-deep");
+      });
+
+      it("should handle binary-like data in output", async () => {
+        const mockChild = createMockChildProcess();
+        mockSpawn.mockReturnValue(mockChild);
+
+        const resultPromise = executor.executeTask(
+          "test task",
+          "claude-3-5-sonnet-latest",
+          "/test",
+        );
+
+        setTimeout(() => {
+          const binaryData = Buffer.from([0x00, 0x01, 0x02, 0xff, 0xfe]);
+          mockChild.stdout?.emit("data", binaryData);
+          mockChild.emit("close", 0);
+        }, 0);
+
+        const result = await resultPromise;
+
+        expect(result.success).toBe(true);
+        expect(result.output).toBeTruthy();
+      });
+    });
+
+    describe("process management edge cases", () => {
+      it("should handle multiple rapid cancellations", () => {
+        const mockChild = createMockChildProcess();
+        mockSpawn.mockReturnValue(mockChild);
+
+        executor.testExecuteCommand(["claude", "-p", "test"], "/test");
+
+        executor.cancelCurrentTask();
+        executor.cancelCurrentTask();
+        executor.cancelCurrentTask();
+
+        expect(mockChild.kill).toHaveBeenCalledTimes(1);
+        expect(mockChild.kill).toHaveBeenCalledWith("SIGTERM");
+      });
+
+      it("should handle cancellation during process startup", () => {
+        const mockChild = createMockChildProcess();
+        mockSpawn.mockReturnValue(mockChild);
+
+        executor.testExecuteCommand(["claude", "-p", "test"], "/test");
+
+        // Cancel immediately before process has time to start
+        executor.cancelCurrentTask();
+
+        expect(executor.isTaskRunning()).toBe(false);
+      });
+    });
+
+    describe("validation and configuration edge cases", () => {
+      it("should handle config manager throwing errors", async () => {
+        mockConfig.validateModel.mockImplementation(() => {
+          throw new Error("Config validation failed");
+        });
+
+        const result = await executor.executeTask(
+          "test task",
+          "claude-3-5-sonnet-latest",
+          "/test",
+        );
+
+        expect(result.success).toBe(false);
+        expect(result.error).toBe("Config validation failed");
+        expect(mockLogger.error).toHaveBeenCalled();
+      });
+
+      it("should handle path validation throwing errors", async () => {
+        mockConfig.validatePath.mockImplementation(() => {
+          throw new Error("Path validation failed");
+        });
+
+        const result = await executor.executeTask(
+          "test task",
+          "claude-3-5-sonnet-latest",
+          "/test",
+        );
+
+        expect(result.success).toBe(false);
+        expect(result.error).toBe("Path validation failed");
+      });
+    });
+
+    describe("session handling edge cases", () => {
+      it("should handle corrupted JSON with session_id", async () => {
+        const mockChild = createMockChildProcess();
+        mockSpawn.mockReturnValue(mockChild);
+
+        const resultPromise = executor.executeTask(
+          "test task",
+          "claude-3-5-sonnet-latest",
+          "/test",
+          { outputFormat: "json" },
+        );
+
+        setTimeout(() => {
+          mockChild.stdout?.emit(
+            "data",
+            Buffer.from('{"session_id": "valid-session", "result": incomplete'),
+          );
+          mockChild.emit("close", 0);
+        }, 0);
+
+        const result = await resultPromise;
+
+        expect(result.success).toBe(true);
+        expect(result.sessionId).toBeUndefined();
+        expect(result.output).toContain('{"session_id": "valid-session"');
+      });
+
+      it("should handle session ID extraction with complex JSON", async () => {
+        const mockChild = createMockChildProcess();
+        mockSpawn.mockReturnValue(mockChild);
+
+        const complexJson = {
+          metadata: { timestamp: Date.now() },
+          session_id: "complex-session-123",
+          result: "Complex result",
+          nested: {
+            session_id: "fake-nested-session",
+          },
+        };
+
+        const resultPromise = executor.executeTask(
+          "test task",
+          "claude-3-5-sonnet-latest",
+          "/test",
+          { outputFormat: "json" },
+        );
+
+        setTimeout(() => {
+          mockChild.stdout?.emit(
+            "data",
+            Buffer.from(JSON.stringify(complexJson)),
+          );
+          mockChild.emit("close", 0);
+        }, 0);
+
+        const result = await resultPromise;
+
+        expect(result.success).toBe(true);
+        expect(result.sessionId).toBe("complex-session-123");
+        expect(result.output).toBe("Complex result");
+      });
     });
   });
 

@@ -11,7 +11,7 @@ describe("ProgressTracker", () => {
       name: "Task 1",
       prompt: "Prompt 1",
       status: "completed",
-      results: "Results 1",
+      results: '{"result": "Results 1"}',
     },
     {
       id: "2",

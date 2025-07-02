@@ -50,6 +50,7 @@ export interface ClaudeStep extends Step {
     prompt: string;
     model?: string;
     allow_all_tools?: boolean;
+    bypass_permissions?: boolean;
     working_directory?: string;
     resume_session?: string;
     output_session?: boolean;

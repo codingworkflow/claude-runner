@@ -96,9 +96,23 @@ describe("TaskList", () => {
   });
 
   it("renders condition configuration controls", () => {
+    // Use tasks with condition controls visible
+    const tasksWithConditions = [
+      {
+        ...tasks[0],
+        check: "make lint",
+        condition: "on_success" as const,
+      },
+      {
+        ...tasks[1],
+        check: "npm test",
+        condition: "on_failure" as const,
+      },
+    ];
+
     const { container } = render(
       <TaskList
-        tasks={tasks}
+        tasks={tasksWithConditions}
         isTasksRunning={false}
         defaultModel={DEFAULT_MODEL}
         availableModels={getModelIds()}
@@ -128,9 +142,24 @@ describe("TaskList", () => {
 
   it("calls updateTask when condition controls are modified", () => {
     const updateTask = jest.fn();
+
+    // Use tasks with condition controls visible
+    const tasksWithConditions = [
+      {
+        ...tasks[0],
+        check: "make lint",
+        condition: "on_success" as const,
+      },
+      {
+        ...tasks[1],
+        check: "npm test",
+        condition: "on_failure" as const,
+      },
+    ];
+
     const { container } = render(
       <TaskList
-        tasks={tasks}
+        tasks={tasksWithConditions}
         isTasksRunning={false}
         defaultModel={DEFAULT_MODEL}
         availableModels={getModelIds()}
@@ -150,11 +179,11 @@ describe("TaskList", () => {
 
     // Test condition dropdown
     const conditionSelect = container.querySelector(
-      ".condition-select-inline",
+      "div.condition-row-inline .condition-select-inline",
     ) as HTMLSelectElement;
     fireEvent.change(conditionSelect, {
-      target: { value: "on_success" },
+      target: { value: "on_failure" },
     });
-    expect(updateTask).toHaveBeenCalledWith("1", "condition", "on_success");
+    expect(updateTask).toHaveBeenCalledWith("1", "condition", "on_failure");
   });
 });

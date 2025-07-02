@@ -14,7 +14,10 @@ import { LogsService } from "../../../src/services/LogsService";
 import { ClaudeDetectionService } from "../../../src/services/ClaudeDetectionService";
 import { TaskItem } from "../../../src/core/models/Task";
 import { RunnerCommand, UIState } from "../../../src/types/runner";
-import { ClaudeWorkflow } from "../../../src/types/WorkflowTypes";
+import {
+  ClaudeWorkflow,
+  WorkflowExecution,
+} from "../../../src/types/WorkflowTypes";
 
 // Mock all VSCode APIs
 jest.mock("vscode", () => ({
@@ -97,6 +100,14 @@ describe("RunnerController", () => {
         ],
       },
     },
+  });
+
+  const createMockWorkflowExecution = (): WorkflowExecution => ({
+    workflow: createMockWorkflow(),
+    inputs: {},
+    outputs: {},
+    currentStep: 0,
+    status: "pending",
   });
 
   beforeEach(() => {
@@ -272,7 +283,9 @@ describe("RunnerController", () => {
         prompt: "test prompt",
       };
 
-      mockTerminalService.runInteractive.mockResolvedValue({} as any);
+      mockTerminalService.runInteractive.mockResolvedValue(
+        {} as vscode.Terminal,
+      );
 
       controller.send(command);
 
@@ -632,7 +645,7 @@ describe("RunnerController", () => {
         status: "paused" as const,
         sessionMappings: {},
         completedSteps: [],
-        execution: createMockWorkflow() as any,
+        execution: createMockWorkflowExecution(),
         canResume: true,
       };
 
@@ -668,7 +681,7 @@ describe("RunnerController", () => {
         status: "running" as const,
         sessionMappings: {},
         completedSteps: [],
-        execution: createMockWorkflow() as any,
+        execution: createMockWorkflowExecution(),
         canResume: true,
       };
 
@@ -951,7 +964,7 @@ describe("RunnerController", () => {
           status: "paused" as const,
           sessionMappings: {},
           completedSteps: [],
-          execution: createMockWorkflow() as any,
+          execution: createMockWorkflowExecution(),
           canResume: true,
         },
       ]);
@@ -1318,9 +1331,10 @@ describe("RunnerController", () => {
     it("should initialize with workspace path when no config path", () => {
       // Mock workspace folders before creating new controller
       const originalWorkspaceFolders = vscode.workspace.workspaceFolders;
-      (vscode.workspace as any).workspaceFolders = [
-        { uri: { fsPath: "/workspace/path" } },
-      ];
+      Object.defineProperty(vscode.workspace, "workspaceFolders", {
+        value: [{ uri: { fsPath: "/workspace/path" } }],
+        writable: true,
+      });
 
       // Create a new mock config service that returns null defaultRootPath
       const emptyConfigService = {
@@ -1353,7 +1367,10 @@ describe("RunnerController", () => {
       expect(state.rootPath).toBe("/workspace/path");
 
       // Restore original workspace folders
-      (vscode.workspace as any).workspaceFolders = originalWorkspaceFolders;
+      Object.defineProperty(vscode.workspace, "workspaceFolders", {
+        value: originalWorkspaceFolders,
+        writable: true,
+      });
     });
 
     it("should handle workspace folder changes", async () => {
@@ -1386,6 +1403,402 @@ describe("RunnerController", () => {
       expect(state.discoveredWorkflows).toEqual([
         { name: "workflow1", path: "/workflows/workflow1.yml" },
       ]);
+    });
+  });
+
+  describe("Service Lifecycle Management", () => {
+    it("should properly initialize and set up service dependencies on construction", () => {
+      // Verify initial service setup calls were made
+      expect(mockPipelineService.setRootPath).toHaveBeenCalledWith(
+        "/test/path",
+      );
+      expect(vscode.workspace.onDidChangeWorkspaceFolders).toHaveBeenCalled();
+    });
+
+    it("should coordinate service lifecycle during root path changes", async () => {
+      const command: RunnerCommand = {
+        kind: "updateRootPath",
+        path: "/new/root/path",
+      };
+
+      controller.send(command);
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      // Verify all services are updated with new root path
+      expect(mockPipelineService.setRootPath).toHaveBeenCalledWith(
+        "/new/root/path",
+      );
+      expect(mockPipelineService.listPipelines).toHaveBeenCalled();
+      expect(mockPipelineService.discoverWorkflowFiles).toHaveBeenCalled();
+
+      const state = controller.getCurrentState();
+      expect(state.rootPath).toBe("/new/root/path");
+    });
+
+    it("should handle service initialization errors gracefully", async () => {
+      mockPipelineService.listPipelines.mockRejectedValue(
+        new Error("Service error"),
+      );
+      mockPipelineService.discoverWorkflowFiles.mockRejectedValue(
+        new Error("Discovery error"),
+      );
+
+      const consoleSpy = jest.spyOn(console, "error").mockImplementation();
+
+      // Trigger pipeline loading
+      const command: RunnerCommand = {
+        kind: "updateRootPath",
+        path: "/error/path",
+      };
+      controller.send(command);
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      expect(consoleSpy).toHaveBeenCalledWith(
+        "Failed to load available pipelines:",
+        expect.any(Error),
+      );
+      consoleSpy.mockRestore();
+    });
+  });
+
+  describe("State Synchronization Across Services", () => {
+    it("should maintain state consistency across multiple service operations", async () => {
+      const stateHistory: UIState[] = [];
+      controller.state$.subscribe((state) => stateHistory.push(state));
+
+      // Execute multiple operations that should update state
+      const operations = [
+        { kind: "updateModel" as const, model: "claude-3-5-haiku-20241022" },
+        { kind: "updateAllowAllTools" as const, allow: true },
+        { kind: "updateOutputFormat" as const, format: "text" as const },
+        { kind: "updateActiveTab" as const, tab: "pipeline" as const },
+      ];
+
+      operations.forEach((cmd) => controller.send(cmd));
+
+      const finalState = controller.getCurrentState();
+      expect(finalState.model).toBe("claude-3-5-haiku-20241022");
+      expect(finalState.allowAllTools).toBe(true);
+      expect(finalState.outputFormat).toBe("text");
+      expect(finalState.activeTab).toBe("pipeline");
+
+      // Verify state changes were emitted in correct order
+      expect(stateHistory.length).toBeGreaterThan(operations.length);
+    });
+
+    it("should handle concurrent state updates correctly", async () => {
+      const task1 = createMockTask("task1", "Task 1");
+      const task2 = createMockTask("task2", "Task 2");
+
+      // Add tasks concurrently
+      controller.send({ kind: "pipelineAddTask", newTask: task1 });
+      controller.send({ kind: "pipelineAddTask", newTask: task2 });
+      controller.send({ kind: "updateOutputFormat", format: "json" });
+
+      const state = controller.getCurrentState();
+      expect(state.tasks).toHaveLength(2);
+      expect(state.outputFormat).toBe("json");
+    });
+
+    it("should preserve critical state during error recovery", async () => {
+      // Set up initial state
+      controller.send({
+        kind: "updateModel",
+        model: "claude-3-5-haiku-20241022",
+      });
+      controller.send({ kind: "updateAllowAllTools", allow: true });
+
+      const preErrorState = controller.getCurrentState();
+
+      // Trigger operation that should preserve state on error
+      mockClaudeCodeService.runTask.mockRejectedValue(new Error("Task failed"));
+      controller.send({ kind: "runTask", task: "failing task" });
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      const postErrorState = controller.getCurrentState();
+
+      // Core configuration should be preserved
+      expect(postErrorState.model).toBe(preErrorState.model);
+      expect(postErrorState.allowAllTools).toBe(preErrorState.allowAllTools);
+      expect(postErrorState.rootPath).toBe(preErrorState.rootPath);
+
+      // Only task-specific state should change
+      expect(postErrorState.taskError).toBe(true);
+      expect(postErrorState.taskCompleted).toBe(true);
+    });
+  });
+
+  describe("Advanced Error Handling and Recovery", () => {
+    it("should handle cascading service failures", async () => {
+      mockPipelineService.savePipeline.mockRejectedValue(
+        new Error("Save failed"),
+      );
+      mockPipelineService.listPipelines.mockRejectedValue(
+        new Error("List failed"),
+      );
+
+      const tasks = [createMockTask("1", "test task")];
+      const command: RunnerCommand = {
+        kind: "savePipeline",
+        name: "test-pipeline",
+        description: "Test",
+        tasks,
+      };
+
+      controller.send(command);
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      expect(vscode.window.showErrorMessage).toHaveBeenCalledWith(
+        "Failed to save pipeline: Error: Save failed",
+      );
+    });
+
+    it("should recover from partial state corruption", async () => {
+      // Simulate partial state update failure
+      const mockStateCorruption = () => {
+        const currentState = controller.getCurrentState();
+        // Force a state with missing required properties
+        (
+          controller as unknown as {
+            state$: { next: (state: unknown) => void };
+          }
+        ).state$.next({
+          ...currentState,
+          tasks: undefined, // Corrupt the tasks array
+        });
+      };
+
+      mockStateCorruption();
+
+      // Controller should handle the corruption gracefully
+      const task = createMockTask("recovery-task", "Recovery task");
+      expect(() => {
+        controller.send({ kind: "pipelineAddTask", newTask: task });
+      }).not.toThrow();
+
+      const state = controller.getCurrentState();
+      expect(Array.isArray(state.tasks)).toBe(true);
+    });
+
+    it("should handle service timeout scenarios", async () => {
+      // Simulate service timeout
+      mockClaudeCodeService.runTask.mockImplementation(
+        () =>
+          new Promise((_, reject) =>
+            setTimeout(() => reject(new Error("Timeout")), 100),
+          ),
+      );
+
+      const command: RunnerCommand = { kind: "runTask", task: "timeout task" };
+      controller.send(command);
+
+      await new Promise((resolve) => setTimeout(resolve, 150));
+
+      const state = controller.getCurrentState();
+      expect(state.taskError).toBe(true);
+      expect(state.lastTaskResults).toContain("Timeout");
+    });
+
+    it("should maintain error isolation between services", async () => {
+      // One service fails
+      mockUsageReportService.generateReport.mockRejectedValue(
+        new Error("Usage service error"),
+      );
+
+      // Other service should still work
+      mockLogsService.listProjects.mockResolvedValue([]);
+
+      const callbacks: ControllerCallbacks = {
+        onUsageReportError: jest.fn(),
+        onLogProjectsData: jest.fn(),
+      };
+      controller.setCallbacks(callbacks);
+
+      // Trigger both operations
+      controller.send({ kind: "requestUsageReport", period: "today" });
+      controller.send({ kind: "requestLogProjects" });
+
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      // Usage service should have failed
+      expect(callbacks.onUsageReportError).toHaveBeenCalledWith(
+        "Usage service error",
+      );
+
+      // Logs service should have succeeded
+      expect(callbacks.onLogProjectsData).toHaveBeenCalledWith([]);
+    });
+  });
+
+  describe("Event System Integration", () => {
+    it("should properly dispatch events through callback system", async () => {
+      const callbacks: ControllerCallbacks = {
+        onUsageReportData: jest.fn(),
+        onUsageReportError: jest.fn(),
+        onLogProjectsData: jest.fn(),
+        onLogConversationsData: jest.fn(),
+        onCommandScanResult: jest.fn(),
+      };
+
+      controller.setCallbacks(callbacks);
+
+      // Test each callback type
+      const mockReport = {
+        period: "today" as const,
+        startDate: "2024-01-01",
+        endDate: "2024-01-01",
+        dailyReports: [],
+        totals: {
+          inputTokens: 100,
+          outputTokens: 50,
+          cacheCreateTokens: 0,
+          cacheReadTokens: 0,
+          totalTokens: 150,
+          costUSD: 0.1,
+          models: ["claude-3-5-sonnet-20241022"],
+        },
+      };
+      mockUsageReportService.generateReport.mockResolvedValue(mockReport);
+      controller.send({ kind: "requestUsageReport", period: "today" });
+
+      mockLogsService.listProjects.mockResolvedValue([]);
+      controller.send({ kind: "requestLogProjects" });
+
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      expect(callbacks.onUsageReportData).toHaveBeenCalledWith(mockReport);
+      expect(callbacks.onLogProjectsData).toHaveBeenCalledWith([]);
+    });
+
+    it("should handle event callback errors gracefully", async () => {
+      const faultyCallback = jest.fn().mockImplementation(() => {
+        throw new Error("Callback error");
+      });
+
+      const callbacks: ControllerCallbacks = {
+        onUsageReportData: faultyCallback,
+      };
+      controller.setCallbacks(callbacks);
+
+      const mockReport = {
+        period: "today" as const,
+        startDate: "2024-01-01",
+        endDate: "2024-01-01",
+        dailyReports: [],
+        totals: {
+          inputTokens: 100,
+          outputTokens: 50,
+          cacheCreateTokens: 0,
+          cacheReadTokens: 0,
+          totalTokens: 150,
+          costUSD: 0.1,
+          models: ["claude-3-5-sonnet-20241022"],
+        },
+      };
+      mockUsageReportService.generateReport.mockResolvedValue(mockReport);
+
+      // Should not throw even if callback fails
+      expect(() => {
+        controller.send({ kind: "requestUsageReport", period: "today" });
+      }).not.toThrow();
+
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      expect(faultyCallback).toHaveBeenCalled();
+    });
+  });
+
+  describe("Complex Workflow Orchestration", () => {
+    it("should handle complex multi-step workflow execution", async () => {
+      const tasks = [
+        createMockTask("step1", "Step 1"),
+        createMockTask("step2", "Step 2"),
+        createMockTask("step3", "Step 3"),
+      ];
+
+      const executionSteps: string[] = [];
+
+      mockClaudeCodeService.runTaskPipeline.mockImplementation(
+        async (_tasks, _model, _rootPath, _options, onProgress, onComplete) => {
+          // Simulate step-by-step execution
+          for (let i = 0; i < tasks.length; i++) {
+            executionSteps.push(`step${i + 1}`);
+            const updatedTasks = tasks.map((t, idx) => ({
+              ...t,
+              status: idx <= i ? ("completed" as const) : ("pending" as const),
+            }));
+            await onProgress(updatedTasks, i);
+          }
+
+          await onComplete(
+            tasks.map((t) => ({ ...t, status: "completed" as const })),
+          );
+        },
+      );
+
+      controller.send({ kind: "runTasks", tasks });
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      expect(executionSteps).toEqual(["step1", "step2", "step3"]);
+
+      const finalState = controller.getCurrentState();
+      expect(finalState.status).toBe("idle");
+      expect(finalState.taskCompleted).toBe(true);
+      expect(finalState.taskError).toBe(false);
+    });
+
+    it("should handle pause and resume workflow cycles", async () => {
+      // Test complete pause/resume cycle
+      const pauseExecutionId = "test-execution-123";
+
+      mockClaudeCodeService.getCurrentExecutionId.mockReturnValue(
+        pauseExecutionId,
+      );
+      mockClaudeCodeService.pauseWorkflowExecution.mockResolvedValue({
+        executionId: pauseExecutionId,
+        workflowPath: "/test/workflow.yml",
+        workflowName: "test-workflow",
+        startTime: "2024-01-01T00:00:00Z",
+        currentStep: 1,
+        totalSteps: 3,
+        status: "paused" as const,
+        sessionMappings: {},
+        completedSteps: [],
+        execution: createMockWorkflowExecution(),
+        canResume: true,
+      });
+
+      // Pause workflow
+      controller.send({ kind: "pauseWorkflow" });
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      let state = controller.getCurrentState();
+      expect(state.isPaused).toBe(true);
+      expect(state.currentExecutionId).toBe(pauseExecutionId);
+
+      // Resume workflow
+      mockClaudeCodeService.resumeWorkflowExecution.mockResolvedValue({
+        executionId: pauseExecutionId,
+        workflowPath: "/test/workflow.yml",
+        workflowName: "test-workflow",
+        startTime: "2024-01-01T00:00:00Z",
+        currentStep: 2,
+        totalSteps: 3,
+        status: "running" as const,
+        sessionMappings: {},
+        completedSteps: [],
+        execution: createMockWorkflowExecution(),
+        canResume: true,
+      });
+
+      controller.send({
+        kind: "resumeWorkflow",
+        executionId: pauseExecutionId,
+      });
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      state = controller.getCurrentState();
+      expect(state.isPaused).toBe(false);
+      expect(state.currentExecutionId).toBe(pauseExecutionId);
     });
   });
 
@@ -1559,6 +1972,168 @@ describe("RunnerController", () => {
       await new Promise((resolve) => setTimeout(resolve, 0));
 
       expect(mockCommandsService.deleteCommand).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("Integration Test Coverage", () => {
+    it("should handle comprehensive end-to-end workflow", async () => {
+      // Simulate complete user workflow: configure -> add tasks -> execute -> complete
+      const stateChanges: Partial<UIState>[] = [];
+      controller.state$.subscribe((state) => {
+        stateChanges.push({
+          model: state.model,
+          status: state.status,
+          tasks: state.tasks,
+          taskCompleted: state.taskCompleted,
+          taskError: state.taskError,
+        });
+      });
+
+      // 1. Configure settings
+      controller.send({
+        kind: "updateModel",
+        model: "claude-3-5-haiku-20241022",
+      });
+      controller.send({ kind: "updateAllowAllTools", allow: true });
+      controller.send({ kind: "updateRootPath", path: "/test/project" });
+
+      // 2. Add pipeline tasks
+      const task1 = createMockTask("task1", "Analyze code");
+      const task2 = createMockTask("task2", "Generate documentation");
+      controller.send({ kind: "pipelineAddTask", newTask: task1 });
+      controller.send({ kind: "pipelineAddTask", newTask: task2 });
+
+      // 3. Execute pipeline
+      mockClaudeCodeService.runTaskPipeline.mockImplementation(
+        async (_tasks, _model, _rootPath, _options, onProgress, onComplete) => {
+          const executingTasks = [task1, task2].map((t) => ({
+            ...t,
+            status: "running" as const,
+          }));
+          await onProgress(executingTasks, 0);
+
+          const completedTasks = [task1, task2].map((t) => ({
+            ...t,
+            status: "completed" as const,
+          }));
+          await onComplete(completedTasks);
+        },
+      );
+
+      controller.send({ kind: "runTasks", tasks: [task1, task2] });
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      // Verify end-to-end state progression
+      const finalState = controller.getCurrentState();
+      expect(finalState.model).toBe("claude-3-5-haiku-20241022");
+      expect(finalState.allowAllTools).toBe(true);
+      expect(finalState.rootPath).toBe("/test/project");
+      expect(finalState.tasks).toHaveLength(2);
+      expect(finalState.status).toBe("idle");
+      expect(finalState.taskCompleted).toBe(true);
+      expect(finalState.taskError).toBe(false);
+
+      // Verify service coordination
+      expect(mockPipelineService.setRootPath).toHaveBeenCalledWith(
+        "/test/project",
+      );
+      expect(mockClaudeCodeService.runTaskPipeline).toHaveBeenCalledWith(
+        [task1, task2],
+        "claude-3-5-haiku-20241022",
+        "/test/project",
+        expect.objectContaining({ allowAllTools: true }),
+        expect.any(Function),
+        expect.any(Function),
+        expect.any(Function),
+        undefined,
+      );
+
+      // Verify multiple state updates occurred
+      expect(stateChanges.length).toBeGreaterThan(5);
+    });
+
+    it("should maintain service consistency during complex operations", async () => {
+      // Test that all services remain in sync during complex multi-step operations
+      const complexWorkflow = async () => {
+        // Configuration changes
+        controller.send({ kind: "updateRootPath", path: "/complex/project" });
+        await new Promise((resolve) => setTimeout(resolve, 0));
+
+        // Pipeline operations
+        const tasks = Array.from({ length: 5 }, (_, i) =>
+          createMockTask(`task${i}`, `Task ${i + 1}`),
+        );
+        tasks.forEach((task) => {
+          controller.send({ kind: "pipelineAddTask", newTask: task });
+        });
+
+        // Usage report request
+        mockUsageReportService.generateReport.mockResolvedValue({
+          period: "week" as const,
+          startDate: "2024-01-01",
+          endDate: "2024-01-07",
+          dailyReports: [],
+          totals: {
+            inputTokens: 1000,
+            outputTokens: 500,
+            cacheCreateTokens: 0,
+            cacheReadTokens: 0,
+            totalTokens: 1500,
+            costUSD: 1.5,
+            models: ["claude-3-5-sonnet-20241022"],
+          },
+        });
+
+        const callbacks: ControllerCallbacks = {
+          onUsageReportData: jest.fn(),
+        };
+        controller.setCallbacks(callbacks);
+
+        controller.send({ kind: "requestUsageReport", period: "week" });
+        await new Promise((resolve) => setTimeout(resolve, 0));
+
+        // Verify all services were called appropriately
+        expect(mockPipelineService.setRootPath).toHaveBeenCalledWith(
+          "/complex/project",
+        );
+        expect(mockUsageReportService.generateReport).toHaveBeenCalledWith(
+          "week",
+          undefined,
+          undefined,
+        );
+        expect(callbacks.onUsageReportData).toHaveBeenCalled();
+
+        const finalState = controller.getCurrentState();
+        expect(finalState.rootPath).toBe("/complex/project");
+        expect(finalState.tasks).toHaveLength(5);
+      };
+
+      await expect(complexWorkflow()).resolves.not.toThrow();
+    });
+
+    it("should handle memory management during long-running operations", () => {
+      // Verify that state updates don't cause memory leaks
+      const initialSubscriberCount =
+        (controller.state$ as unknown as { observers?: unknown[] }).observers
+          ?.length ?? 0;
+
+      // Create multiple subscriptions
+      const subscriptions = Array.from({ length: 10 }, () =>
+        controller.state$.subscribe(() => {}),
+      );
+
+      // Execute many state updates
+      for (let i = 0; i < 50; i++) {
+        controller.send({ kind: "updateChatPrompt", prompt: `prompt ${i}` });
+      }
+
+      // Clean up subscriptions
+      subscriptions.forEach((sub) => sub.unsubscribe());
+
+      const finalSubscriberCount =
+        (controller.state$ as unknown as { observers?: unknown[] }).observers
+          ?.length ?? 0;
+      expect(finalSubscriberCount).toBe(initialSubscriberCount);
     });
   });
 });
