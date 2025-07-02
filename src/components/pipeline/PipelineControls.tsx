@@ -87,8 +87,10 @@ const PipelineControls: React.FC<PipelineControlsProps> = ({
     }
   }, [isTasksRunning, isPaused]);
 
-  // SIMPLE: Show pause/resume/cancel as long as pipeline didn't finish
-  const pipelineRunning = isTasksRunning || isPaused;
+  // Memoize pipeline running state to prevent unnecessary re-renders
+  const pipelineRunningMemo = React.useMemo(() => {
+    return (isTasksRunning || isPaused) && !isPipelineFinished;
+  }, [isTasksRunning, isPaused, isPipelineFinished]);
   return (
     <div className="task-controls">
       {/* Add Task and Save Pipeline - same line at top */}
@@ -200,16 +202,16 @@ const PipelineControls: React.FC<PipelineControlsProps> = ({
         className="pipeline-execution-controls"
         style={{ marginTop: "24px" }}
       >
-        {pipelineRunning ? (
+        {pipelineRunningMemo ? (
           <>
             {isPaused ? (
               <Button
                 variant="primary"
-                onClick={() =>
-                  onResumePipeline?.(
-                    pausedPipelines?.[0]?.pipelineId || "current",
-                  )
-                }
+                onClick={() => {
+                  const pipelineId =
+                    pausedPipelines?.[0]?.pipelineId || "current";
+                  onResumePipeline?.(pipelineId);
+                }}
                 disabled={disabled || !onResumePipeline}
               >
                 Resume

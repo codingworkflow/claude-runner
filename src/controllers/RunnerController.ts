@@ -388,21 +388,20 @@ export class RunnerController implements EventBus {
             (t) => t.id === runningTask?.id,
           );
 
-          // Check if any task is paused to update isPaused state
+          // Simple pause check
           const hasPausedTask = newTasks.some(
             (task) => task.status === "paused",
           );
-          const pausedPipelines = this.claudeCodeService.getPausedPipelines();
 
-          // Update status to paused when pipeline is paused
-          const newStatus = hasPausedTask ? "paused" : currentState.status;
+          // Get updated paused pipelines from service
+          const pausedPipelines = this.claudeCodeService.getPausedPipelines();
 
           this.updateState({
             tasks: newTasks,
             currentTaskIndex,
             isPaused: hasPausedTask,
+            status: hasPausedTask ? "paused" : "running",
             pausedPipelines,
-            status: newStatus,
           });
         },
         // onComplete callback
@@ -413,6 +412,7 @@ export class RunnerController implements EventBus {
             taskMap.set(task.id, task);
           });
 
+          // Ensure all pause-related state is properly cleared
           this.updateState({
             status: "idle",
             tasks: Array.from(taskMap.values()),
@@ -436,6 +436,7 @@ export class RunnerController implements EventBus {
             taskMap.set(task.id, task);
           });
 
+          // Ensure all pause-related state is properly cleared on error too
           this.updateState({
             status: "idle",
             tasks: Array.from(taskMap.values()),
@@ -468,7 +469,7 @@ export class RunnerController implements EventBus {
     try {
       this.claudeCodeService.cancelCurrentTask();
 
-      // Clear task state on cancellation but keep tasks array
+      // Clear all task and pause state on cancellation
       this.updateState({
         status: "idle",
         taskCompleted: false,
@@ -476,6 +477,8 @@ export class RunnerController implements EventBus {
         lastTaskResults: undefined,
         currentTaskIndex: undefined,
         isPaused: false,
+        pausedPipelines: [],
+        currentExecutionId: undefined,
       });
 
       vscode.window.showInformationMessage("Task cancelled");
@@ -626,6 +629,9 @@ export class RunnerController implements EventBus {
       lastTaskResults: undefined,
       taskCompleted: false,
       taskError: false,
+      isPaused: false,
+      pausedPipelines: [],
+      currentExecutionId: undefined,
     });
   }
 
@@ -1013,6 +1019,7 @@ export class RunnerController implements EventBus {
     try {
       const pipelineId =
         await this.claudeCodeService.pausePipelineExecution("manual");
+
       if (!pipelineId) {
         await vscode.window.showWarningMessage(
           "No pipeline currently running to pause",
@@ -1029,6 +1036,7 @@ export class RunnerController implements EventBus {
         "Pipeline will pause after current task completes",
       );
     } catch (error) {
+      console.error("[RunnerController] pausePipeline error:", error);
       const errorMessage =
         error instanceof Error ? error.message : String(error);
       await vscode.window.showErrorMessage(
@@ -1041,6 +1049,7 @@ export class RunnerController implements EventBus {
     try {
       const resumed =
         await this.claudeCodeService.resumePipelineExecution(pipelineId);
+
       if (!resumed) {
         await vscode.window.showWarningMessage(
           `Cannot resume pipeline: ${pipelineId}`,
@@ -1048,16 +1057,25 @@ export class RunnerController implements EventBus {
         return;
       }
 
-      // SIMPLE: Clear pause flag and set back to running
-      this.updateState({
-        isPaused: false,
-        status: "running",
-      });
+      // Check if pipeline completed during resume
+      const stateAfterResume = this.state$.value;
+
+      // Only update state if pipeline hasn't completed
+      if (
+        stateAfterResume.status !== "idle" &&
+        !stateAfterResume.taskCompleted
+      ) {
+        this.updateState({
+          isPaused: false,
+          status: "running",
+        });
+      }
 
       await vscode.window.showInformationMessage(
         "Pipeline resumed successfully",
       );
     } catch (error) {
+      console.error("[RunnerController] resumePipeline error:", error);
       const errorMessage =
         error instanceof Error ? error.message : String(error);
       await vscode.window.showErrorMessage(
@@ -1112,11 +1130,8 @@ export class RunnerController implements EventBus {
 
   public async refreshPauseResumeState(): Promise<void> {
     try {
-      // Get current pause state
       const isPaused = this.claudeCodeService.isWorkflowPaused();
       const pausedPipelines = this.claudeCodeService.getPausedPipelines();
-
-      // Get resumable workflows
       await this.getResumableWorkflows();
 
       this.updateState({

@@ -27,7 +27,7 @@ const TaskList: React.FC<TaskListProps> = ({
   return (
     <div className="tasks-container">
       {tasks.map((task, index) => (
-        <div key={task.id} className="task-item">
+        <div key={`task-${task.id}-${index}`} className="task-item">
           <div className="task-header">
             <input
               type="text"

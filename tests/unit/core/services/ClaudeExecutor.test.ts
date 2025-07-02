@@ -1526,7 +1526,7 @@ describe("ClaudeExecutor", () => {
         const timestamp = Math.floor(Date.now() / 1000) + 3600;
         const stderr = `Claude AI usage limit reached|${timestamp}`;
 
-        const result = detectRateLimit("", stderr);
+        const result = detectRateLimit(stderr);
 
         expect(result.isLimited).toBe(true);
       });
@@ -1566,11 +1566,6 @@ describe("ClaudeExecutor", () => {
       });
 
       it("should call logger methods during rate limit wait", async () => {
-        const waitForRateLimit = (
-          executor as unknown as {
-            waitForRateLimit: (resetTime: Date) => Promise<void>;
-          }
-        ).waitForRateLimit.bind(executor);
         const resetTime = new Date(Date.now() - 1000); // Already passed, so no actual wait
         const rateLimitInfo = {
           isLimited: true,
@@ -1578,7 +1573,15 @@ describe("ClaudeExecutor", () => {
           waitTime: 0, // No wait time since reset time has passed
         };
 
-        await waitForRateLimit(rateLimitInfo);
+        await (
+          executor as unknown as {
+            waitForRateLimit: (rateLimitInfo: {
+              isLimited: boolean;
+              resetTime?: Date;
+              waitTime?: number;
+            }) => Promise<void>;
+          }
+        ).waitForRateLimit(rateLimitInfo);
 
         // Since waitTime is 0, it should return immediately without logging
         expect(mockLogger.warn).not.toHaveBeenCalled();
@@ -1606,35 +1609,41 @@ describe("ClaudeExecutor", () => {
       });
 
       it("should return immediately if not rate limited", async () => {
-        const waitForRateLimit = (
-          executor as unknown as {
-            waitForRateLimit: (resetTime: Date) => Promise<void>;
-          }
-        ).waitForRateLimit;
         const rateLimitInfo = {
           isLimited: false,
         };
 
         const startTime = Date.now();
-        await waitForRateLimit(rateLimitInfo);
+        await (
+          executor as unknown as {
+            waitForRateLimit: (rateLimitInfo: {
+              isLimited: boolean;
+              resetTime?: Date;
+              waitTime?: number;
+            }) => Promise<void>;
+          }
+        ).waitForRateLimit(rateLimitInfo);
         const endTime = Date.now();
 
         expect(endTime - startTime).toBeLessThan(100);
       });
 
       it("should return immediately if no wait time", async () => {
-        const waitForRateLimit = (
-          executor as unknown as {
-            waitForRateLimit: (resetTime: Date) => Promise<void>;
-          }
-        ).waitForRateLimit;
         const rateLimitInfo = {
           isLimited: true,
           waitTime: 0,
         };
 
         const startTime = Date.now();
-        await waitForRateLimit(rateLimitInfo);
+        await (
+          executor as unknown as {
+            waitForRateLimit: (rateLimitInfo: {
+              isLimited: boolean;
+              resetTime?: Date;
+              waitTime?: number;
+            }) => Promise<void>;
+          }
+        ).waitForRateLimit(rateLimitInfo);
         const endTime = Date.now();
 
         expect(endTime - startTime).toBeLessThan(100);
@@ -2820,39 +2829,35 @@ describe("ClaudeExecutor", () => {
 
   describe("JSON parsing edge cases", () => {
     it("should parse valid JSON output with result field", () => {
-      const parseTaskResult = (
-        executor as unknown as {
-          parseTaskResult: (output: string) => {
-            success: boolean;
-            result?: string;
-            error?: string;
-          };
-        }
-      ).parseTaskResult.bind(executor);
       const jsonOutput = JSON.stringify({
         session_id: "test-session",
         result: "Test result",
       });
 
-      const result = parseTaskResult(jsonOutput, "json");
+      const result = (
+        executor as unknown as {
+          parseTaskResult: (
+            output: string,
+            format: string,
+          ) => { sessionId?: string; resultText?: string };
+        }
+      ).parseTaskResult(jsonOutput, "json");
 
       expect(result.sessionId).toBe("test-session");
       expect(result.resultText).toBe("Test result");
     });
 
     it("should handle invalid JSON gracefully", () => {
-      const parseTaskResult = (
-        executor as unknown as {
-          parseTaskResult: (output: string) => {
-            success: boolean;
-            result?: string;
-            error?: string;
-          };
-        }
-      ).parseTaskResult.bind(executor);
       const invalidJson = "{ invalid json }";
 
-      const result = parseTaskResult(invalidJson, "json");
+      const result = (
+        executor as unknown as {
+          parseTaskResult: (
+            output: string,
+            format: string,
+          ) => { sessionId?: string; resultText?: string };
+        }
+      ).parseTaskResult(invalidJson, "json");
 
       expect(result.sessionId).toBeUndefined();
       expect(result.resultText).toBe(invalidJson);
@@ -2863,39 +2868,35 @@ describe("ClaudeExecutor", () => {
     });
 
     it("should return text output as-is for non-JSON format", () => {
-      const parseTaskResult = (
-        executor as unknown as {
-          parseTaskResult: (output: string) => {
-            success: boolean;
-            result?: string;
-            error?: string;
-          };
-        }
-      ).parseTaskResult.bind(executor);
       const textOutput = "Plain text output";
 
-      const result = parseTaskResult(textOutput, "text");
+      const result = (
+        executor as unknown as {
+          parseTaskResult: (
+            output: string,
+            format: string,
+          ) => { sessionId?: string; resultText?: string };
+        }
+      ).parseTaskResult(textOutput, "text");
 
       expect(result.sessionId).toBeUndefined();
       expect(result.resultText).toBe(textOutput);
     });
 
     it("should handle JSON with null values", () => {
-      const parseTaskResult = (
-        executor as unknown as {
-          parseTaskResult: (output: string) => {
-            success: boolean;
-            result?: string;
-            error?: string;
-          };
-        }
-      ).parseTaskResult.bind(executor);
       const jsonOutput = JSON.stringify({
         session_id: null,
         result: null,
       });
 
-      const result = parseTaskResult(jsonOutput, "json");
+      const result = (
+        executor as unknown as {
+          parseTaskResult: (
+            output: string,
+            format: string,
+          ) => { sessionId?: string | null; resultText?: string };
+        }
+      ).parseTaskResult(jsonOutput, "json");
 
       expect(result.sessionId).toBeNull();
       expect(result.resultText).toContain('"result": null');
@@ -3345,11 +3346,6 @@ describe("ClaudeExecutor", () => {
       });
 
       it("should handle rate limit with zero wait time", async () => {
-        const waitForRateLimit = (
-          executor as unknown as {
-            waitForRateLimit: (resetTime: Date) => Promise<void>;
-          }
-        ).waitForRateLimit.bind(executor);
         const rateLimitInfo = {
           isLimited: true,
           resetTime: new Date(Date.now() - 1000), // Already passed
@@ -3358,7 +3354,15 @@ describe("ClaudeExecutor", () => {
 
         // Should return immediately without waiting
         const startTime = Date.now();
-        await waitForRateLimit(rateLimitInfo);
+        await (
+          executor as unknown as {
+            waitForRateLimit: (rateLimitInfo: {
+              isLimited: boolean;
+              resetTime?: Date;
+              waitTime?: number;
+            }) => Promise<void>;
+          }
+        ).waitForRateLimit(rateLimitInfo);
         const endTime = Date.now();
 
         expect(endTime - startTime).toBeLessThan(50); // Should be very fast

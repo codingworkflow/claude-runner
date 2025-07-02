@@ -62,7 +62,7 @@ jest.mock("../../../../src/components/common/Toggle", () => {
       <input
         type="checkbox"
         checked={checked}
-        onChange={(e) => onChange(e.target.checked)}
+        onChange={(e) => onChange?.(e.target.checked)}
         disabled={disabled}
         aria-label={label}
       />
@@ -84,7 +84,7 @@ jest.mock("../../../../src/components/common/PathSelector", () => {
     <div data-testid="mock-path-selector">
       <input
         value={rootPath}
-        onChange={(e) => onUpdateRootPath(e.target.value)}
+        onChange={(e) => onUpdateRootPath?.(e.target.value)}
         disabled={disabled}
         placeholder="Root path"
       />
@@ -105,7 +105,7 @@ jest.mock("../../../../src/components/common/ModelSelector", () => {
     <div data-testid="mock-model-selector">
       <select
         value={model}
-        onChange={(e) => onUpdateModel(e.target.value)}
+        onChange={(e) => onUpdateModel?.(e.target.value)}
         disabled={disabled}
       >
         <option value="auto">Auto</option>

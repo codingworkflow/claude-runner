@@ -122,6 +122,7 @@ const PipelinePanel: React.FC<PipelinePanelProps> = ({ disabled }) => {
 
   const isPipelineFinished =
     !isTasksRunning &&
+    !isPaused &&
     tasks.some((t) => t.prompt.trim().length > 0) &&
     tasks.some((t) => t.status === "completed" || t.status === "error");
 

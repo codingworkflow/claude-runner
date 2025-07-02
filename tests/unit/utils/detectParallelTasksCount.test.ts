@@ -1,4 +1,4 @@
-import { exec } from "child_process";
+import { exec, type ChildProcess } from "child_process";
 import { detectParallelTasksCount } from "../../../src/utils/detectParallelTasksCount";
 
 // Mock child_process module
@@ -41,7 +41,7 @@ describe("detectParallelTasksCount", () => {
         if (callback) {
           callback(null, "4", "");
         }
-        return {} as NodeJS.Timeout;
+        return {} as ChildProcess;
       });
 
       const result = await detectParallelTasksCount();
@@ -53,7 +53,7 @@ describe("detectParallelTasksCount", () => {
         if (callback) {
           callback(null, "  3  \n", "");
         }
-        return {} as NodeJS.Timeout;
+        return {} as ChildProcess;
       });
 
       const result = await detectParallelTasksCount();
@@ -65,7 +65,7 @@ describe("detectParallelTasksCount", () => {
         if (callback) {
           callback(null, "2", "");
         }
-        return {} as NodeJS.Timeout;
+        return {} as ChildProcess;
       });
 
       const result = await detectParallelTasksCount();
@@ -79,7 +79,7 @@ describe("detectParallelTasksCount", () => {
         if (callback) {
           callback(null, "0", "");
         }
-        return {} as NodeJS.Timeout;
+        return {} as ChildProcess;
       });
 
       const result = await detectParallelTasksCount();
@@ -91,7 +91,7 @@ describe("detectParallelTasksCount", () => {
         if (callback) {
           callback(null, "10", "");
         }
-        return {} as NodeJS.Timeout;
+        return {} as ChildProcess;
       });
 
       const result = await detectParallelTasksCount();
@@ -103,7 +103,7 @@ describe("detectParallelTasksCount", () => {
         if (callback) {
           callback(null, "8", "");
         }
-        return {} as NodeJS.Timeout;
+        return {} as ChildProcess;
       });
 
       const result = await detectParallelTasksCount();
@@ -115,7 +115,7 @@ describe("detectParallelTasksCount", () => {
         if (callback) {
           callback(null, "1", "");
         }
-        return {} as NodeJS.Timeout;
+        return {} as ChildProcess;
       });
 
       const result = await detectParallelTasksCount();
@@ -129,7 +129,7 @@ describe("detectParallelTasksCount", () => {
         if (callback) {
           callback(null, "-1", "");
         }
-        return {} as NodeJS.Timeout;
+        return {} as ChildProcess;
       });
 
       const result = await detectParallelTasksCount();
@@ -141,7 +141,7 @@ describe("detectParallelTasksCount", () => {
         if (callback) {
           callback(null, "invalid", "");
         }
-        return {} as NodeJS.Timeout;
+        return {} as ChildProcess;
       });
 
       const result = await detectParallelTasksCount();
@@ -153,7 +153,7 @@ describe("detectParallelTasksCount", () => {
         if (callback) {
           callback(null, "3.5", "");
         }
-        return {} as NodeJS.Timeout;
+        return {} as ChildProcess;
       });
 
       const result = await detectParallelTasksCount();
@@ -165,7 +165,7 @@ describe("detectParallelTasksCount", () => {
         if (callback) {
           callback(null, "", "");
         }
-        return {} as NodeJS.Timeout;
+        return {} as ChildProcess;
       });
 
       const result = await detectParallelTasksCount();
@@ -177,7 +177,7 @@ describe("detectParallelTasksCount", () => {
         if (callback) {
           callback(null, "Infinity", "");
         }
-        return {} as NodeJS.Timeout;
+        return {} as ChildProcess;
       });
 
       const result = await detectParallelTasksCount();
@@ -189,7 +189,7 @@ describe("detectParallelTasksCount", () => {
         if (callback) {
           callback(null, "NaN", "");
         }
-        return {} as NodeJS.Timeout;
+        return {} as ChildProcess;
       });
 
       const result = await detectParallelTasksCount();
@@ -205,7 +205,7 @@ describe("detectParallelTasksCount", () => {
         if (callback) {
           callback(null, "2", "");
         }
-        return {} as NodeJS.Timeout;
+        return {} as ChildProcess;
       });
 
       await detectParallelTasksCount();
@@ -216,7 +216,7 @@ describe("detectParallelTasksCount", () => {
         if (callback) {
           callback(new Error("Command timed out"), "", "");
         }
-        return {} as NodeJS.Timeout;
+        return {} as ChildProcess;
       });
 
       const result = await detectParallelTasksCount();
@@ -228,7 +228,7 @@ describe("detectParallelTasksCount", () => {
         if (callback) {
           callback(new Error("Command not found"), "", "");
         }
-        return {} as NodeJS.Timeout;
+        return {} as ChildProcess;
       });
 
       const result = await detectParallelTasksCount();
@@ -243,7 +243,7 @@ describe("detectParallelTasksCount", () => {
         if (callback) {
           callback(null, "2", "");
         }
-        return {} as NodeJS.Timeout;
+        return {} as ChildProcess;
       });
 
       await detectParallelTasksCount();
@@ -254,7 +254,7 @@ describe("detectParallelTasksCount", () => {
         if (callback) {
           callback(new Error("Config not found"), "", "");
         }
-        return {} as NodeJS.Timeout;
+        return {} as ChildProcess;
       });
 
       const result = await detectParallelTasksCount();
@@ -266,7 +266,7 @@ describe("detectParallelTasksCount", () => {
         if (callback) {
           callback(null, "3", "warning: deprecated option");
         }
-        return {} as NodeJS.Timeout;
+        return {} as ChildProcess;
       });
 
       const result = await detectParallelTasksCount();
@@ -281,7 +281,7 @@ describe("detectParallelTasksCount", () => {
           if (callback) {
             callback(new Error("Failed"), "", "");
           }
-          return {} as NodeJS.Timeout;
+          return {} as ChildProcess;
         });
         results.push(await detectParallelTasksCount());
       }
@@ -297,7 +297,7 @@ describe("detectParallelTasksCount", () => {
           if (callback) {
             callback(null, count.toString(), "");
           }
-          return {} as NodeJS.Timeout;
+          return {} as ChildProcess;
         });
 
         const result = await detectParallelTasksCount();
@@ -310,7 +310,7 @@ describe("detectParallelTasksCount", () => {
         if (callback) {
           callback(new Error("ENOENT: no such file or directory"), "", "");
         }
-        return {} as NodeJS.Timeout;
+        return {} as ChildProcess;
       });
 
       const result = await detectParallelTasksCount();
@@ -322,7 +322,7 @@ describe("detectParallelTasksCount", () => {
         if (callback) {
           callback(new Error("EACCES: permission denied"), "", "");
         }
-        return {} as NodeJS.Timeout;
+        return {} as ChildProcess;
       });
 
       const result = await detectParallelTasksCount();
@@ -334,7 +334,7 @@ describe("detectParallelTasksCount", () => {
         if (callback) {
           callback(null, "corrupted_data_#$%", "");
         }
-        return {} as NodeJS.Timeout;
+        return {} as ChildProcess;
       });
 
       const result = await detectParallelTasksCount();
@@ -348,7 +348,7 @@ describe("detectParallelTasksCount", () => {
         if (callback) {
           callback(null, "3abc", "");
         }
-        return {} as NodeJS.Timeout;
+        return {} as ChildProcess;
       });
 
       const result = await detectParallelTasksCount();
@@ -360,7 +360,7 @@ describe("detectParallelTasksCount", () => {
         if (callback) {
           callback(null, "003", "");
         }
-        return {} as NodeJS.Timeout;
+        return {} as ChildProcess;
       });
 
       const result = await detectParallelTasksCount();
@@ -372,7 +372,7 @@ describe("detectParallelTasksCount", () => {
         if (callback) {
           callback(null, "1e2", "");
         }
-        return {} as NodeJS.Timeout;
+        return {} as ChildProcess;
       });
 
       const result = await detectParallelTasksCount();
@@ -384,7 +384,7 @@ describe("detectParallelTasksCount", () => {
         if (callback) {
           callback(null, "0x5", "");
         }
-        return {} as NodeJS.Timeout;
+        return {} as ChildProcess;
       });
 
       const result = await detectParallelTasksCount();
@@ -396,7 +396,7 @@ describe("detectParallelTasksCount", () => {
         if (callback) {
           callback(null, null as unknown as string, "");
         }
-        return {} as NodeJS.Timeout;
+        return {} as ChildProcess;
       });
 
       const result = await detectParallelTasksCount();
@@ -408,7 +408,7 @@ describe("detectParallelTasksCount", () => {
         if (callback) {
           callback(null, undefined as unknown as string, "");
         }
-        return {} as NodeJS.Timeout;
+        return {} as ChildProcess;
       });
 
       const result = await detectParallelTasksCount();
@@ -420,7 +420,7 @@ describe("detectParallelTasksCount", () => {
         if (callback) {
           callback(null, "999999999", "");
         }
-        return {} as NodeJS.Timeout;
+        return {} as ChildProcess;
       });
 
       const result = await detectParallelTasksCount();
@@ -432,7 +432,7 @@ describe("detectParallelTasksCount", () => {
         if (callback) {
           callback(null, "   \t\n  5   \t\n  ", "");
         }
-        return {} as NodeJS.Timeout;
+        return {} as ChildProcess;
       });
 
       const result = await detectParallelTasksCount();

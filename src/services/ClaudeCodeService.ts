@@ -78,6 +78,9 @@ export class ClaudeCodeService {
       currentIndex: number;
       resetTime: number;
       workflowPath?: string;
+      model: string;
+      rootPath: string;
+      options: TaskOptions;
       onProgress: (tasks: TaskItem[], currentIndex: number) => void;
       onComplete: (tasks: TaskItem[]) => void;
       onError: (error: string, tasks: TaskItem[]) => void;
@@ -196,9 +199,10 @@ export class ClaudeCodeService {
         rootPath,
         options,
         workflowPath,
+        0, // Start from beginning
       );
     } else {
-      await this.executeTasksPipeline(model, rootPath, options);
+      await this.executeTasksPipeline(model, rootPath, options, 0); // Start from beginning
     }
   }
 
@@ -208,10 +212,11 @@ export class ClaudeCodeService {
     rootPath: string,
     options: TaskOptions,
     workflowPath: string,
+    startIndex: number = 0,
   ): Promise<void> {
     if (!this.workflowStateService) {
       // Fallback to regular execution
-      await this.executeTasksPipeline(model, rootPath, options);
+      await this.executeTasksPipeline(model, rootPath, options, startIndex);
       return;
     }
 
@@ -264,7 +269,7 @@ export class ClaudeCodeService {
       await jsonLogger.initializeLog(workflowState, workflowPath);
 
       // Execute tasks one by one with both UI updates and JSON logging
-      for (let i = 0; i < tasks.length; i++) {
+      for (let i = startIndex; i < tasks.length; i++) {
         const task = tasks[i];
         if (!this.currentPipelineExecution) {
           break; // Pipeline was cancelled
@@ -272,21 +277,11 @@ export class ClaudeCodeService {
 
         // Check if pause was requested before starting this task
         if (this.pauseAfterCurrentTask) {
-          // Check if this is the last task or no pending tasks remain
-          const hasRemainingTasks = tasks
-            .slice(i + 1)
-            .some((t) => t.status === "pending");
-          const onComplete = this.currentPipelineExecution.onComplete;
-
-          // Clear flags
+          // Clear the pause flag first
           this.pauseAfterCurrentTask = false;
 
-          if (!hasRemainingTasks) {
-            // No more tasks to run, treat as completed
-            this.currentPipelineExecution = null;
-            onComplete?.(tasks);
-          } else {
-            // Only store paused state if there are remaining tasks
+          // Always pause the current task if it hasn't started yet
+          if (task.status === "pending") {
             const pipelineId = `pipeline-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
             // Mark this task as paused
@@ -299,6 +294,9 @@ export class ClaudeCodeService {
               currentIndex: i,
               resetTime: Date.now(),
               workflowPath: this.currentWorkflowPath,
+              model,
+              rootPath,
+              options,
               onProgress: this.currentPipelineExecution.onProgress,
               onComplete: this.currentPipelineExecution.onComplete,
               onError: this.currentPipelineExecution.onError,
@@ -307,8 +305,10 @@ export class ClaudeCodeService {
             // Update UI with paused state
             this.currentPipelineExecution.onProgress(tasks, i);
             this.currentPipelineExecution = null;
+            return; // Exit pipeline execution
+          } else {
+            // If current task is already running/completed, just continue
           }
-          return; // Exit pipeline execution
         }
 
         // Check if pipeline was cancelled/paused before starting this task
@@ -438,7 +438,6 @@ export class ClaudeCodeService {
       }
 
       // JSON log will be automatically marked as completed when all steps finish
-
       this.currentPipelineExecution?.onComplete(tasks);
     } catch (error) {
       const errorMessage =
@@ -451,6 +450,7 @@ export class ClaudeCodeService {
     model: string,
     rootPath: string,
     options: TaskOptions,
+    startIndex: number = 0,
   ): Promise<void> {
     if (!this.currentPipelineExecution) {
       return;
@@ -461,7 +461,7 @@ export class ClaudeCodeService {
 
     let previousStepSuccess = true;
 
-    for (let i = 0; i < tasks.length; i++) {
+    for (let i = startIndex; i < tasks.length; i++) {
       if (!this.currentPipelineExecution) {
         // Pipeline was cancelled
         return;
@@ -472,21 +472,11 @@ export class ClaudeCodeService {
 
       // Check if pause was requested before starting this task
       if (this.pauseAfterCurrentTask) {
-        // Check if this is the last task or no pending tasks remain
-        const hasRemainingTasks = tasks
-          .slice(i + 1)
-          .some((t) => t.status === "pending");
-        const onComplete = this.currentPipelineExecution.onComplete;
-
-        // Clear flags
+        // Clear the pause flag first
         this.pauseAfterCurrentTask = false;
 
-        if (!hasRemainingTasks) {
-          // No more tasks to run, treat as completed
-          this.currentPipelineExecution = null;
-          onComplete?.(tasks);
-        } else {
-          // Only store paused state if there are remaining tasks
+        // Always pause the current task if it hasn't started yet
+        if (task.status === "pending") {
           const pipelineId = `pipeline-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
           // Mark this task as paused
@@ -499,6 +489,9 @@ export class ClaudeCodeService {
             currentIndex: i,
             resetTime: Date.now(),
             workflowPath: this.currentWorkflowPath,
+            model,
+            rootPath,
+            options,
             onProgress: this.currentPipelineExecution.onProgress,
             onComplete: this.currentPipelineExecution.onComplete,
             onError: this.currentPipelineExecution.onError,
@@ -507,8 +500,11 @@ export class ClaudeCodeService {
           // Update UI with paused state
           this.currentPipelineExecution.onProgress(tasks, i);
           this.currentPipelineExecution = null;
+          return; // Exit pipeline execution
+        } else {
+          // If current task is already running/completed, just continue
+          // The pause will happen before the next task
         }
-        return; // Exit pipeline execution
       }
 
       // Evaluate condition to determine if task should run
@@ -589,6 +585,9 @@ export class ClaudeCodeService {
                 currentIndex: i,
                 resetTime: rateLimitCheck.resetTime,
                 workflowPath: this.currentWorkflowPath,
+                model,
+                rootPath,
+                options,
                 onProgress,
                 onComplete,
                 onError,
@@ -648,6 +647,9 @@ export class ClaudeCodeService {
               currentIndex: i,
               resetTime: rateLimitCheck.resetTime,
               workflowPath: this.currentWorkflowPath,
+              model,
+              rootPath,
+              options,
               onProgress,
               onComplete,
               onError,
@@ -983,19 +985,67 @@ export class ClaudeCodeService {
 
     this.pausedPipelines.delete(pipelineId);
 
-    // KISS: Just restore execution state and clear pause flag
+    // Reset the paused task's status to pending
+    const tasks = [...pausedState.tasks];
+    const pausedTaskIndex = pausedState.currentIndex;
+
+    if (pausedTaskIndex < tasks.length) {
+      const pausedTask = tasks[pausedTaskIndex];
+
+      if (pausedTask.status === "paused") {
+        pausedTask.status = "pending";
+        pausedTask.results = undefined;
+        delete pausedTask.pausedUntil;
+      }
+    }
+
+    // Restore execution state with updated tasks
     this.currentPipelineExecution = {
-      tasks: pausedState.tasks,
+      tasks,
       currentIndex: pausedState.currentIndex,
       onProgress: pausedState.onProgress,
       onComplete: pausedState.onComplete,
       onError: pausedState.onError,
     };
 
-    // Clear the pause flag - that's it!
+    // Clear the pause flag
     this.pauseAfterCurrentTask = false;
 
-    // The existing execution will continue naturally when the current task completes
+    // Update UI to reflect the resumed state
+    pausedState.onProgress(tasks, pausedState.currentIndex);
+
+    // Actually restart the pipeline execution from the paused point
+    const workflowPath = pausedState.workflowPath;
+
+    try {
+      // Use the original model and rootPath from the paused state
+      const model = pausedState.model;
+      const rootPath = pausedState.rootPath;
+      const options = pausedState.options;
+
+      if (workflowPath && this.workflowStateService) {
+        await this.executeTasksPipelineWithLogging(
+          tasks,
+          model,
+          rootPath,
+          options,
+          workflowPath,
+          pausedState.currentIndex, // Start from paused index
+        );
+      } else {
+        await this.executeTasksPipeline(
+          model,
+          rootPath,
+          options,
+          pausedState.currentIndex, // Start from paused index
+        );
+      }
+    } catch (error) {
+      console.error("[ClaudeCodeService] Error during pipeline resume:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      this.currentPipelineExecution?.onError(errorMessage, tasks);
+    }
   }
 
   /**
@@ -1173,7 +1223,9 @@ export class ClaudeCodeService {
 
     // Return a pipeline ID that the execution loop will use when it actually pauses
     // The actual pause state will be stored by the execution loop if there are more tasks
-    return `pipeline-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const pipelineId = `pipeline-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+    return pipelineId;
   }
 
   async resumePipelineExecution(executionId: string): Promise<boolean> {
@@ -1189,6 +1241,7 @@ export class ClaudeCodeService {
         // Check if the workflow exists first
         const workflowState =
           await this.workflowStateService.getWorkflowState(executionId);
+
         if (!workflowState || workflowState.status !== "paused") {
           return false;
         }
@@ -1196,7 +1249,7 @@ export class ClaudeCodeService {
         const resumed =
           await this.workflowStateService.resumeWorkflow(executionId);
         return resumed !== null;
-      } catch {
+      } catch (error) {
         return false;
       }
     }
@@ -1210,7 +1263,6 @@ export class ClaudeCodeService {
     currentIndex: number;
     pausedAt: number;
   }> {
-    // Always use in-memory map for synchronous access
     const result: Array<{
       pipelineId: string;
       tasks: TaskItem[];

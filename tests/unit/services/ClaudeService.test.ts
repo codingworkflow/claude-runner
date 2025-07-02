@@ -25,26 +25,85 @@ import { VSCodeLogger, VSCodeConfigSource } from "../../../src/adapters/vscode";
 import { ConfigManager } from "../../../src/core/services/ConfigManager";
 import { ClaudeDetectionService } from "../../../src/services/ClaudeDetectionService";
 
-// Create typed mock objects with explicit any typing for jest compatibility
+// Create typed mock objects
 const mockClaudeExecutor = {
-  executeTask: jest.fn(),
-  executePipeline: jest.fn(),
-  resumePipeline: jest.fn(),
-  cancelCurrentTask: jest.fn(),
-  isTaskRunning: jest.fn(),
-  validateClaudeCommand: jest.fn(),
-  formatCommandPreview: jest.fn(),
+  executeTask: jest.fn() as jest.MockedFunction<
+    (
+      task: string,
+      model: string,
+      workingDirectory: string,
+      options?: unknown,
+    ) => Promise<TaskResult>
+  >,
+  executeTaskWithRetry: jest.fn() as jest.MockedFunction<
+    (
+      task: string,
+      model: string,
+      workingDirectory: string,
+      options?: unknown,
+    ) => Promise<TaskResult>
+  >,
+  executePipeline: jest.fn() as jest.MockedFunction<
+    (
+      tasks: TaskItem[],
+      model: string,
+      workingDirectory: string,
+      options?: unknown,
+      onProgress?: unknown,
+      onComplete?: unknown,
+      onError?: unknown,
+      pauseHandler?: unknown,
+      onPausedHandler?: unknown,
+    ) => Promise<void>
+  >,
+  resumePipeline: jest.fn() as jest.MockedFunction<
+    (
+      tasks: TaskItem[],
+      model: string,
+      workingDirectory: string,
+      options?: unknown,
+      onProgress?: unknown,
+      onComplete?: unknown,
+      onError?: unknown,
+      pauseHandler?: unknown,
+      onPausedHandler?: unknown,
+    ) => Promise<void>
+  >,
+  cancelCurrentTask: jest.fn() as jest.MockedFunction<() => void>,
+  isTaskRunning: jest.fn() as jest.MockedFunction<() => boolean>,
+  validateClaudeCommand: jest.fn() as jest.MockedFunction<
+    (model: string) => Promise<boolean>
+  >,
+  formatCommandPreview: jest.fn() as jest.MockedFunction<
+    (
+      task: string,
+      model: string,
+      workingDirectory: string,
+      options?: unknown,
+    ) => string
+  >,
 };
 
 const mockConfigManager = {
-  addSource: jest.fn(),
-  validateModel: jest.fn(),
+  addSource: jest.fn() as jest.MockedFunction<(source: unknown) => void>,
+  get: jest.fn() as jest.MockedFunction<(key: string) => Promise<unknown>>,
+  set: jest.fn() as jest.MockedFunction<
+    (key: string, value: unknown) => Promise<void>
+  >,
+  validateModel: jest.fn() as jest.MockedFunction<(model: string) => boolean>,
+  validatePath: jest.fn() as jest.MockedFunction<(path: string) => boolean>,
 };
 
 const mockWorkflowService = {
-  getExecutionSteps: jest.fn(),
-  resolveStepVariables: jest.fn(),
-  updateExecutionOutput: jest.fn(),
+  getExecutionSteps: jest.fn() as jest.MockedFunction<
+    (workflow: unknown) => unknown[]
+  >,
+  resolveStepVariables: jest.fn() as jest.MockedFunction<
+    (step: unknown, inputs: unknown, outputs: unknown) => unknown
+  >,
+  updateExecutionOutput: jest.fn() as jest.MockedFunction<
+    (execution: unknown, stepId: string, output: unknown) => void
+  >,
 };
 
 // Mock implementations
@@ -68,10 +127,24 @@ const MockedWorkflowService = WorkflowService as jest.MockedClass<
 >;
 
 // Setup constructor implementations
+// @ts-expect-error - Mock implementation for testing
 MockedClaudeExecutor.mockImplementation(() => mockClaudeExecutor);
-MockedVSCodeLogger.mockImplementation(() => ({}));
-MockedVSCodeConfigSource.mockImplementation(() => ({}));
+MockedVSCodeLogger.mockImplementation(() => ({
+  info: jest.fn(),
+  warn: jest.fn(),
+  error: jest.fn(),
+  debug: jest.fn(),
+}));
+MockedVSCodeConfigSource.mockImplementation(
+  () =>
+    ({
+      get: jest.fn(),
+      set: jest.fn(),
+    }) as unknown,
+);
+// @ts-expect-error - Mock implementation for testing
 MockedConfigManager.mockImplementation(() => mockConfigManager);
+// @ts-expect-error - Mock implementation for testing
 MockedWorkflowService.mockImplementation(() => mockWorkflowService);
 
 describe("ClaudeService", () => {
@@ -1058,6 +1131,7 @@ describe("ClaudeService", () => {
 
       expect(() => new ClaudeService()).toThrow("Logger initialization failed");
 
+      // @ts-expect-error - Mock implementation for testing
       MockedVSCodeLogger.mockImplementation(() => ({}));
     });
 
@@ -1070,6 +1144,7 @@ describe("ClaudeService", () => {
         "Config source initialization failed",
       );
 
+      // @ts-expect-error - Mock implementation for testing
       MockedVSCodeConfigSource.mockImplementation(() => ({}));
     });
 
@@ -1082,6 +1157,7 @@ describe("ClaudeService", () => {
         "Executor initialization failed",
       );
 
+      // @ts-expect-error - Mock implementation for testing
       MockedClaudeExecutor.mockImplementation(() => mockClaudeExecutor);
     });
 
@@ -1268,21 +1344,25 @@ describe("ClaudeService", () => {
       let configManagerCallCount = 0;
       let executorCallCount = 0;
 
+      // @ts-expect-error - Mock implementation for testing
       MockedVSCodeLogger.mockImplementation(() => {
         loggerCallCount++;
         return {};
       });
 
+      // @ts-expect-error - Mock implementation for testing
       MockedVSCodeConfigSource.mockImplementation(() => {
         configSourceCallCount++;
         return {};
       });
 
+      // @ts-expect-error - Mock implementation for testing
       MockedConfigManager.mockImplementation(() => {
         configManagerCallCount++;
         return mockConfigManager;
       });
 
+      // @ts-expect-error - Mock implementation for testing
       MockedClaudeExecutor.mockImplementation(() => {
         executorCallCount++;
         return mockClaudeExecutor;

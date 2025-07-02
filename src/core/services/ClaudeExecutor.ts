@@ -331,6 +331,7 @@ export class ClaudeExecutor {
     // Reset the paused task to pending if it was paused
     if (tasks[resumeIndex].status === "paused") {
       tasks[resumeIndex].status = "pending";
+      tasks[resumeIndex].results = undefined;
       delete tasks[resumeIndex].pausedUntil;
       delete (tasks[resumeIndex] as unknown as { pausedAtIndex?: number })
         .pausedAtIndex;

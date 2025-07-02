@@ -18,6 +18,14 @@ jest.mock("util", () => {
 import { ShellDetection } from "../../../src/utils/ShellDetection";
 import type { ShellDetectionOptions } from "../../../src/utils/ShellDetection";
 
+// Extended options type for testing invalid shell values
+type TestShellDetectionOptions = Omit<
+  ShellDetectionOptions,
+  "preferredShell"
+> & {
+  preferredShell?: ShellDetectionOptions["preferredShell"] | "invalid";
+};
+
 describe("ShellDetection", () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -291,12 +299,14 @@ describe("ShellDetection", () => {
           }
         });
 
-        const options: ShellDetectionOptions = {
+        const options: TestShellDetectionOptions = {
           command: "test command",
-          preferredShell: "invalid" as unknown as "bash" | "cmd" | "powershell",
+          preferredShell: "invalid",
         };
 
-        const result = await ShellDetection.runCommand(options);
+        const result = await ShellDetection.runCommand(
+          options as ShellDetectionOptions,
+        );
 
         expect(result).toEqual({
           success: true,

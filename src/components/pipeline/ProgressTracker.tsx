@@ -106,7 +106,14 @@ const ProgressTracker: React.FC<ProgressTrackerProps> = ({
                   </div>
                   <div className="results-container">
                     <pre className="results-text">
-                      {JSON.parse(task.results || "{}").result}
+                      {(() => {
+                        try {
+                          const parsed = JSON.parse(task.results || "{}");
+                          return parsed.result || task.results;
+                        } catch {
+                          return task.results;
+                        }
+                      })()}
                     </pre>
                   </div>
                 </div>
