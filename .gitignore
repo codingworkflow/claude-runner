@@ -99,5 +99,6 @@ claude-runner-cli-*.tgz
 .claude/projects
 .claude/
 !.claude/command
+.sonarlint/
 .github/workflows/*.json
 claude-runner

@@ -14,6 +14,11 @@ npm install -g @anthropic-ai/claude-code
 echo 'alias ll="ls -alF"' >> ~/.bashrc
 echo 'alias cl="claude --dangerously-skip-permissions"' >> ~/.bashrc
 echo 'export CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1' >> ~/.bashrc
+echo 'export SONAR_SCANNER_VERSION=7.0.2.4839'
+echo 'export SONAR_SCANNER_HOME=$HOME/.sonar/sonar-scanner-$SONAR_SCANNER_VERSION-linux-x64'
+echo 'export PATH=$SONAR_SCANNER_HOME/bin:$PATH'
+
+yes | npx playwright install --with-deps --no-shell
 
 # Setup SonarQube Scanner (optional for code quality)
 if [ -f .sonar ]; then
