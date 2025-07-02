@@ -1,9 +1,11 @@
 import React from "react";
-import { render, screen, fireEvent } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import Input from "../../../../src/components/common/Input";
+import { setupComponentTest } from "../../helpers/componentTestUtils";
 
 describe("Input", () => {
+  const { render, screen, fireEvent } = setupComponentTest();
+
   describe("rendering and props", () => {
     it("renders with default props", () => {
       render(<Input />);

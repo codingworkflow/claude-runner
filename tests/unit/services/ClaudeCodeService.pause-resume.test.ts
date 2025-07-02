@@ -5,8 +5,13 @@ import {
   WorkflowStateService,
   WorkflowState,
 } from "../../../src/services/WorkflowStateService";
+import {
+  createMockConfigService,
+  createMockWorkflowStateService,
+  createMockWorkflowState,
+  mockPipelineExecution,
+} from "../helpers/pipelineTestUtils";
 
-// Mock dependencies
 jest.mock("../../../src/services/ConfigurationService");
 jest.mock("../../../src/services/WorkflowStateService");
 
@@ -17,20 +22,9 @@ describe("ClaudeCodeService Pause/Resume", () => {
 
   beforeEach(() => {
     mockConfigService =
-      new ConfigurationService() as jest.Mocked<ConfigurationService>;
-    mockWorkflowStateService = new WorkflowStateService(
-      {} as never,
-    ) as jest.Mocked<WorkflowStateService>;
-
-    // Mock configuration methods
-    mockConfigService.validateModel = jest
-      .fn()
-      .mockReturnValue(true) as jest.MockedFunction<
-      (modelId: string) => boolean
-    >;
-    mockConfigService.validatePath = jest
-      .fn()
-      .mockReturnValue(true) as jest.MockedFunction<(path: string) => boolean>;
+      createMockConfigService() as jest.Mocked<ConfigurationService>;
+    mockWorkflowStateService =
+      createMockWorkflowStateService() as jest.Mocked<WorkflowStateService>;
 
     claudeCodeService = new ClaudeCodeService(
       mockConfigService,
@@ -40,20 +34,7 @@ describe("ClaudeCodeService Pause/Resume", () => {
 
   describe("pauseWorkflowExecution", () => {
     it("should pause workflow execution", async () => {
-      const mockWorkflowState: WorkflowState = {
-        executionId: "exec_123",
-        workflowName: "test-workflow",
-        workflowPath: "/path/to/workflow.yml",
-        startTime: new Date().toISOString(),
-        currentStep: 1,
-        totalSteps: 3,
-        status: "paused",
-        sessionMappings: {},
-        completedSteps: [],
-        execution: {} as never,
-        pauseReason: "manual",
-        canResume: true,
-      };
+      const mockWorkflowState = createMockWorkflowState();
 
       mockWorkflowStateService.pauseWorkflow.mockResolvedValue(
         mockWorkflowState,
@@ -103,19 +84,10 @@ describe("ClaudeCodeService Pause/Resume", () => {
 
   describe("resumeWorkflowExecution", () => {
     it("should resume workflow execution", async () => {
-      const mockWorkflowState: WorkflowState = {
-        executionId: "exec_123",
-        workflowName: "test-workflow",
-        workflowPath: "/path/to/workflow.yml",
-        startTime: new Date().toISOString(),
-        currentStep: 1,
-        totalSteps: 3,
+      const mockWorkflowState = createMockWorkflowState({
         status: "running",
-        sessionMappings: {},
-        completedSteps: [],
         execution: { workflow: { name: "test" } } as never,
-        canResume: true,
-      };
+      });
 
       mockWorkflowStateService.resumeWorkflow.mockResolvedValue(
         mockWorkflowState,
@@ -155,33 +127,19 @@ describe("ClaudeCodeService Pause/Resume", () => {
 
   describe("getResumableWorkflows", () => {
     it("should return resumable workflows", async () => {
-      const mockWorkflows: WorkflowState[] = [
-        {
+      const mockWorkflows = [
+        createMockWorkflowState({
           executionId: "exec_1",
           workflowName: "workflow-1",
           workflowPath: "/path/1.yml",
-          startTime: new Date().toISOString(),
-          currentStep: 1,
-          totalSteps: 3,
-          status: "paused",
-          sessionMappings: {},
-          completedSteps: [],
-          execution: {} as never,
-          canResume: true,
-        },
-        {
+        }),
+        createMockWorkflowState({
           executionId: "exec_2",
           workflowName: "workflow-2",
           workflowPath: "/path/2.yml",
-          startTime: new Date().toISOString(),
           currentStep: 2,
           totalSteps: 4,
-          status: "paused",
-          sessionMappings: {},
-          completedSteps: [],
-          execution: {} as never,
-          canResume: true,
-        },
+        }),
       ];
 
       mockWorkflowStateService.getResumableWorkflows.mockResolvedValue(
@@ -205,29 +163,18 @@ describe("ClaudeCodeService Pause/Resume", () => {
 
   describe("pausePipelineExecution", () => {
     it("should pause pipeline execution", async () => {
-      const mockPipelineExecution = {
-        tasks: [
-          { id: "1", prompt: "Task 1", status: "running", results: "" },
-          { id: "2", prompt: "Task 2", status: "pending", results: "" },
-        ],
-        currentIndex: 0,
-        onProgress: jest.fn(),
-        onComplete: jest.fn(),
-        onError: jest.fn(),
-      };
+      const mockExecution = mockPipelineExecution(2);
 
       (
         claudeCodeService as unknown as {
-          currentPipelineExecution: typeof mockPipelineExecution;
+          currentPipelineExecution: typeof mockExecution;
         }
-      ).currentPipelineExecution = mockPipelineExecution;
+      ).currentPipelineExecution = mockExecution;
 
       const result = await claudeCodeService.pausePipelineExecution("manual");
 
       expect(result).toMatch(/^pipeline-\d+-[a-z0-9]+$/);
-      // With the simple fix, pausePipelineExecution only sets flag, doesn't modify tasks
-      expect(mockPipelineExecution.tasks[0].status).toBe("running");
-      // Pipeline execution continues until pause flag is checked in main loop
+      expect(mockExecution.tasks[0].status).toBe("pending");
       expect(
         (claudeCodeService as unknown as { currentPipelineExecution: unknown })
           .currentPipelineExecution,
@@ -257,13 +204,7 @@ describe("ClaudeCodeService Pause/Resume", () => {
             onError: jest.Mock;
           };
         }
-      ).currentPipelineExecution = {
-        tasks: [{ id: "1", prompt: "Task 1", status: "running", results: "" }],
-        currentIndex: 0,
-        onProgress: jest.fn(),
-        onComplete: jest.fn(),
-        onError: jest.fn(),
-      };
+      ).currentPipelineExecution = mockPipelineExecution(1);
 
       await claudeCodeService.pausePipelineExecution("manual");
 

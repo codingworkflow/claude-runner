@@ -1,67 +1,45 @@
 import { describe, it, expect, jest, beforeEach } from "@jest/globals";
 import { ClaudeCodeService } from "../../../src/services/ClaudeCodeService";
-import { TaskItem } from "../../../src/core/models/Task";
 import { ConfigurationService } from "../../../src/services/ConfigurationService";
-
-// Mock dependencies
-const mockConfigService = {
-  validateModel: jest.fn().mockReturnValue(true),
-} as jest.Mocked<Partial<ConfigurationService>>;
+import {
+  createTestPipeline,
+  createMockConfigService,
+  createMockExecuteCommand,
+  createPipelineCallbacks,
+  expectPipelineState,
+} from "../helpers/pipelineTestUtils";
 
 describe("ClaudeCodeService Pause First Task Bug", () => {
   let service: ClaudeCodeService;
+  let mockConfigService: jest.Mocked<Partial<ConfigurationService>>;
 
   beforeEach(() => {
+    mockConfigService = createMockConfigService();
     service = new ClaudeCodeService(mockConfigService as ConfigurationService);
     jest.clearAllMocks();
   });
 
   it("FIXED: Pause during first task (i=0) now works after removing i > 0 condition", async () => {
-    // Setup: Create a single task pipeline
-    const tasks: TaskItem[] = [
-      {
-        id: "task1",
-        name: "First Task",
-        prompt: "test prompt",
-        status: "pending",
-      },
-    ];
+    const { tasks } = createTestPipeline({ taskCount: 1 });
+    let capturedTasks = tasks;
 
-    let capturedTasks: TaskItem[] = [];
+    const { onProgress, onComplete, onError } = createPipelineCallbacks();
+    onProgress.mockImplementation((...args: any[]) => {
+      capturedTasks = [...args[0]];
+    });
 
-    // Mock the progress callback to capture state changes
-    const onProgress = jest.fn(
-      (updatedTasks: TaskItem[], _currentIndex: number) => {
-        capturedTasks = [...updatedTasks];
-      },
-    );
-
-    const onComplete = jest.fn();
-    const onError = jest.fn();
-
-    // Mock executeCommand from the beginning to simulate slow execution
     const executeCommandSpy = jest
       .spyOn(service, "executeCommand")
       .mockImplementation(
-        () =>
-          new Promise((resolve) => {
-            // Simulate slow task execution
-            setTimeout(() => {
-              resolve({
-                success: true,
-                output: "Task completed",
-                exitCode: 0,
-              });
-            }, 100);
-          }),
+        createMockExecuteCommand({ executeCommandDelay: 100 }),
       );
 
-    // Start the pipeline first
+    const { workingDirectory, config } = createTestPipeline();
     const pipelinePromise = service.runTaskPipeline(
       tasks,
       "auto",
-      "/test",
-      { allowAllTools: true, outputFormat: "json" },
+      workingDirectory,
+      config,
       onProgress,
       onComplete,
       onError,
@@ -73,54 +51,28 @@ describe("ClaudeCodeService Pause First Task Bug", () => {
     // Wait for pipeline to complete/pause
     await pipelinePromise;
 
-    // CORRECT: Single task should complete normally since there's no next task to pause
-    expect(capturedTasks[0].status).toBe("completed");
-
-    // CORRECT: No paused pipeline since task completed
+    expectPipelineState.toBeCompleted(capturedTasks, 1);
     expect(service.getPausedPipelines()).toHaveLength(0);
-
-    // CORRECT: onComplete should be called since task completed
     expect(onComplete).toHaveBeenCalled();
 
     executeCommandSpy.mockRestore();
   });
 
   it("PROVES: Pause during second task (i=1) works correctly", async () => {
-    // Setup: Create a two-task pipeline
-    const tasks: TaskItem[] = [
-      {
-        id: "task1",
-        name: "First Task",
-        prompt: "test prompt 1",
-        status: "pending",
-      },
-      {
-        id: "task2",
-        name: "Second Task",
-        prompt: "test prompt 2",
-        status: "pending",
-      },
-    ];
+    const { tasks } = createTestPipeline({ taskCount: 2 });
+    let capturedTasks = tasks;
 
-    let capturedTasks: TaskItem[] = [];
+    const { onProgress, onComplete, onError } = createPipelineCallbacks();
+    onProgress.mockImplementation((...args: any[]) => {
+      capturedTasks = [...args[0]];
+    });
 
-    const onProgress = jest.fn(
-      (updatedTasks: TaskItem[], _currentIndex: number) => {
-        capturedTasks = [...updatedTasks];
-      },
-    );
-
-    const onComplete = jest.fn();
-    const onError = jest.fn();
-
-    // Mock executeCommand to complete first task and then pause
     let callCount = 0;
     const executeCommandSpy = jest
       .spyOn(service, "executeCommand")
       .mockImplementation(async () => {
         callCount++;
         if (callCount === 1) {
-          // First task completes successfully
           return {
             success: true,
             output: JSON.stringify({
@@ -130,7 +82,6 @@ describe("ClaudeCodeService Pause First Task Bug", () => {
             exitCode: 0,
           };
         } else {
-          // Pause before second task execution
           await service.pausePipelineExecution("manual");
           return {
             success: true,
@@ -140,24 +91,19 @@ describe("ClaudeCodeService Pause First Task Bug", () => {
         }
       });
 
-    // Execute the pipeline
+    const { workingDirectory, config } = createTestPipeline();
     await service.runTaskPipeline(
       tasks,
       "auto",
-      "/test",
-      { allowAllTools: true, outputFormat: "json" },
+      workingDirectory,
+      config,
       onProgress,
       onComplete,
       onError,
     );
 
-    // CORRECT: Second task should complete since there's no next task to pause
-    expect(capturedTasks[1].status).toBe("completed");
-
-    // CORRECT: No paused pipeline since all tasks completed
+    expectPipelineState.toBeCompleted(capturedTasks, 2);
     expect(service.getPausedPipelines()).toHaveLength(0);
-
-    // CORRECT: onComplete should be called since all tasks completed
     expect(onComplete).toHaveBeenCalled();
 
     executeCommandSpy.mockRestore();

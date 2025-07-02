@@ -1,9 +1,11 @@
 import React from "react";
-import { render, screen, fireEvent } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import Button from "../../../../src/components/common/Button";
+import { setupComponentTest } from "../../helpers/componentTestUtils";
 
 describe("Button", () => {
+  const { render, screen, fireEvent } = setupComponentTest();
+
   describe("rendering and props", () => {
     it("renders with default props", () => {
       render(<Button>Click me</Button>);

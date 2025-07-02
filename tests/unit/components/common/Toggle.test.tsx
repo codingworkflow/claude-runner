@@ -1,9 +1,11 @@
 import React from "react";
-import { render, screen, fireEvent } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import Toggle from "../../../../src/components/common/Toggle";
+import { setupComponentTest } from "../../helpers/componentTestUtils";
 
 describe("Toggle", () => {
+  const { render, screen, fireEvent } = setupComponentTest();
+
   describe("rendering and props", () => {
     it("renders with default props", () => {
       const onChange = jest.fn();
