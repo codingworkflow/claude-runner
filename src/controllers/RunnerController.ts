@@ -210,7 +210,13 @@ export class RunnerController implements EventBus {
     const activeTab =
       lastActiveTab === "windows"
         ? "chat"
-        : ((lastActiveTab as "chat" | "pipeline" | "usage" | "logs") ?? "chat");
+        : ((lastActiveTab as
+            | "chat"
+            | "pipeline"
+            | "workflows"
+            | "runner"
+            | "usage"
+            | "logs") ?? "chat");
 
     return {
       // Configuration that can be changed in UI
@@ -531,7 +537,9 @@ export class RunnerController implements EventBus {
     }
   }
 
-  private updateActiveTab(tab: "chat" | "pipeline" | "usage" | "logs"): void {
+  private updateActiveTab(
+    tab: "chat" | "pipeline" | "workflows" | "runner" | "usage" | "logs",
+  ): void {
     this.updateState({ activeTab: tab });
     this.context.workspaceState.update("lastActiveTab", tab);
   }

@@ -390,10 +390,22 @@ describe("Pause/Resume Workflow Integration", () => {
     });
 
     it("should handle pipeline pause/resume through ClaudeCodeService", async () => {
-      // Mock a running pipeline
+      // Mock the executeCommand method to avoid actual CLI calls
+      const mockExecuteCommand = jest
+        .spyOn(claudeCodeService, "executeCommand")
+        .mockImplementation(async () => ({
+          success: true,
+          output: JSON.stringify({
+            result: "Task completed",
+            session_id: "test-session",
+          }),
+          exitCode: 0,
+        }));
+
+      // Create tasks in pending state as they would be in real usage
       const mockTasks: TaskItem[] = [
-        { id: "1", prompt: "Task 1", status: "completed" },
-        { id: "2", prompt: "Task 2", status: "running" },
+        { id: "1", prompt: "Task 1", status: "pending" },
+        { id: "2", prompt: "Task 2", status: "pending" },
         { id: "3", prompt: "Task 3", status: "pending" },
       ];
 
@@ -433,6 +445,9 @@ describe("Pause/Resume Workflow Integration", () => {
       } else {
         fail("Pipeline ID should not be null");
       }
+
+      // Cleanup
+      mockExecuteCommand.mockRestore();
     });
   });
 

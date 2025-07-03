@@ -48,7 +48,7 @@ export type RunnerCommand =
   | { kind: "browseFolder" }
   | {
       kind: "updateActiveTab";
-      tab: "chat" | "pipeline" | "usage" | "logs";
+      tab: "chat" | "pipeline" | "workflows" | "runner" | "usage" | "logs";
     }
   | { kind: "updateChatPrompt"; prompt: string }
   | { kind: "updateShowChatPrompt"; show: boolean }
@@ -149,8 +149,17 @@ export const RunnerCommandRegistry: {
   updateActiveTab: (m) => ({
     kind: "updateActiveTab",
     tab:
-      isString(m.tab) && ["chat", "pipeline", "usage", "logs"].includes(m.tab)
-        ? (m.tab as "chat" | "pipeline" | "usage" | "logs")
+      isString(m.tab) &&
+      ["chat", "pipeline", "workflows", "runner", "usage", "logs"].includes(
+        m.tab,
+      )
+        ? (m.tab as
+            | "chat"
+            | "pipeline"
+            | "workflows"
+            | "runner"
+            | "usage"
+            | "logs")
         : "chat",
   }),
   updateChatPrompt: (m) => ({
@@ -260,7 +269,7 @@ export interface UIState {
   parallelTasksCount: number;
 
   // Tab state
-  activeTab: "chat" | "pipeline" | "usage" | "logs";
+  activeTab: "chat" | "pipeline" | "workflows" | "runner" | "usage" | "logs";
   showAdvancedTabs: boolean;
 
   // Pipeline state

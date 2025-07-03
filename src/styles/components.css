@@ -1,123 +1,55 @@
-/* VSCode Native Button Styles - Minimal Override */
-button {
-  font-family: var(--vscode-font-family);
+/* Note: Button styles moved to CSS-in-JS in Button.tsx component */
+
+/* Note: Input styles moved to CSS-in-JS in Input.tsx component */
+
+/* Form groups - for backward compatibility */
+.input-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.input-group.full-width {
+  width: 100%;
+  flex: 1;
+}
+
+.input-group label {
   font-size: var(--vscode-font-size);
-  border: none;
-  border-radius: 2px;
-  cursor: pointer;
-  padding: 4px 8px;
-  background-color: var(--vscode-button-background);
-  color: var(--vscode-button-foreground);
-  line-height: 1.2;
+  color: var(--vscode-foreground);
+  font-weight: 500;
 }
 
-button:hover:not(:disabled) {
-  background-color: var(--vscode-button-hoverBackground);
-}
-
-button:focus {
-  outline: 1px solid var(--vscode-focusBorder);
-  outline-offset: -1px;
-}
-
-button:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
-/* Button Variants */
-button.secondary {
-  background-color: var(--vscode-button-secondaryBackground);
-  color: var(--vscode-button-secondaryForeground);
-}
-
-button.secondary:hover:not(:disabled) {
-  background-color: var(--vscode-button-secondaryHoverBackground);
-}
-
-/* Button click feedback */
-button:active:not(:disabled) {
-  transform: translateY(1px) scale(0.97);
-  filter: brightness(0.9);
-  transition: all 0.1s ease;
-}
-
-button:focus {
-  outline: 1px solid var(--vscode-focusBorder);
-  outline-offset: -1px;
-}
-
-/* Button loading state */
-button.loading {
-  opacity: 0.7;
-  position: relative;
-}
-
-button.loading:active {
-  transform: none;
-}
-
-/* Primary button specific active state */
-button.primary:active:not(:disabled) {
-  filter: brightness(0.85);
-}
-
-/* Button sizes */
-button.small {
-  padding: 2px 6px;
-  font-size: calc(var(--vscode-font-size) - 1px);
-}
-
-button.medium {
-  padding: 4px 8px;
+.input-error {
   font-size: var(--vscode-font-size);
+  color: var(--vscode-errorForeground);
+  margin-top: var(--spacing-xs);
 }
 
-button.large {
-  padding: 6px 12px;
-  font-size: calc(var(--vscode-font-size) + 1px);
-}
-
-/* Inputs - VSCode Native */
-input[type="text"],
-input[type="number"],
+/* Inputs - VSCode Native (for non-component inputs) */
 textarea,
 select {
   font-family: var(--vscode-font-family);
   font-size: var(--vscode-font-size);
-  padding: 4px 6px;
+  padding: var(--spacing-xs) var(--spacing-xs);
   background-color: var(--vscode-input-background);
   color: var(--vscode-input-foreground);
   border: 1px solid var(--vscode-input-border);
-  border-radius: 2px;
+  border-radius: var(--border-radius-sm);
   line-height: 1.2;
 }
 
-input[type="text"]:focus,
-input[type="number"]:focus,
 textarea:focus,
 select:focus {
   outline: 1px solid var(--vscode-focusBorder);
   outline-offset: -1px;
 }
 
-/* Form groups - minimal */
-.form-group {
-  margin-bottom: 8px;
-}
-
-.form-label {
-  display: block;
-  margin-bottom: 4px;
-  font-size: var(--vscode-font-size);
-  color: var(--vscode-foreground);
-}
-
 /* Toggle switch - simplified */
 .toggle-container {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--spacing-sm);
 }
 
 .toggle-switch {
@@ -154,11 +86,11 @@ select:focus {
 .tab-navigation {
   display: flex;
   border-bottom: 1px solid var(--vscode-tab-border);
-  margin-bottom: 12px;
+  margin-bottom: var(--spacing-md);
 }
 
 .tab-button {
-  padding: 6px 12px;
+  padding: var(--spacing-xs) var(--spacing-md);
   background: transparent;
   color: var(--vscode-tab-inactiveForeground);
   border: none;
@@ -181,28 +113,16 @@ select:focus {
 }
 
 .tab-content {
-  margin-top: 8px;
+  margin-top: var(--spacing-sm);
 }
 
-/* Loading spinner */
-.loading-spinner {
-  width: 12px;
-  height: 12px;
-  border: 2px solid transparent;
-  border-top-color: currentColor;
-  border-left-color: currentColor;
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-  margin-right: 6px;
-  display: inline-block;
-  vertical-align: middle;
-}
+/* Note: Loading spinner styles moved to CSS-in-JS in Button.tsx component */
 
 /* Pause/Resume control styling */
 .pause-resume-controls {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--spacing-sm);
 }
 
 .paused-indicator {
@@ -211,11 +131,11 @@ select:focus {
   font-weight: 600;
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 4px 8px;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-xs) var(--spacing-sm);
   background-color: var(--vscode-input-background);
   border: 1px solid var(--vscode-charts-orange);
-  border-radius: 2px;
+  border-radius: var(--border-radius-sm);
 }
 
 @keyframes spin {
@@ -226,11 +146,11 @@ select:focus {
 
 /* Card Component */
 .card {
-  margin-bottom: 12px;
+  margin-bottom: var(--spacing-md);
 }
 
 .card-header {
-  margin-bottom: 8px;
+  margin-bottom: var(--spacing-sm);
 }
 
 .card-title {
@@ -242,7 +162,7 @@ select:focus {
 
 /* Chat Panel Specific */
 .chat-info {
-  margin-bottom: 8px;
+  margin-bottom: var(--spacing-sm);
 }
 
 .chat-info p {
@@ -254,13 +174,13 @@ select:focus {
 .chat-actions {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--spacing-sm);
 }
 
 .chat-actions .button-group {
   display: flex;
   flex-direction: row;
-  gap: 6px;
+  gap: var(--spacing-xs);
   align-items: center;
   align-self: flex-start;
 }
@@ -268,7 +188,7 @@ select:focus {
 .prompt-section {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--spacing-xs);
 }
 
 .prompt-textarea {
@@ -277,11 +197,11 @@ select:focus {
   resize: vertical;
   font-family: var(--vscode-font-family);
   font-size: var(--vscode-font-size);
-  padding: 4px 6px;
+  padding: var(--spacing-xs) var(--spacing-xs);
   background-color: var(--vscode-input-background);
   color: var(--vscode-input-foreground);
   border: 1px solid var(--vscode-input-border);
-  border-radius: 2px;
+  border-radius: var(--border-radius-sm);
   line-height: 1.2;
 }
 
@@ -293,7 +213,7 @@ select:focus {
 /* Button layout consistency */
 .button-group {
   display: flex;
-  gap: 6px;
+  gap: var(--spacing-xs);
   align-items: center;
   flex-wrap: wrap;
 }
@@ -301,15 +221,21 @@ select:focus {
 /* Control buttons styling */
 .control-buttons {
   display: flex;
-  gap: 6px;
+  gap: var(--spacing-xs);
   align-items: center;
   flex-wrap: wrap;
-  margin-bottom: 8px;
+  margin-bottom: var(--spacing-sm);
+}
+
+/* Ensure buttons don't wrap text inside */
+button {
+  white-space: nowrap;
+  min-width: fit-content;
 }
 
 /* Path Selector */
 .path-selector {
-  margin-bottom: 8px;
+  margin-bottom: var(--spacing-sm);
 }
 
 .path-selector .browse-button {
@@ -320,7 +246,7 @@ select:focus {
 .model-selector {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--spacing-sm);
 }
 
 .model-selector label {
@@ -329,58 +255,31 @@ select:focus {
   min-width: 80px;
 }
 
-/* Input component */
-.input-group {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.input-group.full-width {
-  width: 100%;
-  flex: 1;
-}
-
-.input-group label {
-  font-size: var(--vscode-font-size);
-  color: var(--vscode-foreground);
-}
-
-.input-group input {
-  width: 100%;
-}
-
-.input-error {
-  font-size: var(--vscode-font-size);
-  color: var(--vscode-errorForeground);
-  margin-top: 2px;
-}
-
 /* Condition Configuration Controls */
 .condition-controls {
-  margin-top: 8px;
+  margin-top: var(--spacing-sm);
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--spacing-xs);
 }
 
 .check-command-row {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--spacing-sm);
 }
 
 .condition-row-inline {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--spacing-sm);
 }
 
 .resume-row-inline {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-top: 8px;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-sm);
 }
 
 .inline-label {
@@ -413,14 +312,14 @@ select:focus {
 
 /* ConditionalStepBuilder Component */
 .conditional-step-builder {
-  padding: 12px;
+  padding: var(--spacing-md);
   border: 1px solid var(--vscode-input-border);
-  border-radius: 4px;
+  border-radius: var(--border-radius-md);
   background-color: var(--vscode-editor-background);
 }
 
 .condition-builder-section {
-  margin-bottom: 16px;
+  margin-bottom: var(--spacing-lg);
 }
 
 .condition-builder-section:last-child {
@@ -428,7 +327,7 @@ select:focus {
 }
 
 .condition-builder-section h4 {
-  margin: 0 0 8px 0;
+  margin: 0 0 var(--spacing-sm) 0;
   font-size: var(--vscode-font-size);
   font-weight: 600;
   color: var(--vscode-foreground);
@@ -437,13 +336,13 @@ select:focus {
 .condition-options {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--spacing-xs);
 }
 
 .condition-option {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--spacing-sm);
   cursor: pointer;
 }
 
@@ -459,7 +358,7 @@ select:focus {
 .check-command-config {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--spacing-xs);
 }
 
 .check-command-help {
@@ -472,7 +371,7 @@ select:focus {
 .dependencies-config {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--spacing-sm);
 }
 
 .dependencies-help {
@@ -485,7 +384,7 @@ select:focus {
 .dependency-checkboxes {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--spacing-xs);
   max-height: 120px;
   overflow-y: auto;
 }
@@ -493,7 +392,7 @@ select:focus {
 .dependency-option {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--spacing-xs);
   cursor: pointer;
   padding: 2px 0;
 }
@@ -509,18 +408,18 @@ select:focus {
 
 .condition-summary {
   border-top: 1px solid var(--vscode-input-border);
-  padding-top: 12px;
+  padding-top: var(--spacing-md);
 }
 
 .summary-content {
   background-color: var(--vscode-input-background);
-  padding: 8px;
-  border-radius: 2px;
+  padding: var(--spacing-sm);
+  border-radius: var(--border-radius-sm);
   border: 1px solid var(--vscode-input-border);
 }
 
 .summary-content p {
-  margin: 0 0 4px 0;
+  margin: 0 0 var(--spacing-xs) 0;
   font-size: 0.9em;
   line-height: 1.3;
 }
@@ -532,7 +431,7 @@ select:focus {
 .summary-content code {
   background-color: var(--vscode-textCodeBlock-background);
   padding: 1px 3px;
-  border-radius: 2px;
+  border-radius: var(--border-radius-sm);
   font-family: var(--vscode-editor-font-family);
   font-size: 0.85em;
 }
@@ -541,14 +440,14 @@ select:focus {
 .paused-pipelines-section,
 .resumable-workflows-section {
   border: 1px solid var(--vscode-input-border);
-  border-radius: 4px;
-  padding: 12px;
+  border-radius: var(--border-radius-md);
+  padding: var(--spacing-md);
   background-color: var(--vscode-input-background);
 }
 
 .paused-pipelines-section h4,
 .resumable-workflows-section h4 {
-  margin: 0 0 8px 0;
+  margin: 0 0 var(--spacing-sm) 0;
   font-size: var(--vscode-font-size);
   font-weight: 600;
   color: var(--vscode-foreground);
@@ -559,11 +458,11 @@ select:focus {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 8px;
+  padding: var(--spacing-sm);
   border: 1px solid var(--vscode-panel-border);
-  border-radius: 2px;
+  border-radius: var(--border-radius-sm);
   background-color: var(--vscode-editor-background);
-  margin-bottom: 6px;
+  margin-bottom: var(--spacing-xs);
 }
 
 .paused-pipeline-item:last-child,
@@ -587,17 +486,17 @@ select:focus {
 }
 
 .workflow-progress {
-  font-size: calc(var(--vscode-font-size) - 1px);
+  font-size: var(--font-size-sm);
   color: var(--vscode-descriptionForeground);
 }
 
 .paused-time {
-  font-size: calc(var(--vscode-font-size) - 1px);
+  font-size: var(--font-size-sm);
   color: var(--vscode-descriptionForeground);
 }
 
 .workflow-actions {
   display: flex;
-  gap: 6px;
+  gap: var(--spacing-xs);
   align-items: center;
 }

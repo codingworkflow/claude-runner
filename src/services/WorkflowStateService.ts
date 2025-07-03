@@ -6,7 +6,7 @@ export interface WorkflowStepResult {
   sessionId?: string;
   outputSession: boolean;
   resumeSession?: string;
-  status: "pending" | "running" | "completed" | "failed" | "paused";
+  status: "pending" | "running" | "completed" | "failed" | "paused" | "timeout";
   startTime?: string;
   endTime?: string;
   output?: string;
@@ -22,11 +22,11 @@ export interface WorkflowState {
   resumedAt?: string;
   currentStep: number;
   totalSteps: number;
-  status: "pending" | "running" | "paused" | "completed" | "failed";
+  status: "pending" | "running" | "paused" | "completed" | "failed" | "timeout";
   sessionMappings: Record<string, string>;
   completedSteps: WorkflowStepResult[];
   execution: WorkflowExecution;
-  pauseReason?: "manual" | "rate_limit" | "error";
+  pauseReason?: "manual" | "rate_limit" | "error" | "timeout";
   canResume: boolean;
 }
 
@@ -68,14 +68,14 @@ export class WorkflowStateService {
 
   async pauseWorkflow(
     executionId: string,
-    reason: "manual" | "rate_limit" | "error" = "manual",
+    reason: "manual" | "rate_limit" | "error" | "timeout" = "manual",
   ): Promise<WorkflowState | null> {
     const state = await this.storage.loadWorkflowState(executionId);
     if (!state || state.status !== "running") {
       return null;
     }
 
-    state.status = "paused";
+    state.status = reason === "timeout" ? "timeout" : "paused";
     state.pausedAt = new Date().toISOString();
     state.pauseReason = reason;
     state.canResume = reason !== "error";
@@ -86,7 +86,11 @@ export class WorkflowStateService {
 
   async resumeWorkflow(executionId: string): Promise<WorkflowState | null> {
     const state = await this.storage.loadWorkflowState(executionId);
-    if (!state || !state.canResume || state.status !== "paused") {
+    if (
+      !state ||
+      !state.canResume ||
+      (state.status !== "paused" && state.status !== "timeout")
+    ) {
       return null;
     }
 

@@ -1,4 +1,11 @@
-import { jest, describe, it, beforeEach, expect } from "@jest/globals";
+import {
+  jest,
+  describe,
+  it,
+  beforeEach,
+  afterEach,
+  expect,
+} from "@jest/globals";
 
 import {
   WorkflowJsonLogger,
@@ -12,6 +19,76 @@ import { IFileSystem } from "../../../src/core/interfaces/IFileSystem";
 import { ILogger } from "../../../src/core/interfaces/ILogger";
 import { WorkflowExecution } from "../../../src/types/WorkflowTypes";
 
+// Mock factories to avoid recreating complex objects
+const createMockFileSystem = (): jest.Mocked<IFileSystem> => ({
+  readFile: jest.fn(),
+  writeFile: jest.fn(),
+  exists: jest.fn(),
+  mkdir: jest.fn(),
+  readdir: jest.fn(),
+  stat: jest.fn(),
+  unlink: jest.fn(),
+});
+
+const createMockLogger = (): jest.Mocked<ILogger> => ({
+  info: jest.fn(),
+  warn: jest.fn(),
+  error: jest.fn(),
+  debug: jest.fn(),
+});
+
+const createMockWorkflowExecution = (): WorkflowExecution => ({
+  workflow: {
+    name: "Test Workflow",
+    jobs: {
+      pipeline: {
+        name: "Pipeline Job",
+        steps: [
+          {
+            id: "step1",
+            name: "First Step",
+            uses: "claude-pipeline-action",
+            with: {
+              prompt: "Test prompt",
+              output_session: true,
+              resume_session: "session1",
+            },
+          },
+          {
+            id: "step2",
+            name: "Second Step",
+            uses: "claude-pipeline-action",
+            with: {
+              prompt: "Test prompt 2",
+              output_session: false,
+            },
+          },
+        ],
+      },
+    },
+  },
+  inputs: {},
+  outputs: {},
+  currentStep: 0,
+  status: "running",
+});
+
+const createMockWorkflowState = (
+  execution: WorkflowExecution,
+): WorkflowState => ({
+  executionId: "test-execution-id",
+  workflowPath: "/workspace/workflows/test.yml",
+  workflowName: "Test Workflow",
+  startTime: "2023-01-01T10:00:00.000Z",
+  currentStep: 0,
+  totalSteps: 2,
+  status: "running",
+  sessionMappings: {},
+  completedSteps: [],
+  execution,
+  canResume: true,
+});
+
 describe("WorkflowJsonLogger", () => {
   let mockFileSystem: jest.Mocked<IFileSystem>;
   let mockLogger: jest.Mocked<ILogger>;
@@ -20,76 +97,17 @@ describe("WorkflowJsonLogger", () => {
   let mockWorkflowExecution: WorkflowExecution;
 
   beforeEach(() => {
-    mockFileSystem = {
-      readFile: jest.fn(),
-      writeFile: jest.fn(),
-      exists: jest.fn(),
-      mkdir: jest.fn(),
-      readdir: jest.fn(),
-      stat: jest.fn(),
-      unlink: jest.fn(),
-    };
-
-    mockLogger = {
-      info: jest.fn(),
-      warn: jest.fn(),
-      error: jest.fn(),
-      debug: jest.fn(),
-    };
-
+    mockFileSystem = createMockFileSystem();
+    mockLogger = createMockLogger();
     logger = new WorkflowJsonLogger(mockFileSystem, mockLogger);
+    mockWorkflowExecution = createMockWorkflowExecution();
+    mockWorkflowState = createMockWorkflowState(mockWorkflowExecution);
+  });
 
-    mockWorkflowExecution = {
-      workflow: {
-        name: "Test Workflow",
-        jobs: {
-          pipeline: {
-            name: "Pipeline Job",
-            steps: [
-              {
-                id: "step1",
-                name: "First Step",
-                uses: "claude-pipeline-action",
-                with: {
-                  prompt: "Test prompt",
-                  output_session: true,
-                  resume_session: "session1",
-                },
-              },
-              {
-                id: "step2",
-                name: "Second Step",
-                uses: "claude-pipeline-action",
-                with: {
-                  prompt: "Test prompt 2",
-                  output_session: false,
-                },
-              },
-            ],
-          },
-        },
-      },
-      inputs: {},
-      outputs: {},
-      currentStep: 0,
-      status: "running",
-    };
-
-    mockWorkflowState = {
-      executionId: "test-execution-id",
-      workflowPath: "/workspace/workflows/test.yml",
-      workflowName: "Test Workflow",
-      startTime: "2023-01-01T10:00:00.000Z",
-      currentStep: 0,
-      totalSteps: 2,
-      status: "running",
-      sessionMappings: {},
-      completedSteps: [],
-      execution: mockWorkflowExecution,
-      canResume: true,
-    };
-
+  afterEach(() => {
     jest.clearAllMocks();
+    jest.clearAllTimers();
+    jest.useRealTimers();
   });
 
   describe("initializeLog", () => {
@@ -1193,7 +1211,7 @@ describe("WorkflowJsonLogger", () => {
       expect(currentLog?.steps).toHaveLength(2);
       expect(currentLog?.steps[0]?.status).toBe("completed");
       expect(currentLog?.steps[1]?.status).toBe("failed");
-      expect(currentLog?.last_completed_step).toBe(1);
+      expect(currentLog?.last_completed_step).toBe(0);
     });
 
     it("should handle log cleanup and reinitialization", async () => {
@@ -1348,6 +1366,245 @@ describe("WorkflowJsonLogger", () => {
       const currentLog = logger.getCurrentLog();
       expect(currentLog?.steps).toHaveLength(50);
       expect(currentLog?.last_completed_step).toBe(49);
+    });
+  });
+
+  describe("Session Variable Resolution", () => {
+    it("should resolve session template variables in resume_session", async () => {
+      const mockFileSystem = createMockFileSystem();
+      const mockLogger = createMockLogger();
+      const logger = new WorkflowJsonLogger(mockFileSystem, mockLogger);
+
+      const mockWorkflowExecution: WorkflowExecution = {
+        workflow: {
+          name: "Test Workflow",
+          jobs: {
+            pipeline: {
+              name: "Pipeline Job",
+              steps: [
+                {
+                  id: "step1",
+                  name: "First Step",
+                  uses: "claude-pipeline-action",
+                  with: {
+                    prompt: "Test prompt",
+                    output_session: true,
+                  },
+                },
+                {
+                  id: "step2",
+                  name: "Second Step",
+                  uses: "claude-pipeline-action",
+                  with: {
+                    prompt: "Test prompt 2",
+                    resume_session: "${{ steps.step1.outputs.session_id }}",
+                  },
+                },
+              ],
+            },
+          },
+        },
+        inputs: {},
+        outputs: {},
+        currentStep: 0,
+        status: "running",
+      };
+
+      const mockWorkflowState: WorkflowState = {
+        executionId: "test-execution-id",
+        workflowPath: "/test/workflow.yml",
+        workflowName: "Test Workflow",
+        startTime: new Date().toISOString(),
+        currentStep: 1,
+        totalSteps: 2,
+        status: "running",
+        sessionMappings: { step1: "session-abc-123" },
+        completedSteps: [],
+        execution: mockWorkflowExecution,
+        canResume: true,
+      };
+
+      mockFileSystem.exists.mockResolvedValue(true);
+      mockFileSystem.mkdir.mockResolvedValue(undefined);
+      mockFileSystem.writeFile.mockResolvedValue(undefined);
+
+      await logger.initializeLog(mockWorkflowState, "/test/workflow.yml");
+
+      const stepResult: WorkflowStepResult = {
+        stepIndex: 1,
+        stepId: "step2",
+        sessionId: "session-abc-123",
+        outputSession: false,
+        status: "completed",
+        startTime: new Date().toISOString(),
+        endTime: new Date().toISOString(),
+        output: "Step 2 completed",
+      };
+
+      await logger.updateStepProgress(stepResult, mockWorkflowState);
+
+      const currentLog = logger.getCurrentLog();
+      expect(currentLog?.steps).toHaveLength(1);
+
+      const loggedStep = currentLog?.steps[0];
+      expect(loggedStep?.resume_session).toBe("session-abc-123");
+      expect(loggedStep?.resume_session).not.toBe(
+        "${{ steps.step1.outputs.session_id }}",
+      );
+    });
+
+    it("should handle multiple session variables in resume_session", async () => {
+      const mockFileSystem = createMockFileSystem();
+      const mockLogger = createMockLogger();
+      const logger = new WorkflowJsonLogger(mockFileSystem, mockLogger);
+
+      const mockWorkflowExecution: WorkflowExecution = {
+        workflow: {
+          name: "Test Workflow",
+          jobs: {
+            pipeline: {
+              name: "Pipeline Job",
+              steps: [
+                {
+                  id: "step1",
+                  name: "First Step",
+                  uses: "claude-pipeline-action",
+                  with: {
+                    prompt: "Test prompt",
+                    output_session: true,
+                  },
+                },
+                {
+                  id: "step2",
+                  name: "Second Step",
+                  uses: "claude-pipeline-action",
+                  with: {
+                    prompt: "Test prompt 2",
+                    resume_session: "${{ steps.step0.outputs.session_id }}",
+                  },
+                },
+              ],
+            },
+          },
+        },
+        inputs: {},
+        outputs: {},
+        currentStep: 0,
+        status: "running",
+      };
+
+      const mockWorkflowState: WorkflowState = {
+        executionId: "test-execution-id",
+        workflowPath: "/test/workflow.yml",
+        workflowName: "Test Workflow",
+        startTime: new Date().toISOString(),
+        currentStep: 1,
+        totalSteps: 2,
+        status: "running",
+        sessionMappings: { step0: "session-xyz-456" },
+        completedSteps: [],
+        execution: mockWorkflowExecution,
+        canResume: true,
+      };
+
+      mockFileSystem.exists.mockResolvedValue(true);
+      mockFileSystem.mkdir.mockResolvedValue(undefined);
+      mockFileSystem.writeFile.mockResolvedValue(undefined);
+
+      await logger.initializeLog(mockWorkflowState, "/test/workflow.yml");
+
+      const stepResult: WorkflowStepResult = {
+        stepIndex: 1,
+        stepId: "step2",
+        sessionId: "session-xyz-456",
+        outputSession: false,
+        status: "completed",
+        startTime: new Date().toISOString(),
+        endTime: new Date().toISOString(),
+        output: "Step 2 completed",
+      };
+
+      await logger.updateStepProgress(stepResult, mockWorkflowState);
+
+      const currentLog = logger.getCurrentLog();
+      expect(currentLog?.steps).toHaveLength(1);
+
+      const loggedStep = currentLog?.steps[0];
+      expect(loggedStep?.resume_session).toBe("session-xyz-456");
+    });
+
+    it("should leave unresolved session variables unchanged when no mapping exists", async () => {
+      const mockFileSystem = createMockFileSystem();
+      const mockLogger = createMockLogger();
+      const logger = new WorkflowJsonLogger(mockFileSystem, mockLogger);
+
+      const mockWorkflowExecution: WorkflowExecution = {
+        workflow: {
+          name: "Test Workflow",
+          jobs: {
+            pipeline: {
+              name: "Pipeline Job",
+              steps: [
+                {
+                  id: "step1",
+                  name: "First Step",
+                  uses: "claude-pipeline-action",
+                  with: {
+                    prompt: "Test prompt",
+                    resume_session:
+                      "${{ steps.nonexistent.outputs.session_id }}",
+                  },
+                },
+              ],
+            },
+          },
+        },
+        inputs: {},
+        outputs: {},
+        currentStep: 0,
+        status: "running",
+      };
+
+      const mockWorkflowState: WorkflowState = {
+        executionId: "test-execution-id",
+        workflowPath: "/test/workflow.yml",
+        workflowName: "Test Workflow",
+        startTime: new Date().toISOString(),
+        currentStep: 0,
+        totalSteps: 1,
+        status: "running",
+        sessionMappings: {},
+        completedSteps: [],
+        execution: mockWorkflowExecution,
+        canResume: true,
+      };
+
+      mockFileSystem.exists.mockResolvedValue(true);
+      mockFileSystem.mkdir.mockResolvedValue(undefined);
+      mockFileSystem.writeFile.mockResolvedValue(undefined);
+
+      await logger.initializeLog(mockWorkflowState, "/test/workflow.yml");
+
+      const stepResult: WorkflowStepResult = {
+        stepIndex: 0,
+        stepId: "step1",
+        sessionId: "session-test-789",
+        outputSession: false,
+        status: "completed",
+        startTime: new Date().toISOString(),
+        endTime: new Date().toISOString(),
+        output: "Step 1 completed",
+      };
+
+      await logger.updateStepProgress(stepResult, mockWorkflowState);
+
+      const currentLog = logger.getCurrentLog();
+      expect(currentLog?.steps).toHaveLength(1);
+
+      const loggedStep = currentLog?.steps[0];
+      expect(loggedStep?.resume_session).toBe(
+        "${{ steps.nonexistent.outputs.session_id }}",
+      );
     });
   });
 });

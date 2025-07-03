@@ -4,7 +4,7 @@ import PathSelector from "../common/PathSelector";
 import ModelSelector from "../common/ModelSelector";
 import Card from "../common/Card";
 import { useExtension } from "../../contexts/ExtensionContext";
-import { ClaudeStep, isClaudeStep } from "../../types/WorkflowTypes";
+import { isClaudeStep, Step } from "../../types/WorkflowTypes";
 import { WorkflowParser } from "../../services/WorkflowParser";
 
 interface WorkflowPanelProps {
@@ -83,7 +83,7 @@ const WorkflowPanel: React.FC<WorkflowPanelProps> = ({ disabled }) => {
     return stepStatuses[stepId] || { status: "pending" };
   };
 
-  const renderStepStatus = (step: ClaudeStep, stepId: string) => {
+  const renderStepStatus = (step: Step, stepId: string) => {
     const status = getStepStatus(stepId);
     const statusColors = {
       pending: "text-gray-500",
@@ -94,7 +94,7 @@ const WorkflowPanel: React.FC<WorkflowPanelProps> = ({ disabled }) => {
 
     return (
       <div className={`mt-2 ${statusColors[status.status]}`}>
-        <span className="font-semibold">Status:</span> {status.status}
+        <span>Status: {status.status}</span>
         {status.output?.result && (
           <div className="mt-1 text-sm">
             <span className="font-semibold">Output:</span>
@@ -259,6 +259,8 @@ const WorkflowPanel: React.FC<WorkflowPanelProps> = ({ disabled }) => {
                             <div className="text-sm text-gray-600">
                               {step.name ?? step.run ?? "Non-Claude step"}
                             </div>
+                            {executionStatus !== "idle" &&
+                              renderStepStatus(step, stepId)}
                           </div>
                         );
                       }

@@ -5,14 +5,17 @@
   padding: 0;
   height: 100%;
   overflow-y: auto;
+  contain: layout style;
 }
 
 /* Consistent spacing for all panels */
 .chat-panel,
-.pipeline-panel {
+.pipeline-panel,
+.workflows-panel,
+.runner-panel {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--spacing-md);
 }
 
 /* Commands Panel */
@@ -24,22 +27,22 @@
 
 .panel-actions {
   display: flex;
-  gap: 6px;
-  margin-bottom: 8px;
+  gap: var(--spacing-xs);
+  margin-bottom: var(--spacing-sm);
 }
 
 .add-command-form {
-  padding: 8px;
+  padding: var(--spacing-sm);
   background-color: var(--vscode-input-background);
   border: 1px solid var(--vscode-input-border);
-  border-radius: 2px;
-  margin-bottom: 8px;
+  border-radius: var(--border-radius-sm);
+  margin-bottom: var(--spacing-sm);
 }
 
 .form-actions {
   display: flex;
-  gap: 8px;
-  margin-top: 8px;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-sm);
 }
 
 .scanning-status {
@@ -49,7 +52,7 @@
 }
 
 .scan-paths {
-  margin-top: 8px;
+  margin-top: var(--spacing-sm);
   font-size: 0.85em;
   text-align: left;
 }
@@ -57,8 +60,8 @@
 .scan-paths code {
   background-color: var(--vscode-textCodeBlock-background);
   color: var(--vscode-textPreformat-foreground);
-  padding: 2px 4px;
-  border-radius: 2px;
+  padding: 2px var(--spacing-xs);
+  border-radius: var(--border-radius-sm);
   font-family: var(--vscode-editor-font-family);
 }
 
@@ -69,13 +72,14 @@
 .command-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--spacing-sm);
+  contain: layout;
 }
 
 .command-item {
   border: 1px solid var(--vscode-input-border);
-  border-radius: 4px;
-  padding: 12px;
+  border-radius: var(--border-radius-md);
+  padding: var(--spacing-md);
   background-color: var(--vscode-input-background);
   transition: all 0.2s ease;
 }
@@ -89,7 +93,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 4px;
+  margin-bottom: var(--spacing-xs);
 }
 
 .command-name {
@@ -103,12 +107,12 @@
   font-size: 0.85em;
   color: var(--vscode-descriptionForeground);
   font-style: italic;
-  margin-top: 4px;
+  margin-top: var(--spacing-xs);
 }
 
 .command-actions {
   display: flex;
-  gap: 6px;
+  gap: var(--spacing-xs);
   flex-shrink: 0;
 }
 
@@ -121,18 +125,19 @@
 
 /* Task Pipeline Styles */
 .tasks-container {
-  margin-bottom: 12px;
+  margin-bottom: var(--spacing-md);
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--spacing-sm);
 }
 
 .task-item {
   border: 1px solid var(--vscode-panel-border);
-  border-radius: 2px;
-  padding: 12px;
-  margin-bottom: 8px;
+  border-radius: var(--border-radius-sm);
+  padding: var(--spacing-md);
+  margin-bottom: var(--spacing-sm);
   background-color: var(--vscode-editor-background);
+  contain: layout style;
 }
 
 .task-item.current-task {
@@ -144,7 +149,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 8px;
+  margin-bottom: var(--spacing-sm);
 }
 
 .task-header h4 {
@@ -157,14 +162,14 @@
 .task-name-input {
   font-family: var(--vscode-font-family);
   font-size: var(--vscode-font-size);
-  padding: 4px 6px;
+  padding: var(--spacing-xs) var(--spacing-xs);
   background-color: var(--vscode-input-background);
   color: var(--vscode-input-foreground);
   border: 1px solid var(--vscode-input-border);
-  border-radius: 2px;
+  border-radius: var(--border-radius-sm);
   line-height: 1.2;
   flex: 1;
-  margin-right: 8px;
+  margin-right: var(--spacing-sm);
 }
 
 .task-name-input:focus {
@@ -176,8 +181,8 @@
 .resume-config-group {
   display: flex;
   align-items: center;
-  gap: 4px;
-  margin-bottom: 8px;
+  gap: var(--spacing-xs);
+  margin-bottom: var(--spacing-sm);
 }
 
 .task-model-group label,
@@ -191,11 +196,11 @@
 .model-select {
   font-family: var(--vscode-font-family);
   font-size: var(--vscode-font-size);
-  padding: 4px 6px;
+  padding: var(--spacing-xs) var(--spacing-xs);
   background-color: var(--vscode-input-background);
   color: var(--vscode-input-foreground);
   border: 1px solid var(--vscode-input-border);
-  border-radius: 2px;
+  border-radius: var(--border-radius-sm);
   line-height: 1.2;
   flex: 1;
 }
@@ -208,11 +213,11 @@
 .task-textarea {
   font-family: var(--vscode-font-family);
   font-size: var(--vscode-font-size);
-  padding: 4px 6px;
+  padding: var(--spacing-xs) var(--spacing-xs);
   background-color: var(--vscode-input-background);
   color: var(--vscode-input-foreground);
   border: 1px solid var(--vscode-input-border);
-  border-radius: 2px;
+  border-radius: var(--border-radius-sm);
   line-height: 1.2;
   width: 100%;
   resize: vertical;
@@ -225,13 +230,13 @@
 }
 
 .checkbox-group {
-  margin-top: 8px;
+  margin-top: var(--spacing-sm);
 }
 
 .checkbox-group label {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--spacing-xs);
   font-size: var(--vscode-font-size);
   color: var(--vscode-foreground);
   cursor: pointer;
@@ -242,25 +247,25 @@
 }
 
 .task-controls {
-  margin-top: 12px;
+  margin-top: var(--spacing-md);
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--spacing-md);
 }
 
 .control-buttons {
   display: flex;
-  gap: 6px;
+  gap: var(--spacing-xs);
   align-items: center;
   flex-wrap: wrap;
 }
 
 /* Normalize task controls layout */
 .task-controls {
-  margin-top: 12px;
+  margin-top: var(--spacing-md);
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--spacing-md);
 }
 
 .task-controls .control-buttons {
@@ -269,18 +274,18 @@
 
 .save-pipeline-controls {
   display: flex;
-  gap: 6px;
+  gap: var(--spacing-xs);
   align-items: center;
 }
 
 .task-results {
-  margin-top: 8px;
-  padding-top: 8px;
+  margin-top: var(--spacing-sm);
+  padding-top: var(--spacing-sm);
   border-top: 1px solid var(--vscode-panel-border);
 }
 
 .task-results h5 {
-  margin: 0 0 8px 0;
+  margin: 0 0 var(--spacing-sm) 0;
   font-size: 0.9em;
   font-weight: 600;
   color: var(--vscode-foreground);
@@ -290,7 +295,7 @@
   background-color: var(--vscode-textCodeBlock-background);
   border: 1px solid var(--vscode-input-border);
   border-radius: 3px;
-  padding: 8px;
+  padding: var(--spacing-sm);
   max-height: 150px;
   overflow-y: auto;
   font-size: 0.85em;
@@ -319,12 +324,12 @@
 .status-badge {
   font-size: 0.8em;
   font-weight: 500;
-  padding: 2px 6px;
+  padding: 2px var(--spacing-xs);
   border-radius: 3px;
   border: 1px solid transparent;
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--spacing-xs);
 }
 
 .status-badge.status-pending {
@@ -362,30 +367,17 @@
   display: none !important;
 }
 
-/* Ensure consistent button format across all status badges */
-.status-badge {
-  font-size: 0.8em !important;
-  font-weight: 500 !important;
-  padding: 2px 6px !important;
-  border-radius: 3px !important;
-  border: 1px solid transparent !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  gap: 0 !important;
-  text-transform: capitalize;
-}
-
 /* Pipeline Progress Tracker */
 .pipeline-progress {
-  border: 1px solid var(--vscode-input-border);
-  border-radius: 4px;
-  padding: 12px;
+  border: 2px solid var(--vscode-focusBorder);
+  border-radius: 6px;
+  padding: var(--spacing-lg);
   background-color: var(--vscode-input-background);
-  margin-top: 12px;
+  margin-top: var(--spacing-md);
 }
 
 .pipeline-progress h4 {
-  margin: 0 0 12px 0;
+  margin: 0 0 var(--spacing-md) 0;
   font-size: 1em;
   font-weight: 600;
   color: var(--vscode-foreground);
@@ -394,8 +386,8 @@
 .progress-task {
   border: 1px solid var(--vscode-panel-border);
   border-radius: 3px;
-  padding: 8px;
-  margin-bottom: 8px;
+  padding: var(--spacing-sm);
+  margin-bottom: var(--spacing-sm);
   background-color: var(--vscode-editor-background);
 }
 
@@ -408,7 +400,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 6px;
+  margin-bottom: var(--spacing-xs);
 }
 
 .progress-header h5 {
@@ -424,7 +416,7 @@
 }
 
 .progress-prompt {
-  margin-bottom: 6px;
+  margin-bottom: var(--spacing-xs);
 }
 
 .prompt-preview {
@@ -436,12 +428,12 @@
 
 .progress-results {
   border-top: 1px solid var(--vscode-panel-border);
-  padding-top: 6px;
-  margin-top: 6px;
+  padding-top: var(--spacing-xs);
+  margin-top: var(--spacing-xs);
 }
 
 .results-header h6 {
-  margin: 0 0 4px 0;
+  margin: 0 0 var(--spacing-xs) 0;
   font-size: 0.8em;
   font-weight: 600;
   color: var(--vscode-foreground);
@@ -455,8 +447,8 @@
 .results-text {
   background-color: var(--vscode-textCodeBlock-background);
   border: 1px solid var(--vscode-input-border);
-  border-radius: 2px;
-  padding: 6px;
+  border-radius: var(--border-radius-sm);
+  padding: var(--spacing-xs);
   font-size: 0.8em;
   font-family: var(--vscode-editor-font-family);
   white-space: pre-wrap;
@@ -475,20 +467,20 @@
   display: flex;
   justify-content: flex-end;
   align-items: center;
-  margin-bottom: 16px;
+  margin-bottom: var(--spacing-lg);
 }
 
 .period-selector {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--spacing-sm);
 }
 
 .hourly-options {
-  margin-top: 12px;
+  margin-top: var(--spacing-md);
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--spacing-sm);
 }
 
 .usage-report-content {
@@ -499,32 +491,32 @@
 
 .report-summary {
   border-bottom: 1px solid var(--vscode-panel-border);
-  padding-bottom: 12px;
+  padding-bottom: var(--spacing-md);
 }
 
 .date-range {
   color: var(--vscode-descriptionForeground);
   font-size: 0.85em;
-  margin: 4px 0 0 0;
+  margin: var(--spacing-xs) 0 0 0;
 }
 
 .usage-totals {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--spacing-xs);
 }
 
 .total-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 4px 0;
+  padding: var(--spacing-xs) 0;
 }
 
 .total-row.total-cost {
   border-top: 1px solid var(--vscode-panel-border);
-  margin-top: 8px;
-  padding-top: 8px;
+  margin-top: var(--spacing-sm);
+  padding-top: var(--spacing-sm);
   font-weight: 600;
 }
 
@@ -546,22 +538,22 @@
 /* Pipeline Controls */
 .pipeline-controls {
   display: flex;
-  gap: 6px;
+  gap: var(--spacing-xs);
   align-items: center;
-  margin-top: 8px;
+  margin-top: var(--spacing-sm);
 }
 
 .pipeline-select {
   font-family: var(--vscode-font-family);
   font-size: var(--vscode-font-size);
-  padding: 4px 6px;
+  padding: var(--spacing-xs) var(--spacing-xs);
   background-color: var(--vscode-input-background);
   color: var(--vscode-input-foreground);
   border: 1px solid var(--vscode-input-border);
-  border-radius: 2px;
+  border-radius: var(--border-radius-sm);
   line-height: 1.2;
   flex: 1;
-  margin-right: 6px;
+  margin-right: var(--spacing-xs);
 }
 
 .pipeline-select:focus {
@@ -584,11 +576,11 @@
 /* Daily Breakdown Styles */
 .daily-breakdown {
   border-top: 1px solid var(--vscode-panel-border);
-  padding-top: 12px;
+  padding-top: var(--spacing-md);
 }
 
 .daily-breakdown h4 {
-  margin: 0 0 12px 0;
+  margin: 0 0 var(--spacing-md) 0;
   font-size: 1em;
   font-weight: 600;
   color: var(--vscode-foreground);
@@ -597,22 +589,22 @@
 .daily-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--spacing-md);
 }
 
 .daily-item {
   background-color: var(--vscode-input-background);
   border: 1px solid var(--vscode-input-border);
-  border-radius: 4px;
-  padding: 12px;
+  border-radius: var(--border-radius-md);
+  padding: var(--spacing-md);
 }
 
 .daily-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 8px;
-  padding-bottom: 6px;
+  margin-bottom: var(--spacing-sm);
+  padding-bottom: var(--spacing-xs);
   border-bottom: 1px solid var(--vscode-panel-border);
 }
 
@@ -632,14 +624,14 @@
 .daily-details {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--spacing-sm);
 }
 
 .daily-row {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  gap: 8px;
+  gap: var(--spacing-sm);
 }
 
 .daily-label {
@@ -659,17 +651,17 @@
 .daily-metrics {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 6px;
-  margin-top: 6px;
+  gap: var(--spacing-xs);
+  margin-top: var(--spacing-xs);
 }
 
 .metric {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 3px 6px;
+  padding: 3px var(--spacing-xs);
   background-color: var(--vscode-editor-background);
-  border-radius: 2px;
+  border-radius: var(--border-radius-sm);
   border: 1px solid var(--vscode-panel-border);
 }
 
@@ -689,10 +681,10 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-top: 6px;
-  padding: 6px 8px;
+  margin-top: var(--spacing-xs);
+  padding: var(--spacing-xs) var(--spacing-sm);
   background-color: var(--vscode-editor-background);
-  border-radius: 2px;
+  border-radius: var(--border-radius-sm);
   border: 1px solid var(--vscode-panel-border);
 }
 
@@ -712,7 +704,7 @@
 /* Model breakdown styles */
 .model-breakdown {
   margin: 8px 0;
-  padding: 8px;
+  padding: var(--spacing-sm);
   background-color: var(--vscode-editor-background);
   border-radius: 3px;
   border: 1px solid var(--vscode-panel-border);
@@ -722,14 +714,14 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 4px 0;
+  padding: var(--spacing-xs) 0;
   font-size: 0.8em;
 }
 
 .model-entry:not(:last-child) {
   border-bottom: 1px solid var(--vscode-panel-border);
-  margin-bottom: 4px;
-  padding-bottom: 4px;
+  margin-bottom: var(--spacing-xs);
+  padding-bottom: var(--spacing-xs);
 }
 
 .model-name {
@@ -742,7 +734,7 @@
   font-family: var(--vscode-editor-font-family);
   font-weight: 600;
   color: var(--vscode-charts-green);
-  margin-right: 8px;
+  margin-right: var(--spacing-sm);
 }
 
 .model-tokens {
@@ -759,7 +751,7 @@
 }
 
 .project-selection {
-  margin-bottom: 16px;
+  margin-bottom: var(--spacing-lg);
 }
 
 .conversations-section {
@@ -770,8 +762,8 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 8px;
-  padding-bottom: 6px;
+  margin-bottom: var(--spacing-sm);
+  padding-bottom: var(--spacing-xs);
   border-bottom: 1px solid var(--vscode-panel-border);
 }
 
@@ -786,16 +778,17 @@
 .conversation-list-full {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--spacing-sm);
 }
 
 .conversation-item {
   border: 1px solid var(--vscode-input-border);
-  border-radius: 4px;
-  padding: 12px;
+  border-radius: var(--border-radius-md);
+  padding: var(--spacing-md);
   cursor: pointer;
   transition: all 0.2s ease;
   background-color: var(--vscode-input-background);
+  contain: layout style;
 }
 
 .conversation-item:hover {
@@ -813,7 +806,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 4px;
+  margin-bottom: var(--spacing-xs);
 }
 
 .conversation-date {
@@ -831,17 +824,18 @@
   font-size: 0.85em;
   color: var(--vscode-foreground);
   line-height: 1.3;
-  margin-top: 6px;
+  margin-top: var(--spacing-xs);
   font-style: italic;
 }
 
 /* Message entries in conversation view */
 .message-entry {
   border: 1px solid var(--vscode-panel-border);
-  border-radius: 4px;
-  padding: 12px;
+  border-radius: var(--border-radius-md);
+  padding: var(--spacing-md);
   background-color: var(--vscode-editor-background);
-  margin-bottom: 8px;
+  margin-bottom: var(--spacing-sm);
+  contain: layout style;
 }
 
 .message-entry.user {
@@ -855,9 +849,9 @@
 .message-header {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 6px;
-  padding-bottom: 4px;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-xs);
+  padding-bottom: var(--spacing-xs);
   border-bottom: 1px solid var(--vscode-panel-border);
 }
 
@@ -888,14 +882,14 @@
 
 .claude-not-installed h3 {
   color: var(--vscode-errorForeground);
-  margin-bottom: 16px;
+  margin-bottom: var(--spacing-lg);
 }
 
 .claude-not-installed .install-command {
   background-color: var(--vscode-textCodeBlock-background);
   border: 1px solid var(--vscode-input-border);
-  border-radius: 4px;
-  padding: 12px;
+  border-radius: var(--border-radius-md);
+  padding: var(--spacing-md);
   margin: 16px 0;
   font-family: var(--vscode-editor-font-family);
 }
@@ -906,7 +900,7 @@
 }
 
 .recheck-button {
-  margin-top: 16px;
+  margin-top: var(--spacing-lg);
 }
 
 .recheck-button.recheck-checking {
@@ -916,10 +910,302 @@
 
 .recheck-button.recheck-success {
   background-color: var(--vscode-testing-iconPassed);
-  color: white;
+  color: var(--vscode-button-foreground);
 }
 
 .recheck-button.recheck-error {
   background-color: var(--vscode-testing-iconFailed);
-  color: white;
+  color: var(--vscode-button-foreground);
+}
+
+/* Workflows Panel Styles */
+.workflows-panel {
+  height: 100%;
+  overflow-y: auto;
+}
+
+.workflows-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-md) 0;
+  border-bottom: 1px solid var(--vscode-panel-border);
+}
+
+.workflows-header h3 {
+  margin: 0;
+  font-size: 1.1em;
+  font-weight: 600;
+  color: var(--vscode-foreground);
+}
+
+.workflow-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+  margin-bottom: var(--spacing-md);
+}
+
+.workflow-load-section {
+  display: flex;
+  gap: var(--spacing-xs);
+  margin-top: var(--spacing-md);
+}
+
+.workflow-load-section select {
+  flex: 1;
+}
+
+/* Runner Panel Styles */
+.runner-panel {
+  height: 100%;
+  overflow-y: auto;
+}
+
+.runner-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-md) 0;
+  border-bottom: 1px solid var(--vscode-panel-border);
+}
+
+.runner-header h3 {
+  margin: 0;
+  font-size: 1.1em;
+  font-weight: 600;
+  color: var(--vscode-foreground);
+}
+
+.loaded-workflow {
+  font-size: 0.9em;
+  color: var(--vscode-descriptionForeground);
+  margin-bottom: var(--spacing-md);
+  word-break: break-word;
+}
+
+.loaded-workflow span {
+  margin-right: var(--spacing-xs);
+}
+
+.loaded-workflow strong {
+  color: var(--vscode-foreground);
+}
+
+.workflow-selection {
+  display: flex;
+  gap: var(--spacing-xs);
+  margin-top: var(--spacing-lg);
+}
+
+.workflow-selection select {
+  flex: 1;
+}
+
+.execution-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+  margin-top: var(--spacing-lg);
+  padding: var(--spacing-lg) 0;
+  border-top: 1px solid var(--vscode-panel-border);
+  border-bottom: 1px solid var(--vscode-panel-border);
+}
+
+.primary-button {
+  background-color: var(--vscode-button-background);
+  color: var(--vscode-button-foreground);
+  font-weight: 600;
+}
+
+.pause-button {
+  background-color: var(--vscode-charts-orange);
+  color: var(--vscode-button-foreground);
+}
+
+.resume-button {
+  background-color: var(--vscode-charts-green);
+  color: var(--vscode-button-foreground);
+}
+
+.cancel-button {
+  background-color: var(--vscode-testing-iconFailed);
+  color: var(--vscode-button-foreground);
+}
+
+.clear-button {
+  background-color: var(--vscode-button-secondaryBackground);
+  color: var(--vscode-button-secondaryForeground);
+}
+
+.resumable-section {
+  margin-top: var(--spacing-lg);
+  padding: var(--spacing-md);
+  background-color: var(--vscode-input-background);
+  border: 1px solid var(--vscode-input-border);
+  border-radius: var(--border-radius-md);
+}
+
+.resumable-section h4 {
+  margin: 0 0 var(--spacing-md) 0;
+  font-size: 0.95em;
+  font-weight: 600;
+  color: var(--vscode-foreground);
+}
+
+.resumable-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-sm);
+  background-color: var(--vscode-editor-background);
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 3px;
+  margin-bottom: var(--spacing-sm);
+}
+
+.resumable-item span {
+  font-size: 0.9em;
+  color: var(--vscode-foreground);
+}
+
+.resumable-item button {
+  margin-left: 6px;
+}
+
+.progress-section {
+  margin-top: 20px;
+}
+
+.results-section {
+  margin-top: 20px;
+}
+
+.results-section h4 {
+  margin: 0 0 var(--spacing-md) 0;
+  font-size: 1em;
+  font-weight: 600;
+  color: var(--vscode-foreground);
+}
+
+.task-results {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.task-result {
+  border: 1px solid var(--vscode-input-border);
+  border-radius: var(--border-radius-md);
+  padding: var(--spacing-md);
+  background-color: var(--vscode-input-background);
+}
+
+.task-result.status-completed {
+  border-color: var(--vscode-testing-iconPassed);
+}
+
+.task-result.status-error {
+  border-color: var(--vscode-testing-iconFailed);
+}
+
+.task-result.status-running {
+  border-color: var(--vscode-button-background);
+  background-color: var(--vscode-editor-background);
+}
+
+.task-result-header {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-sm);
+}
+
+.task-number {
+  font-weight: 600;
+  color: var(--vscode-descriptionForeground);
+  font-size: 0.9em;
+}
+
+.task-name {
+  flex: 1;
+  font-weight: 500;
+  color: var(--vscode-foreground);
+}
+
+.task-prompt,
+.task-result-content,
+.task-error {
+  margin-top: var(--spacing-sm);
+  padding-top: var(--spacing-sm);
+  border-top: 1px solid var(--vscode-panel-border);
+}
+
+.task-prompt strong,
+.task-result-content strong,
+.task-error strong {
+  display: block;
+  margin-bottom: var(--spacing-xs);
+  font-size: 0.85em;
+  color: var(--vscode-descriptionForeground);
+}
+
+.task-result-content pre {
+  background-color: var(--vscode-textCodeBlock-background);
+  border: 1px solid var(--vscode-input-border);
+  border-radius: 3px;
+  padding: var(--spacing-sm);
+  overflow-x: auto;
+  font-size: 0.85em;
+  font-family: var(--vscode-editor-font-family);
+  white-space: pre-wrap;
+  margin: 0;
+}
+
+.task-error {
+  color: var(--vscode-errorForeground);
+}
+
+/* Dialog styles */
+.dialog-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: var(--vscode-widget-shadow);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.dialog {
+  background-color: var(--vscode-editor-background);
+  border: 1px solid var(--vscode-input-border);
+  border-radius: 6px;
+  padding: 20px;
+  min-width: 400px;
+  max-width: 90%;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.dialog h3 {
+  margin: 0 0 16px 0;
+  font-size: 1.1em;
+  font-weight: 600;
+  color: var(--vscode-foreground);
+}
+
+.dialog input,
+.dialog textarea {
+  width: 100%;
+  margin-bottom: var(--spacing-md);
+}
+
+.dialog-actions {
+  display: flex;
+  gap: var(--spacing-sm);
+  justify-content: flex-end;
+  margin-top: var(--spacing-lg);
 }

@@ -407,6 +407,7 @@ describe("WorkflowEngine - Execution", () => {
         expect(mockWorkflowJsonLogger.initializeLog).toHaveBeenCalledWith(
           mockWorkflowState,
           "/test/workflow.yml",
+          false,
         );
       });
 

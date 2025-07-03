@@ -7,7 +7,7 @@ export interface JsonLogStep {
   step_index: number;
   step_id: string;
   step_name: string;
-  status: "completed" | "failed" | "paused";
+  status: "completed" | "failed" | "paused" | "timeout";
   start_time: string;
   end_time: string;
   duration_ms: number;
@@ -23,7 +23,7 @@ export interface JsonLogFormat {
   execution_id: string;
   start_time: string;
   last_update_time: string;
-  status: "running" | "paused" | "completed" | "failed";
+  status: "running" | "paused" | "completed" | "failed" | "timeout";
   last_completed_step: number;
   total_steps: number;
   steps: JsonLogStep[];
@@ -41,6 +41,7 @@ export class WorkflowJsonLogger {
   async initializeLog(
     workflowState: WorkflowState,
     workflowPath: string,
+    isResume: boolean = false,
   ): Promise<void> {
     try {
       // Generate log file path in same folder as workflow (per specs)
@@ -56,6 +57,24 @@ export class WorkflowJsonLogger {
       const logDir = path.dirname(this.logFilePath);
       if (!(await this.fileSystem.exists(logDir))) {
         await this.fileSystem.mkdir(logDir, { recursive: true });
+      }
+
+      // RESUME: Load existing job log instead of creating new one
+      if (isResume) {
+        try {
+          const existingContent = await this.fileSystem.readFile(
+            this.logFilePath,
+          );
+          this.currentLog = JSON.parse(existingContent);
+          if (this.currentLog) {
+            this.currentLog.last_update_time = new Date().toISOString();
+            this.currentLog.status = "running";
+            return; // Keep existing log with all previous steps
+          }
+        } catch (error) {
+          // If existing log not found, fall through to create new one
+          this.logger.warn("Could not load existing job log, creating new one");
+        }
       }
 
       // Generate execution ID in correct format (YYYYMMDD-HHMMSS)
@@ -74,7 +93,7 @@ export class WorkflowJsonLogger {
         totalSteps = job?.steps?.length || 0;
       }
 
-      // Initialize log structure - NO pre-filled steps!
+      // NEW EXECUTION: Create fresh job log
       this.currentLog = {
         workflow_name: workflow.name || workflowBaseName,
         workflow_file: path.relative(path.dirname(workflowPath), workflowPath),
@@ -84,7 +103,7 @@ export class WorkflowJsonLogger {
         status: "running",
         last_completed_step: -1,
         total_steps: totalSteps,
-        steps: [], // Empty - steps added ONLY when completed!
+        steps: [], // Empty only for NEW executions
       };
 
       await this.writeLogFile();
@@ -105,8 +124,12 @@ export class WorkflowJsonLogger {
     }
 
     try {
-      // Only add steps when they are COMPLETED or FAILED
-      if (stepResult.status === "completed" || stepResult.status === "failed") {
+      // Only add steps when they are COMPLETED, FAILED, or TIMEOUT
+      if (
+        stepResult.status === "completed" ||
+        stepResult.status === "failed" ||
+        stepResult.status === "timeout"
+      ) {
         // Calculate duration
         const startTime = new Date(
           stepResult.startTime ?? new Date().toISOString(),
@@ -132,6 +155,14 @@ export class WorkflowJsonLogger {
             resumeSession = step.with?.resume_session
               ? String(step.with.resume_session)
               : "";
+
+            // Resolve session template variables (e.g., "${{ steps.step-0.outputs.session_id }}")
+            if (resumeSession && resumeSession.includes("${{")) {
+              resumeSession = this.resolveSessionVariables(
+                resumeSession,
+                workflowState,
+              );
+            }
           }
         }
 
@@ -140,7 +171,12 @@ export class WorkflowJsonLogger {
           step_index: stepResult.stepIndex,
           step_id: stepResult.stepId,
           step_name: stepName,
-          status: stepResult.status === "completed" ? "completed" : "failed",
+          status:
+            stepResult.status === "completed"
+              ? "completed"
+              : stepResult.status === "timeout"
+                ? "timeout"
+                : "failed",
           start_time: stepResult.startTime ?? new Date().toISOString(),
           end_time: stepResult.endTime ?? new Date().toISOString(),
           duration_ms: durationMs,
@@ -154,7 +190,13 @@ export class WorkflowJsonLogger {
         }
 
         this.currentLog.steps.push(logStep);
-        this.currentLog.last_completed_step = stepResult.stepIndex;
+        // Only update last_completed_step for completed steps (not failed)
+        if (stepResult.status === "completed") {
+          this.currentLog.last_completed_step = Math.max(
+            this.currentLog.last_completed_step,
+            stepResult.stepIndex,
+          );
+        }
       }
 
       // Update log metadata
@@ -179,7 +221,7 @@ export class WorkflowJsonLogger {
   }
 
   async updateWorkflowStatus(
-    status: "running" | "paused" | "completed" | "failed",
+    status: "running" | "paused" | "completed" | "failed" | "timeout",
   ): Promise<void> {
     if (!this.currentLog || !this.logFilePath) {
       return;
@@ -236,5 +278,19 @@ export class WorkflowJsonLogger {
   cleanup(): void {
     this.logFilePath = undefined;
     this.currentLog = undefined;
+  }
+
+  private resolveSessionVariables(
+    template: string,
+    workflowState: WorkflowState,
+  ): string {
+    // Handle session template variables like "${{ steps.step-0.outputs.session_id }}"
+    return template.replace(
+      /\$\{\{\s*steps\.([^.]+)\.outputs\.session_id\s*\}\}/g,
+      (match, stepId) => {
+        const sessionId = workflowState.sessionMappings[stepId];
+        return sessionId || match; // Return original if no mapping found
+      },
+    );
   }
 }

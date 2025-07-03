@@ -24,7 +24,7 @@ export interface ComponentTestSetup {
   cleanup: () => void;
 }
 
-interface WindowWithVSCodeAPI extends Window {
+interface WindowWithVSCodeAPI {
   vscodeApi?: MockVSCodeAPI;
 }
 
@@ -35,7 +35,7 @@ export const setupComponentTest = (): ComponentTestSetup => {
     setState: jest.fn(),
   };
 
-  const windowWithAPI = window as WindowWithVSCodeAPI;
+  const windowWithAPI = window as unknown as WindowWithVSCodeAPI;
 
   // Clean up any existing vscodeApi first
   if (windowWithAPI.vscodeApi) {

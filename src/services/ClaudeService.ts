@@ -13,6 +13,7 @@ import { WorkflowExecution, StepOutput } from "../types/WorkflowTypes";
 export class ClaudeService {
   private readonly executor: ClaudeExecutor;
   private readonly configManager: ConfigManager;
+  private readonly logger: VSCodeLogger;
   private pauseAfterCurrentTask = false;
   private readonly pausedPipelines: Map<
     string,
@@ -27,19 +28,37 @@ export class ClaudeService {
   > = new Map();
 
   constructor() {
-    const logger = new VSCodeLogger();
-    const configSource = new VSCodeConfigSource();
-    this.configManager = new ConfigManager(logger);
-    this.configManager.addSource(configSource);
-    this.executor = new ClaudeExecutor(logger, this.configManager);
+    try {
+      this.logger = new VSCodeLogger();
+      const configSource = new VSCodeConfigSource();
+      this.configManager = new ConfigManager(this.logger);
+      this.configManager.addSource(configSource);
+      this.executor = new ClaudeExecutor(this.logger, this.configManager);
+    } catch (error) {
+      // For constructor errors, we throw them as configuration errors
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      if (errorMessage.toLowerCase().includes("config")) {
+        throw new Error(`Configuration invalid: ${errorMessage}`);
+      }
+      throw error;
+    }
   }
 
   async checkInstallation(): Promise<void> {
-    const result = await ClaudeDetectionService.detectClaude("auto");
-    if (!result.isInstalled) {
-      throw new Error(
-        "Claude Code CLI not found in PATH. Please install Claude Code.",
+    try {
+      const result = await ClaudeDetectionService.detectClaude("auto");
+      if (!result.isInstalled) {
+        throw new Error(
+          "Claude Code CLI not found in PATH. Please install Claude Code.",
+        );
+      }
+    } catch (error) {
+      this.logger.error(
+        "Detection failed",
+        error instanceof Error ? error : new Error(String(error)),
       );
+      throw error;
     }
   }
 
@@ -49,12 +68,39 @@ export class ClaudeService {
     workingDirectory: string,
     options: TaskOptions = {},
   ): Promise<TaskResult> {
-    return await this.executor.executeTask(
-      task,
-      model,
-      workingDirectory,
-      options,
-    );
+    try {
+      return await this.executor.executeTask(
+        task,
+        model,
+        workingDirectory,
+        options,
+      );
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      if (errorMessage.toLowerCase().includes("timeout")) {
+        this.logger.error(
+          "Task execution timeout",
+          error instanceof Error ? error : new Error(String(error)),
+        );
+      } else if (errorMessage.toLowerCase().includes("network")) {
+        this.logger.error(
+          "Network error during task execution",
+          error instanceof Error ? error : new Error(String(error)),
+        );
+      } else if (errorMessage.toLowerCase().includes("rate limit")) {
+        this.logger.warn(
+          "Rate limit exceeded during task execution",
+          error instanceof Error ? error : new Error(String(error)),
+        );
+      } else {
+        this.logger.error(
+          "Task execution failed",
+          error instanceof Error ? error : new Error(String(error)),
+        );
+      }
+      throw error;
+    }
   }
 
   async executePipeline(
@@ -66,18 +112,26 @@ export class ClaudeService {
     onComplete?: (tasks: TaskItem[]) => void,
     onError?: (error: string, tasks: TaskItem[]) => void,
   ): Promise<void> {
-    return await this.executor.executePipeline(
-      tasks,
-      model,
-      workingDirectory,
-      options,
-      onProgress,
-      onComplete,
-      onError,
-      () => this.pauseAfterCurrentTask,
-      (tasks, index) =>
-        this.onPipelinePaused(tasks, index, onProgress, onComplete, onError),
-    );
+    try {
+      return await this.executor.executePipeline(
+        tasks,
+        model,
+        workingDirectory,
+        options,
+        onProgress,
+        onComplete,
+        onError,
+        () => this.pauseAfterCurrentTask,
+        (tasks, index) =>
+          this.onPipelinePaused(tasks, index, onProgress, onComplete, onError),
+      );
+    } catch (error) {
+      this.logger.error(
+        "Pipeline execution failed",
+        error instanceof Error ? error : new Error(String(error)),
+      );
+      throw error;
+    }
   }
 
   /**
@@ -168,7 +222,20 @@ export class ClaudeService {
   }
 
   async validateClaudeCommand(model: string): Promise<boolean> {
-    return await this.executor.validateClaudeCommand(model);
+    try {
+      return await this.executor.validateClaudeCommand(model);
+    } catch (error) {
+      this.logger.error(
+        "Validation failed",
+        error instanceof Error ? error : new Error(String(error)),
+      );
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      if (errorMessage.includes("service unavailable")) {
+        throw new Error("Service unavailable");
+      }
+      throw error;
+    }
   }
 
   formatCommandPreview(
@@ -177,16 +244,37 @@ export class ClaudeService {
     workingDirectory: string,
     options: TaskOptions,
   ): string {
-    return this.executor.formatCommandPreview(
-      task,
-      model,
-      workingDirectory,
-      options,
-    );
+    try {
+      return this.executor.formatCommandPreview(
+        task,
+        model,
+        workingDirectory,
+        options,
+      );
+    } catch (error) {
+      this.logger.error(
+        "Preview generation failed",
+        error instanceof Error ? error : new Error(String(error)),
+      );
+      throw error;
+    }
   }
 
   isValidModelId(modelId: string): boolean {
-    return modelId === "auto" || this.configManager.validateModel(modelId);
+    try {
+      return modelId === "auto" || this.configManager.validateModel(modelId);
+    } catch (error) {
+      this.logger.error(
+        "Model validation failed",
+        error instanceof Error ? error : new Error(String(error)),
+      );
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      if (errorMessage.toLowerCase().includes("config")) {
+        throw new Error(`Configuration invalid: ${errorMessage}`);
+      }
+      throw error;
+    }
   }
 
   async pausePipelineExecution(): Promise<string | null> {

@@ -71,7 +71,7 @@ const TaskList: React.FC<TaskListProps> = ({
               defaultValue={task.prompt}
               onBlur={(e) => updateTask(task.id, "prompt", e.target.value)}
               placeholder="Enter your task or prompt for Claude..."
-              rows={3}
+              rows={5}
               className="task-textarea"
               disabled={isTasksRunning}
             />

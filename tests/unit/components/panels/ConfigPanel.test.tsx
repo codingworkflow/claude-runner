@@ -130,18 +130,25 @@ jest.mock("../../../../src/contexts/ExtensionContext", () => ({
 }));
 
 describe("ConfigPanel", () => {
+  beforeAll(() => {
+    // Save original state for restoration
+    JSON.parse(JSON.stringify(mockState));
+  });
+
   beforeEach(() => {
     jest.clearAllMocks();
 
-    // Reset state to initial values
-    mockState.main.model = "claude-sonnet-4-20250514";
-    mockState.main.rootPath = "/workspace";
-    mockState.main.allowAllTools = false;
-
-    // Reset all actions to fresh mocks
-    Object.keys(mockActions).forEach((key) => {
-      mockActions[key as keyof typeof mockActions] = jest.fn();
+    // Reset state to initial values more efficiently
+    Object.assign(mockState.main, {
+      model: "claude-sonnet-4-20250514",
+      rootPath: "/workspace",
+      allowAllTools: false,
     });
+  });
+
+  afterEach(() => {
+    // Clean up to prevent memory leaks
+    jest.clearAllMocks();
   });
 
   describe("configuration panel rendering and layout", () => {

@@ -7,7 +7,7 @@ export interface JobLogStep {
   stepIndex: number;
   stepId: string;
   stepName: string;
-  status: "completed" | "failed" | "running";
+  status: "completed" | "failed" | "running" | "timeout";
   startTime: string; // ISO string
   endTime?: string;
   durationMs: number;

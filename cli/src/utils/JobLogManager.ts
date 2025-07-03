@@ -155,6 +155,7 @@ export class JobLogManager {
         step.stepIndex,
       );
     }
+    // For timeout steps, don't update lastCompletedStep (resume same step)
 
     // Update the last update time
     jobLog.lastUpdateTime = new Date().toISOString();
@@ -165,9 +166,12 @@ export class JobLogManager {
       (s) => s.status === "completed",
     ).length;
     const failedSteps = allSteps.filter((s) => s.status === "failed").length;
+    const timeoutSteps = allSteps.filter((s) => s.status === "timeout").length;
 
     if (failedSteps > 0) {
       jobLog.status = "failed";
+    } else if (timeoutSteps > 0) {
+      jobLog.status = "paused"; // Timeout means paused, not failed
     } else if (completedSteps === jobLog.totalSteps) {
       jobLog.status = "completed";
     } else {
@@ -183,6 +187,24 @@ export class JobLogManager {
    */
   static getResumeStepIndex(jobLog: JobLog): number {
     return jobLog.lastCompletedStep + 1;
+  }
+
+  /**
+   * Check if next step has timeout status and get its session ID
+   * Implements KISS timeout resume logic: next job exists + status == timeout → RESUME
+   *
+   * @param jobLog - The job log to analyze
+   * @param stepIndex - The step index to check
+   * @returns Session ID if timeout step found, undefined otherwise
+   */
+  static getTimeoutSessionId(
+    jobLog: JobLog,
+    stepIndex: number,
+  ): string | undefined {
+    const timeoutStep = jobLog.steps.find(
+      (step) => step.stepIndex === stepIndex && step.status === "timeout",
+    );
+    return timeoutStep?.sessionId;
   }
 
   /**

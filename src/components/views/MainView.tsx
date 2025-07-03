@@ -1,12 +1,14 @@
 import React, { useState, useEffect, useRef } from "react";
 import ChatPanel from "../panels/ChatPanel";
 import PipelinePanel from "../panels/PipelinePanel";
+import WorkflowsPanel from "../panels/WorkflowsPanel";
+import RunnerPanel from "../panels/RunnerPanel";
 import ShellSelector from "../common/ShellSelector";
 import TabNavigation, { Tab } from "../common/TabNavigation";
 import { useExtension } from "../../contexts/ExtensionContext";
 
 // Define tab type for this view
-type MainTabId = "chat" | "pipeline";
+type MainTabId = "chat" | "workflows" | "runner";
 
 const MainView: React.FC = () => {
   const { state, actions } = useExtension();
@@ -24,7 +26,8 @@ const MainView: React.FC = () => {
   // Define tabs for this view
   const mainTabs: Tab<MainTabId>[] = [
     { id: "chat", label: "Chat" },
-    { id: "pipeline", label: "Pipeline" },
+    { id: "workflows", label: "Workflows" },
+    { id: "runner", label: "Runner" },
   ];
 
   // Watch for changes in claudeInstalled when rechecking
@@ -133,6 +136,22 @@ const MainView: React.FC = () => {
 
         {mainState.activeTab === "pipeline" && (
           <PipelinePanel
+            disabled={
+              mainState.status === "starting" || mainState.status === "stopping"
+            }
+          />
+        )}
+
+        {mainState.activeTab === "workflows" && (
+          <WorkflowsPanel
+            disabled={
+              mainState.status === "starting" || mainState.status === "stopping"
+            }
+          />
+        )}
+
+        {mainState.activeTab === "runner" && (
+          <RunnerPanel
             disabled={
               mainState.status === "starting" || mainState.status === "stopping"
             }

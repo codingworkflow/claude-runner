@@ -69,6 +69,7 @@ export class ClaudeCodeService {
     onError: (error: string, tasks: TaskItem[]) => void;
   } | null = null;
   private pauseAfterCurrentTask = false;
+  private pendingPausePipelineId: string | null = null;
   private currentWorkflowExecution: WorkflowExecution | null = null;
   private currentWorkflowPath?: string;
   private readonly pausedPipelines: Map<
@@ -266,7 +267,8 @@ export class ClaudeCodeService {
         debug: (_message: string, ..._args: unknown[]) => {},
       };
       const jsonLogger = new WorkflowJsonLogger(fileSystem, jsonLoggerInstance);
-      await jsonLogger.initializeLog(workflowState, workflowPath);
+      const isResume = startIndex > 0; // If startIndex > 0, this is a resume
+      await jsonLogger.initializeLog(workflowState, workflowPath, isResume);
 
       // Execute tasks one by one with both UI updates and JSON logging
       for (let i = startIndex; i < tasks.length; i++) {
@@ -282,7 +284,10 @@ export class ClaudeCodeService {
 
           // Always pause the current task if it hasn't started yet
           if (task.status === "pending") {
-            const pipelineId = `pipeline-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+            const pipelineId =
+              this.pendingPausePipelineId ??
+              `pipeline-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+            this.pendingPausePipelineId = null; // Clear the pending ID
 
             // Mark this task as paused
             task.status = "paused";
@@ -367,9 +372,15 @@ export class ClaudeCodeService {
           }
 
           if (result.success) {
+            // Parse the task result to extract just the result text
+            const { sessionId, resultText } = this.parseTaskResult(
+              result.output,
+              taskOptions.outputFormat,
+            );
+
             task.status = "completed";
-            task.results = result.output;
-            task.sessionId = result.sessionId;
+            task.results = resultText;
+            task.sessionId = sessionId ?? result.sessionId;
 
             // Update JSON log for step completion
             if (this.workflowStateService) {
@@ -382,7 +393,7 @@ export class ClaudeCodeService {
                     false,
                   ),
                   true,
-                  result.output,
+                  resultText,
                 );
               const updatedState =
                 await this.workflowStateService.updateWorkflowProgress(
@@ -477,7 +488,10 @@ export class ClaudeCodeService {
 
         // Always pause the current task if it hasn't started yet
         if (task.status === "pending") {
-          const pipelineId = `pipeline-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+          const pipelineId =
+            this.pendingPausePipelineId ??
+            `pipeline-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+          this.pendingPausePipelineId = null; // Clear the pending ID
 
           // Mark this task as paused
           task.status = "paused";
@@ -1008,8 +1022,9 @@ export class ClaudeCodeService {
       onError: pausedState.onError,
     };
 
-    // Clear the pause flag
+    // Clear the pause flag and pending pause ID
     this.pauseAfterCurrentTask = false;
+    this.pendingPausePipelineId = null;
 
     // Update UI to reflect the resumed state
     pausedState.onProgress(tasks, pausedState.currentIndex);
@@ -1221,9 +1236,9 @@ export class ClaudeCodeService {
     // Set the pause flag - let current task finish, pause before next
     this.pauseAfterCurrentTask = true;
 
-    // Return a pipeline ID that the execution loop will use when it actually pauses
-    // The actual pause state will be stored by the execution loop if there are more tasks
+    // Generate and store the pipeline ID that will be used when the execution loop actually pauses
     const pipelineId = `pipeline-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    this.pendingPausePipelineId = pipelineId;
 
     return pipelineId;
   }

@@ -32,7 +32,6 @@ jobs:
             Reference the existing analysis to identify the most critical gaps and provide focused implementation guidance for the next steps.
           model: auto
           allow_all_tools: true
-          output_session: true
 
       - id: implement_job_log_types
         name: Create Job Log Type Definitions
@@ -52,7 +51,7 @@ jobs:
             This must match the Go CLI's internal/types/job_log.go JobLog and JobLogStep structures for full compatibility.
           model: auto
           allow_all_tools: true
-          resume_session: ${{ steps.analyze_current_cli.outputs.session_id }}
+          resume_session: analyze_current_cli
 
       - id: implement_job_log_manager
         name: Create Job Log Manager Utility
@@ -72,7 +71,7 @@ jobs:
             Reference the Go CLI analysis in cli_improvment.md showing the exact job log structure and ensure the TS implementation creates compatible .job.json files.
           model: auto
           allow_all_tools: true
-          resume_session: ${{ steps.analyze_current_cli.outputs.session_id }}
+          resume_session: analyze_current_cli
 
       - id: implement_resume_flag_parsing
         name: Add Resume and Bypass Flag Parsing
@@ -157,7 +156,7 @@ jobs:
             Reference the Go CLI's main.go runTUI() function lines 219-244 for exact resume behavior.
           model: auto
           allow_all_tools: true
-          resume_session: ${{ steps.analyze_current_cli.outputs.session_id }}
+          resume_session: analyze_current_cli
 
       - id: implement_bypass_functionality
         name: Implement Bypass Permission Mode
@@ -308,4 +307,4 @@ jobs:
             Create comprehensive validation report ready for code review and deployment.
           model: auto
           allow_all_tools: true
-          resume_session: ${{ steps.analyze_current_cli.outputs.session_id }}
+          resume_session: analyze_current_cli

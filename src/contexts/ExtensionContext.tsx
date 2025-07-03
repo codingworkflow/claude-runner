@@ -93,7 +93,7 @@ export type ViewType = "main" | "commands" | "usage";
 
 // State Interfaces
 export interface MainViewState {
-  activeTab: "chat" | "pipeline";
+  activeTab: "chat" | "pipeline" | "workflows" | "runner";
   model: string;
   rootPath: string;
   allowAllTools: boolean;
@@ -327,7 +327,7 @@ export interface ExtensionActions {
   updateModel: (model: string) => void;
   updateRootPath: (path: string) => void;
   updateAllowAllTools: (allow: boolean) => void;
-  updateActiveTab: (tab: "chat" | "pipeline") => void;
+  updateActiveTab: (tab: "chat" | "pipeline" | "workflows" | "runner") => void;
   updateChatPrompt: (prompt: string) => void;
   updateShowChatPrompt: (show: boolean) => void;
   updateOutputFormat: (format: "text" | "json") => void;
@@ -440,7 +440,7 @@ export const ExtensionProvider: React.FC<{ children: ReactNode }> = ({
       sendMessage("updateAllowAllTools", { allow });
     },
 
-    updateActiveTab: (tab: "chat" | "pipeline") => {
+    updateActiveTab: (tab: "chat" | "pipeline" | "workflows" | "runner") => {
       sendMessage("updateActiveTab", { tab });
     },
 

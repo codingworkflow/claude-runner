@@ -297,10 +297,23 @@ const ChatPanelWithContext = ({
 
 describe("ChatPanel", () => {
   let mockActions: ExtensionActions;
+  let baseExtensionState: ExtensionState;
+
+  beforeAll(() => {
+    // Create expensive objects once per test suite
+    baseExtensionState = createMockExtensionState();
+  });
 
   beforeEach(() => {
+    // Only create fresh actions and clear mocks
     mockActions = createMockActions();
     jest.clearAllMocks();
+  });
+
+  afterEach(() => {
+    // Clean up to prevent memory leaks
+    jest.clearAllMocks();
+    mockActions = {} as ExtensionActions;
   });
 
   describe("chat interface functionality and message handling", () => {
@@ -323,9 +336,10 @@ describe("ChatPanel", () => {
     });
 
     it("shows Add Prompt button when prompt is not visible", () => {
-      const state = createMockExtensionState({
-        main: { showChatPrompt: false },
-      });
+      const state = {
+        ...baseExtensionState,
+        main: { ...baseExtensionState.main, showChatPrompt: false },
+      };
       render(<ChatPanelWithContext state={state} actions={mockActions} />);
 
       const addPromptButton = screen.getByText("Add Prompt");
@@ -333,9 +347,14 @@ describe("ChatPanel", () => {
     });
 
     it("shows Remove Prompt button and textarea when prompt is visible", () => {
-      const state = createMockExtensionState({
-        main: { showChatPrompt: true, chatPrompt: "Test prompt" },
-      });
+      const state = {
+        ...baseExtensionState,
+        main: {
+          ...baseExtensionState.main,
+          showChatPrompt: true,
+          chatPrompt: "Test prompt",
+        },
+      };
       render(<ChatPanelWithContext state={state} actions={mockActions} />);
 
       expect(screen.getByText("Remove Prompt")).toBeInTheDocument();
@@ -343,9 +362,10 @@ describe("ChatPanel", () => {
     });
 
     it("calls startInteractive without prompt when no prompt is provided", () => {
-      const state = createMockExtensionState({
-        main: { showChatPrompt: false },
-      });
+      const state = {
+        ...baseExtensionState,
+        main: { ...baseExtensionState.main, showChatPrompt: false },
+      };
       render(<ChatPanelWithContext state={state} actions={mockActions} />);
 
       const startButton = screen.getByText("Start Chat Session");

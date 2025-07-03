@@ -166,6 +166,7 @@ export class WorkflowEngine {
         await this.jsonLogger.initializeLog(
           this.currentWorkflowState,
           workflowPath,
+          false, // New execution - not a resume
         );
       }
     }
@@ -219,8 +220,8 @@ export class WorkflowEngine {
             result: result.output,
           };
 
-          // Add session_id to output if requested
-          if (resolvedStep.with.output_session && result.sessionId) {
+          // Always add session_id to output when available (KISS - no complexity)
+          if (result.sessionId) {
             output.session_id = result.sessionId;
           }
 
@@ -238,7 +239,7 @@ export class WorkflowEngine {
                   index,
                   stepId,
                   result.sessionId,
-                  step.with.output_session === true,
+                  true, // Always capture session (auto-detect approach)
                   step.with.resume_session,
                 ),
                 true,
@@ -274,7 +275,7 @@ export class WorkflowEngine {
                   index,
                   stepId,
                   undefined,
-                  step.with.output_session === true,
+                  true, // Always capture session (auto-detect approach)
                   step.with.resume_session,
                 ),
                 false,
@@ -418,10 +419,25 @@ export class WorkflowEngine {
     // Resolve other string parameters
     for (const [key, value] of Object.entries(resolvedStep.with)) {
       if (typeof value === "string" && key !== "prompt") {
-        resolvedStep.with[key] = WorkflowParser.resolveVariables(
-          value,
-          context,
-        );
+        // Simple session ID resolution: if resume_session is just a task ID, resolve to session_id
+        if (key === "resume_session" && typeof value === "string") {
+          // Check if it's a simple task ID (not a complex variable)
+          if (!value.includes("${{") && execution.outputs[value]?.session_id) {
+            resolvedStep.with[key] = execution.outputs[value]
+              .session_id as string;
+          } else {
+            // Fall back to normal variable resolution for complex cases
+            resolvedStep.with[key] = WorkflowParser.resolveVariables(
+              value,
+              context,
+            );
+          }
+        } else {
+          resolvedStep.with[key] = WorkflowParser.resolveVariables(
+            value,
+            context,
+          );
+        }
       }
     }
 
@@ -465,6 +481,15 @@ export class WorkflowEngine {
     this.currentWorkflowState = resumedState;
     const execution = resumedState.execution;
     const steps = this.getExecutionSteps(execution.workflow);
+
+    // Initialize JSON log file for resume
+    if (this.jsonLogger) {
+      await this.jsonLogger.initializeLog(
+        resumedState,
+        workflowState.workflowPath,
+        true, // This is a resume operation
+      );
+    }
 
     // Restore session mappings to execution outputs
     for (const [stepId, sessionId] of Object.entries(

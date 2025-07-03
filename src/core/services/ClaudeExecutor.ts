@@ -11,6 +11,7 @@ interface RateLimitInfo {
   isLimited: boolean;
   resetTime?: Date;
   waitTime?: number; // milliseconds
+  isTimeout?: boolean; // true if wait time > 6 hours
 }
 
 export class ClaudeExecutor {
@@ -645,9 +646,19 @@ export class ClaudeExecutor {
       try {
         const jsonData = JSON.parse(output.trim());
 
+        // Handle both simple and complex Claude CLI JSON formats
+        let sessionId = jsonData.session_id;
+        let resultText = jsonData.result;
+
+        // If session_id is not at root level, it might be in a wrapper
+        if (!sessionId && jsonData.type === "result") {
+          sessionId = jsonData.session_id;
+          resultText = jsonData.result;
+        }
+
         return {
-          sessionId: jsonData.session_id,
-          resultText: jsonData.result || JSON.stringify(jsonData, null, 2),
+          sessionId,
+          resultText: resultText || JSON.stringify(jsonData, null, 2),
         };
       } catch (error) {
         this.logger.warn(
@@ -703,6 +714,18 @@ export class ClaudeExecutor {
 
     const resetTime = new Date(resetTimestamp * 1000); // Convert Unix timestamp to milliseconds
     const waitTime = resetTime.getTime() - Date.now();
+
+    // Simple 6-hour timeout detection (like Go CLI)
+    const SIX_HOURS_MS = 6 * 60 * 60 * 1000;
+    if (waitTime > SIX_HOURS_MS) {
+      // Mark as timeout instead of normal rate limit
+      return {
+        isLimited: true,
+        resetTime,
+        waitTime: Math.max(0, waitTime),
+        isTimeout: true,
+      };
+    }
 
     return {
       isLimited: true,

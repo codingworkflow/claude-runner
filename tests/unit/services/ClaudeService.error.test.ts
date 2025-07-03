@@ -10,6 +10,12 @@ import {
 import { ClaudeService } from "../../../src/services/ClaudeService";
 import { WorkflowExecution } from "../../../src/types/WorkflowTypes";
 import { WorkflowService } from "../../../src/services/WorkflowService";
+import {
+  testErrorHandling,
+  StandardErrorScenarios,
+  expectGracefulFailure,
+  mockServiceError,
+} from "../helpers/errorTestUtils";
 
 jest.mock("../../../src/core/services/ClaudeExecutor");
 jest.mock("../../../src/adapters/vscode");
@@ -89,16 +95,16 @@ const mockConfigSource: MockConfigSource = {
 };
 
 (ClaudeExecutor as jest.MockedClass<typeof ClaudeExecutor>).mockImplementation(
-  () => mockExecutor as unknown as ClaudeExecutor,
+  () => mockExecutor as any,
 );
 (VSCodeLogger as jest.MockedClass<typeof VSCodeLogger>).mockImplementation(
-  () => mockLogger as unknown as VSCodeLogger,
+  () => mockLogger as any,
 );
 (
   VSCodeConfigSource as jest.MockedClass<typeof VSCodeConfigSource>
-).mockImplementation(() => mockConfigSource as unknown as VSCodeConfigSource);
+).mockImplementation(() => mockConfigSource as any);
 (ConfigManager as jest.MockedClass<typeof ConfigManager>).mockImplementation(
-  () => mockConfigManager as unknown as ConfigManager,
+  () => mockConfigManager as any,
 );
 
 describe("ClaudeService - Error Handling", () => {
@@ -114,58 +120,69 @@ describe("ClaudeService - Error Handling", () => {
   });
 
   describe("initialization errors", () => {
-    it("should handle logger initialization failure", () => {
+    it("should handle logger initialization failure", async () => {
       (
         VSCodeLogger as jest.MockedClass<typeof VSCodeLogger>
       ).mockImplementationOnce(() => {
         throw new Error("Logger initialization failed");
       });
 
-      expect(() => new ClaudeService()).toThrow("Logger initialization failed");
+      await testErrorHandling(
+        async () => new ClaudeService(),
+        "Logger initialization failed",
+      );
     });
 
-    it("should handle config source initialization failure", () => {
+    it("should handle config source initialization failure", async () => {
       (
         VSCodeConfigSource as jest.MockedClass<typeof VSCodeConfigSource>
       ).mockImplementationOnce(() => {
         throw new Error("Config source initialization failed");
       });
 
-      expect(() => new ClaudeService()).toThrow(
+      await testErrorHandling(
+        async () => new ClaudeService(),
         "Config source initialization failed",
       );
     });
 
-    it("should handle config manager initialization failure", () => {
+    it("should handle config manager initialization failure", async () => {
       (
         ConfigManager as jest.MockedClass<typeof ConfigManager>
       ).mockImplementationOnce(() => {
-        throw new Error("Config manager initialization failed");
+        throw new Error(
+          "Invalid configuration: config manager initialization failed",
+        );
       });
 
-      expect(() => new ClaudeService()).toThrow(
-        "Config manager initialization failed",
+      await testErrorHandling(
+        async () => new ClaudeService(),
+        StandardErrorScenarios.CONFIGURATION_INVALID.error,
       );
     });
 
-    it("should handle executor initialization failure", () => {
+    it("should handle executor initialization failure", async () => {
       (
         ClaudeExecutor as jest.MockedClass<typeof ClaudeExecutor>
       ).mockImplementationOnce(() => {
         throw new Error("Executor initialization failed");
       });
 
-      expect(() => new ClaudeService()).toThrow(
+      await testErrorHandling(
+        async () => new ClaudeService(),
         "Executor initialization failed",
       );
     });
 
-    it("should handle config source addition failure", () => {
+    it("should handle config source addition failure", async () => {
       mockConfigManager.addSource.mockImplementationOnce(() => {
-        throw new Error("Failed to add config source");
+        throw new Error("Configuration invalid: failed to add config source");
       });
 
-      expect(() => new ClaudeService()).toThrow("Failed to add config source");
+      await testErrorHandling(
+        async () => new ClaudeService(),
+        StandardErrorScenarios.CONFIGURATION_INVALID.error,
+      );
     });
   });
 
@@ -177,53 +194,111 @@ describe("ClaudeService - Error Handling", () => {
         >
       ).mockRejectedValue(new Error("Detection failed"));
 
-      await expect(service.checkInstallation()).rejects.toThrow(
+      await testErrorHandling(
+        () => service.checkInstallation(),
         "Detection failed",
+      );
+
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        expect.stringContaining("Detection failed"),
+        expect.any(Error),
       );
     });
   });
 
   describe("execution errors", () => {
     it("should handle task execution timeout", async () => {
-      mockExecutor.executeTask.mockRejectedValue(new Error("Request timeout"));
+      mockServiceError(
+        mockExecutor,
+        "executeTask",
+        new Error("Request timeout"),
+      );
 
-      await expect(
-        service.executeTask("test", "claude-3-5-sonnet-20241022", "/workspace"),
-      ).rejects.toThrow("Request timeout");
+      await testErrorHandling(
+        () =>
+          service.executeTask(
+            "test",
+            "claude-3-5-sonnet-20241022",
+            "/workspace",
+          ),
+        StandardErrorScenarios.NETWORK_TIMEOUT.error,
+      );
+
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        expect.stringContaining("timeout"),
+        expect.any(Error),
+      );
     });
 
     it("should handle network connectivity issues", async () => {
-      mockExecutor.executeTask.mockRejectedValue(
+      mockServiceError(
+        mockExecutor,
+        "executeTask",
         new Error("Network unreachable"),
       );
 
-      await expect(
-        service.executeTask("test", "claude-3-5-sonnet-20241022", "/workspace"),
-      ).rejects.toThrow("Network unreachable");
+      await expectGracefulFailure(
+        () =>
+          service.executeTask(
+            "test",
+            "claude-3-5-sonnet-20241022",
+            "/workspace",
+          ),
+        "Network unreachable",
+        () => !mockExecutor.isTaskRunning(),
+      );
+
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        expect.stringContaining("Network"),
+        expect.any(Error),
+      );
     });
 
     it("should handle API rate limiting", async () => {
-      mockExecutor.executeTask.mockRejectedValue(
+      mockServiceError(
+        mockExecutor,
+        "executeTask",
         new Error("Rate limit exceeded"),
       );
 
-      await expect(
-        service.executeTask("test", "claude-3-5-sonnet-20241022", "/workspace"),
-      ).rejects.toThrow("Rate limit exceeded");
+      await expectGracefulFailure(
+        () =>
+          service.executeTask(
+            "test",
+            "claude-3-5-sonnet-20241022",
+            "/workspace",
+          ),
+        "Rate limit exceeded",
+        () => !mockExecutor.isTaskRunning(),
+      );
+
+      expect(mockLogger.warn).toHaveBeenCalledWith(
+        expect.stringContaining("Rate limit"),
+        expect.any(Error),
+      );
     });
 
     it("should handle pipeline execution errors", async () => {
-      mockExecutor.executePipeline.mockRejectedValue(
+      mockServiceError(
+        mockExecutor,
+        "executePipeline",
         new Error("Pipeline failed"),
       );
 
-      await expect(
-        service.executePipeline(
-          [{ id: "task1", prompt: "test", status: "pending" }],
-          "claude-3-5-sonnet-20241022",
-          "/workspace",
-        ),
-      ).rejects.toThrow("Pipeline failed");
+      await testErrorHandling(
+        () =>
+          service.executePipeline(
+            [{ id: "task1", prompt: "test", status: "pending" }],
+            "claude-3-5-sonnet-20241022",
+            "/workspace",
+          ),
+        "Pipeline failed",
+      );
+
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        expect.stringContaining("Pipeline"),
+        expect.any(Error),
+      );
     });
   });
 
@@ -341,39 +416,60 @@ describe("ClaudeService - Error Handling", () => {
 
   describe("command validation errors", () => {
     it("should handle executor validation errors", async () => {
-      mockExecutor.validateClaudeCommand.mockRejectedValue(
+      mockServiceError(
+        mockExecutor,
+        "validateClaudeCommand",
         new Error("Validation service unavailable"),
       );
 
-      await expect(
-        service.validateClaudeCommand("claude-3-5-sonnet-20241022"),
-      ).rejects.toThrow("Validation service unavailable");
+      await testErrorHandling(
+        () => service.validateClaudeCommand("claude-3-5-sonnet-20241022"),
+        StandardErrorScenarios.SERVICE_UNAVAILABLE.error,
+      );
+
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        expect.stringContaining("Validation"),
+        expect.any(Error),
+      );
     });
 
-    it("should handle command preview errors", () => {
+    it("should handle command preview errors", async () => {
       mockExecutor.formatCommandPreview.mockImplementation(() => {
         throw new Error("Preview generation failed");
       });
 
-      expect(() =>
-        service.formatCommandPreview(
-          "test",
-          "claude-3-5-sonnet-20241022",
-          "/workspace",
-          {},
-        ),
-      ).toThrow("Preview generation failed");
+      await testErrorHandling(
+        async () =>
+          service.formatCommandPreview(
+            "test",
+            "claude-3-5-sonnet-20241022",
+            "/workspace",
+            {},
+          ),
+        "Preview generation failed",
+      );
+
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        expect.stringContaining("Preview"),
+        expect.any(Error),
+      );
     });
   });
 
   describe("model validation errors", () => {
-    it("should handle config manager validation errors", () => {
+    it("should handle config manager validation errors", async () => {
       mockConfigManager.validateModel.mockImplementation(() => {
         throw new Error("Config validation error");
       });
 
-      expect(() => service.isValidModelId("test-model")).toThrow(
-        "Config validation error",
+      await testErrorHandling(
+        async () => service.isValidModelId("test-model"),
+        StandardErrorScenarios.CONFIGURATION_INVALID.error,
+      );
+
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        expect.stringContaining("validation"),
+        expect.any(Error),
       );
     });
   });

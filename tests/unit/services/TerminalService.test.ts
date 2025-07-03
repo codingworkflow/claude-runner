@@ -458,7 +458,7 @@ describe("TerminalService", () => {
       );
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (vscode.window.showQuickPick as jest.Mock).mockResolvedValue({
+      (vscode.window.showQuickPick as any).mockResolvedValue({
         label: "Test Terminal",
         terminal: mockTerminal,
       });
@@ -491,7 +491,7 @@ describe("TerminalService", () => {
       );
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (vscode.window.showQuickPick as jest.Mock).mockResolvedValue(undefined);
+      (vscode.window.showQuickPick as any).mockResolvedValue(undefined);
 
       await service.runInteractive(
         "claude-3-5-sonnet-20241022",
@@ -665,7 +665,7 @@ describe("TerminalService", () => {
       await service.runInteractive("claude-3-haiku-20240307", "/other", false);
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (vscode.window.showQuickPick as jest.Mock).mockRejectedValue(
+      (vscode.window.showQuickPick as any).mockRejectedValue(
         new Error("Quick pick failed"),
       );
 

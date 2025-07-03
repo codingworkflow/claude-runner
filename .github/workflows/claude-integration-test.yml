@@ -1,36 +1,46 @@
-name: integration-test
-'on':
+name: claude-integration-test
+"on":
   workflow_dispatch:
     inputs:
       description:
-        description: Pipeline execution
+        description: Session forwarding integration test
         required: false
         type: string
+
 jobs:
-  pipeline:
-    name: Pipeline Execution
+  integration-test:
+    name: Claude Integration Test
     runs-on: ubuntu-latest
     steps:
-      - id: task_1750982023660_lskzttjfl
-        name: Task 1
+      - id: generate_random_number
+        name: "Generate Random Number"
         uses: anthropics/claude-pipeline-action@v1
         with:
-          prompt: give as output only a randow number REALLY random and not 42
+          prompt: |
+            Generate a random number between 1000 and 9999.
+            Output only the number, nothing else.
+            Do not use 42 or any predictable numbers.
           model: auto
           allow_all_tools: true
-          output_session: true
-      - id: task_1750982024916_fmsatzoba
-        name: Task 2
+
+      - id: generate_second_number
+        name: "Generate Second Random Number"
         uses: anthropics/claude-pipeline-action@v1
         with:
-          prompt: give as output only a randow number REALLY random and not 42
+          prompt: |
+            Generate another random number between 1000 and 9999.
+            Output only the number, nothing else.
+            This should be different from any previous numbers.
           model: auto
           allow_all_tools: true
-      - id: task_1750982348178_ayw0z7r0y
-        name: Task 3
+
+      - id: recall_first_number
+        name: "Recall First Number"
         uses: anthropics/claude-pipeline-action@v1
         with:
-          prompt: output only the previous random number 
+          prompt: |
+            What was the first random number I generated in our conversation?
+            Output only that number, nothing else.
           model: auto
           allow_all_tools: true
-          resume_session: ${{ steps.task_1750982023660_lskzttjfl.outputs.session_id }}
+          resume_session: generate_random_number

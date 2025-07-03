@@ -1,0 +1,692 @@
+name: css-modernization-alignment
+"on":
+  workflow_dispatch:
+    inputs:
+      description:
+        description: CSS modernization to align with VSCode enterprise patterns
+        required: false
+        type: string
+
+jobs:
+  css-modernization:
+    name: CSS Modernization & Enterprise Alignment
+    runs-on: ubuntu-latest
+    steps:
+      # === PHASE 1: FOUNDATION & PREPARATION ===
+      
+      # Session 1: Information Gathering & Setup
+      - id: gather_baseline_info
+        name: "Session 1: Gather CSS baseline and requirements"
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: |
+            FACT-BASED ANALYSIS TASK:
+            
+            1. Analyze current CSS structure in src/styles/:
+               - Read src/styles/main.css
+               - Read src/styles/base.css  
+               - Read src/styles/components.css
+               - Read src/styles/panels.css
+               
+            2. Analyze current React component integration:
+               - Check how CSS classes are used in src/components/common/Button.tsx
+               - Check CSS class patterns in 3-4 other components
+               
+            3. Document EXACT findings:
+               - Current CSS architecture (imports, organization)
+               - VSCode theme variable usage patterns
+               - Hard-coded values that need tokenization
+               - Component-CSS coupling patterns
+               
+            4. Create baseline report: docs/css-modernization-baseline.md
+               - Document current state (factual, no opinions)
+               - List specific files that will be modified
+               - Identify exact pain points with line numbers
+               
+            CONSTRAINTS:
+            - NO implementation changes in this session
+            - ONLY analysis and documentation
+            - Follow quality rules in CLAUDE.md
+            - Document facts, not recommendations
+          model: auto
+          allow_all_tools: true
+
+      - id: validate_baseline
+        name: "Validate baseline analysis"
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: |
+            VALIDATION STEP:
+            
+            1. Run `make lint` to confirm current state passes
+            2. Run `npm run test:unit` to confirm tests pass
+            3. Verify TypeScript compilation succeeds
+            4. Check that baseline report exists and contains factual data
+            5. If any issues, fix them before proceeding
+            
+            QUALITY GATE: All must pass before Phase 1 continues
+          model: auto
+          allow_all_tools: true
+          resume_session: gather_baseline_info
+
+      # Session 2: Design Token System Implementation
+      - id: implement_design_tokens
+        name: "Session 2: Implement design token system"
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: |
+            IMPLEMENTATION TASK:
+            
+            SPEC: Create centralized design token system
+            
+            TARGET FILES:
+            - CREATE: src/styles/tokens.ts
+            - MODIFY: src/styles/base.css (replace hard-coded values)
+            
+            EXACT REQUIREMENTS:
+            
+            1. src/styles/tokens.ts structure:
+            ```typescript
+            export const tokens = {
+              spacing: {
+                xs: '4px',    // Replace scattered 4px values
+                sm: '8px',    // Replace scattered 6px, 8px values  
+                md: '12px',   // Replace scattered 10px, 12px values
+                lg: '16px',   // Replace scattered 16px, 20px values
+                xl: '24px'    // For larger gaps
+              },
+              fontSize: {
+                xs: 'calc(var(--vscode-font-size) - 2px)',
+                sm: 'calc(var(--vscode-font-size) - 1px)', 
+                base: 'var(--vscode-font-size)',
+                lg: 'calc(var(--vscode-font-size) + 1px)'
+              },
+              borderRadius: {
+                sm: '2px',    // Current standard
+                md: '4px'     // For cards/larger elements
+              }
+            } as const;
+            ```
+            
+            2. Update base.css:
+            - Replace hardcoded spacing values with CSS custom properties
+            - Add CSS custom properties for tokens
+            - Maintain all existing VSCode theme variables
+            
+            CONSTRAINTS:
+            - NO visual changes to UI
+            - NO new dependencies
+            - NO changes to component files in this session
+            - Follow CLAUDE.md file modification rules
+          model: auto
+          allow_all_tools: true
+          resume_session: gather_baseline_info
+
+      - id: validate_tokens
+        name: "Validate design tokens implementation"
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: |
+            VALIDATION STEP:
+            
+            1. Run `make lint` - must pass without warnings
+            2. Run TypeScript compilation - must succeed  
+            3. Visual regression check:
+               - Extension should look identical after changes
+               - No layout shifts or spacing changes
+            4. Verify token file exports correctly
+            
+            QUALITY GATE: Zero visual changes, all tools pass
+          model: auto
+          allow_all_tools: true
+
+      # Session 3: Component CSS Integration  
+      - id: integrate_component_css
+        name: "Session 3: Integrate tokens with components"
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: |
+            IMPLEMENTATION TASK:
+            
+            SPEC: Update CSS files to use design tokens
+            
+            TARGET FILES (MODIFY ONLY):
+            - src/styles/components.css
+            - src/styles/panels.css
+            
+            EXACT CHANGES:
+            
+            1. Replace hard-coded spacing values:
+            - gap: 8px → gap: var(--spacing-sm)
+            - margin-bottom: 12px → margin-bottom: var(--spacing-md)
+            - padding: 4px 8px → padding: var(--spacing-xs) var(--spacing-sm)
+            
+            2. Add CSS custom properties to base.css:
+            ```css
+            :root {
+              --spacing-xs: 4px;
+              --spacing-sm: 8px; 
+              --spacing-md: 12px;
+              --spacing-lg: 16px;
+              --spacing-xl: 24px;
+              --font-size-xs: calc(var(--vscode-font-size) - 2px);
+              --font-size-sm: calc(var(--vscode-font-size) - 1px);
+              --font-size-base: var(--vscode-font-size);
+              --font-size-lg: calc(var(--vscode-font-size) + 1px);
+              --border-radius-sm: 2px;
+              --border-radius-md: 4px;
+            }
+            ```
+            
+            3. Update components.css and panels.css systematically:
+            - Find and replace specific hardcoded values
+            - Maintain exact visual appearance
+            - Keep all VSCode theme variables unchanged
+            
+            CONSTRAINTS:
+            - NO changes to React component files
+            - NO new CSS classes or properties
+            - ONLY replace existing hardcoded values
+            - Maintain identical visual output
+          model: auto
+          allow_all_tools: true
+          resume_session: gather_baseline_info
+
+      - id: validate_integration
+        name: "Validate CSS token integration"
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: |
+            VALIDATION STEP:
+            
+            1. Run `make lint` - zero warnings allowed
+            2. Visual consistency check - no layout changes
+            3. Verify CSS custom properties are working
+            4. Test in both light and dark VSCode themes
+            
+            QUALITY GATE: Identical visual appearance with tokenized CSS
+          model: auto
+          allow_all_tools: true
+
+      # === PHASE 2: CSS-IN-JS MIGRATION ===
+
+      # Session 4: Setup CSS-in-JS Infrastructure
+      - id: setup_css_in_js
+        name: "Session 4: Setup CSS-in-JS foundation"
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: |
+            IMPLEMENTATION TASK:
+            
+            SPEC: Add CSS-in-JS infrastructure without breaking changes
+            
+            REQUIREMENTS:
+            
+            1. Check if @fluentui/react-components is available:
+               - If not available, use vanilla CSS-in-JS approach
+               - DO NOT add new dependencies without explicit approval
+               
+            2. CREATE: src/styles/makeStyles.ts (lightweight CSS-in-JS utility)
+            ```typescript
+            import { useMemo } from 'react';
+            
+            type StyleObject = Record<string, React.CSSProperties>;
+            type StyleFunction<T extends StyleObject> = () => T;
+            
+            export function makeStyles<T extends StyleObject>(
+              styles: T
+            ): StyleFunction<T> {
+              return function useStyles(): T {
+                return useMemo(() => styles, []);
+              };
+            }
+            
+            export function mergeClasses(...classes: (string | undefined)[]): string {
+              return classes.filter(Boolean).join(' ');
+            }
+            ```
+            
+            3. CREATE: src/styles/styleUtils.ts
+            ```typescript
+            import { tokens } from './tokens';
+            
+            export const createTokenStyles = (tokenKey: keyof typeof tokens) => {
+              return tokens[tokenKey];
+            };
+            ```
+            
+            CONSTRAINTS:
+            - NO component modifications in this session
+            - NO new package.json dependencies
+            - Build lightweight, project-specific solution
+            - Must pass TypeScript strict mode
+          model: auto
+          allow_all_tools: true
+          resume_session: gather_baseline_info
+
+      - id: validate_css_in_js_setup
+        name: "Validate CSS-in-JS setup"
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: |
+            VALIDATION STEP:
+            
+            1. Run `make lint` - must pass
+            2. TypeScript compilation - must succeed
+            3. Verify utility functions work correctly
+            4. No runtime changes yet (infrastructure only)
+            
+            QUALITY GATE: Infrastructure ready, no functional changes
+          model: auto
+          allow_all_tools: true
+
+      # Session 5: Migrate Core Components
+      - id: migrate_core_components
+        name: "Session 5: Migrate Button and Input components"
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: |
+            IMPLEMENTATION TASK:
+            
+            SPEC: Migrate Button.tsx and Input.tsx to CSS-in-JS pattern
+            
+            TARGET FILES:
+            - MODIFY: src/components/common/Button.tsx
+            - MODIFY: src/components/common/Input.tsx
+            
+            MIGRATION PATTERN for Button.tsx:
+            
+            1. Add CSS-in-JS styles:
+            ```typescript
+            import { makeStyles, mergeClasses } from '../../styles/makeStyles';
+            
+            const useButtonStyles = makeStyles({
+              root: {
+                fontFamily: 'var(--vscode-font-family)',
+                fontSize: 'var(--vscode-font-size)', 
+                border: 'none',
+                borderRadius: 'var(--border-radius-sm)',
+                cursor: 'pointer',
+                padding: 'var(--spacing-xs) var(--spacing-sm)',
+                backgroundColor: 'var(--vscode-button-background)',
+                color: 'var(--vscode-button-foreground)',
+                lineHeight: '1.2',
+              },
+              primary: {
+                backgroundColor: 'var(--vscode-button-background)',
+                color: 'var(--vscode-button-foreground)',
+              },
+              secondary: {
+                backgroundColor: 'var(--vscode-button-secondaryBackground)',
+                color: 'var(--vscode-button-secondaryForeground)',
+              },
+              loading: {
+                opacity: '0.7',
+                position: 'relative',
+              }
+            });
+            ```
+            
+            2. Update component logic:
+            ```typescript
+            const Button = ({ variant = 'primary', size = 'medium', loading, className, ...props }) => {
+              const styles = useButtonStyles();
+              const classes = mergeClasses(
+                styles.root,
+                styles[variant],
+                loading ? styles.loading : undefined,
+                className
+              );
+              
+              return <button className={classes} {...props}>{children}</button>;
+            };
+            ```
+            
+            3. Remove corresponding CSS from components.css (button-related styles)
+            
+            CONSTRAINTS:
+            - Maintain exact visual appearance
+            - Keep all existing props and behavior
+            - Use VSCode theme variables only
+            - Follow CLAUDE.md component rules
+          model: auto
+          allow_all_tools: true
+          resume_session: gather_baseline_info
+
+      - id: validate_component_migration
+        name: "Validate component migration"
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: |
+            VALIDATION STEP:
+            
+            1. Run `make lint` - must pass
+            2. Run `npm run test:unit` - all tests must pass
+            3. Visual regression test - components look identical
+            4. Performance check - no unnecessary re-renders
+            
+            QUALITY GATE: Functionality preserved, performance maintained
+          model: auto
+          allow_all_tools: true
+
+      # === PHASE 3: POLISH & OPTIMIZATION ===
+
+      # Session 6: Accessibility Improvements
+      - id: add_accessibility_support
+        name: "Session 6: Add accessibility improvements"
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: |
+            IMPLEMENTATION TASK:
+            
+            SPEC: Add accessibility support without complexity
+            
+            TARGET FILE: src/styles/base.css
+            
+            ADD TO BASE.CSS:
+            
+            1. Screen reader support:
+            ```css
+            .sr-only {
+              position: absolute !important;
+              width: 1px !important;
+              height: 1px !important;
+              padding: 0 !important;
+              margin: -1px !important;
+              overflow: hidden !important;
+              clip: rect(0, 0, 0, 0) !important;
+              white-space: nowrap !important;
+              border: 0 !important;
+            }
+            ```
+            
+            2. Reduced motion support:
+            ```css
+            @media (prefers-reduced-motion: reduce) {
+              *,
+              *::before,
+              *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+                scroll-behavior: auto !important;
+              }
+            }
+            ```
+            
+            3. High contrast support:
+            ```css
+            @media (prefers-contrast: high) {
+              button,
+              input[type="text"],
+              input[type="number"],
+              textarea,
+              select {
+                border-width: 2px;
+              }
+            }
+            ```
+            
+            CONSTRAINTS:
+            - NO changes to component files
+            - NO breaking changes
+            - Only additive improvements
+            - Must work with existing VSCode themes
+          model: auto
+          allow_all_tools: true
+
+      - id: validate_accessibility
+        name: "Validate accessibility additions"
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: |
+            VALIDATION STEP:
+            
+            1. Run `make lint` - must pass
+            2. Test with high contrast theme in VSCode
+            3. Verify reduced motion preferences work
+            4. Check screen reader utilities are properly hidden
+            
+            QUALITY GATE: Accessibility improved, no regressions
+          model: auto
+          allow_all_tools: true
+
+      # Session 7: Performance Optimization
+      - id: optimize_css_performance
+        name: "Session 7: CSS performance optimization"
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: |
+            IMPLEMENTATION TASK:
+            
+            SPEC: Optimize CSS performance without over-engineering
+            
+            TARGETS:
+            - src/styles/base.css
+            - src/styles/components.css
+            - src/styles/panels.css
+            
+            OPTIMIZATION TASKS:
+            
+            1. Remove duplicate CSS rules:
+               - Find identical selectors with same properties
+               - Consolidate repetitive patterns
+               - Remove unused CSS classes (be conservative)
+            
+            2. Optimize CSS selectors:
+               - Replace complex selectors with simpler ones
+               - Remove overly specific selectors
+               - Use CSS custom properties for repeated values
+            
+            3. Add CSS containment for better performance:
+            ```css
+            .panel-container {
+              contain: layout style;
+            }
+            
+            .command-list {
+              contain: layout;
+            }
+            ```
+            
+            CONSTRAINTS:
+            - NO visual changes allowed
+            - NO removal of functional CSS
+            - Conservative approach - only obvious optimizations
+            - Must maintain all VSCode theme compatibility
+          model: auto
+          allow_all_tools: true
+
+      - id: validate_performance
+        name: "Validate performance optimizations"
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: |
+            VALIDATION STEP:
+            
+            1. Run `make lint` - must pass
+            2. Visual regression check - no changes
+            3. Performance check - CSS bundle size impact
+            4. Verify all panels still function correctly
+            
+            QUALITY GATE: Performance improved, functionality preserved
+          model: auto
+          allow_all_tools: true
+
+      # === FINAL VALIDATION & TESTING ===
+
+      # Session 8: Comprehensive Testing & Documentation
+      - id: comprehensive_testing
+        name: "Session 8: Final testing and validation"
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: |
+            COMPREHENSIVE VALIDATION:
+            
+            1. RUN ALL QUALITY CHECKS:
+               - `make lint` - must pass with zero warnings
+               - `npm run test:unit` - all tests must pass
+               - `npm run test:unit:coverage` - coverage maintained
+               - TypeScript compilation - zero errors
+            
+            2. VISUAL REGRESSION TESTING:
+               - Test all panels (Chat, Commands, Pipeline, Usage & Logs)
+               - Test both light and dark themes
+               - Test high contrast mode
+               - Verify reduced motion preferences
+               - Check all button states and interactions
+            
+            3. PERFORMANCE VERIFICATION:
+               - CSS bundle size comparison (before/after)
+               - Runtime performance check
+               - Memory usage validation
+            
+            4. COMPLIANCE CHECK:
+               - Verify adherence to CLAUDE.md guidelines
+               - Check no forbidden file patterns created
+               - Validate TypeScript strict mode compliance
+               - Ensure no over-engineering or complexity added
+            
+            5. FIX ANY ISSUES FOUND:
+               - If linting fails, fix all issues
+               - If tests fail, resolve test problems
+               - If visual regressions found, correct them
+               - Document any issues and resolutions
+          model: auto
+          allow_all_tools: true
+
+      - id: create_documentation
+        name: "Create final documentation"
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: |
+            DOCUMENTATION TASK:
+            
+            CREATE: docs/css-modernization-report.md
+            
+            REQUIRED CONTENT:
+            
+            1. **Changes Summary** (factual):
+               - List of modified files
+               - Before/after CSS metrics (lines, file sizes)
+               - Performance improvements (if any)
+            
+            2. **Design Token System**:
+               - Document the token structure
+               - Usage patterns for future development
+               - Migration guide for new components
+            
+            3. **CSS-in-JS Integration**:
+               - How the makeStyles utility works
+               - When to use CSS-in-JS vs traditional CSS
+               - Component migration examples
+            
+            4. **Accessibility Improvements**:
+               - What accessibility features were added
+               - How they integrate with VSCode themes
+               - Testing recommendations
+            
+            5. **Maintenance Guidelines**:
+               - How to add new design tokens
+               - CSS organization best practices
+               - Quality gates for future CSS changes
+            
+            CONSTRAINTS:
+            - Document facts, not opinions
+            - Include specific examples
+            - Follow CLAUDE.md documentation standards
+            - Keep it concise and actionable
+          model: auto
+          allow_all_tools: true
+
+      # Session 9: Final Quality Gates
+      - id: final_quality_gates
+        name: "Session 9: Final quality validation"
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: |
+            FINAL QUALITY VALIDATION:
+            
+            MANDATORY CHECKS (ALL MUST PASS):
+            
+            1. **Code Quality**:
+               - `make lint` - ZERO warnings allowed
+               - TypeScript strict mode - ZERO errors
+               - No unused imports or dead code
+               - All files follow CLAUDE.md naming conventions
+            
+            2. **Testing**:
+               - `npm run test:unit` - 100% test pass rate
+               - No test coverage regression
+               - All component tests still valid
+            
+            3. **Functionality**:
+               - Extension loads without errors
+               - All panels render correctly
+               - Button interactions work
+               - Form inputs function properly
+               - Theme switching works (light/dark)
+            
+            4. **Performance**:
+               - No performance regressions
+               - CSS bundle size impact documented
+               - Runtime performance maintained
+            
+            5. **Compliance**:
+               - No forbidden file patterns (_fix, _temp, etc.)
+               - All changes follow DRY/KISS principles
+               - No over-engineering detected
+               - VSCode extension patterns preserved
+            
+            IF ANY CHECK FAILS:
+            - Fix the issue immediately
+            - Re-run all validation steps
+            - Document the fix in the report
+            
+            SUCCESS CRITERIA:
+            - All quality gates pass
+            - Zero regressions introduced
+            - Documentation complete
+            - Code ready for production
+          model: auto
+          allow_all_tools: true
+
+      # Session 10: Issue Resolution & Final Verification
+      - id: issue_resolution
+        name: "Session 10: Resolve any remaining issues"
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: |
+            ISSUE RESOLUTION & FINAL VERIFICATION:
+            
+            1. **Issue Resolution**:
+               - If any issues remain from previous sessions, fix them
+               - Address any test failures or linting errors
+               - Resolve any visual regressions
+               - Fix performance issues if detected
+            
+            2. **Final Verification**:
+               - Run complete test suite one final time
+               - Verify all documentation is accurate
+               - Check all modified files are properly formatted
+               - Ensure no temporary files remain
+            
+            3. **Deployment Readiness**:
+               - Confirm extension compiles and packages correctly
+               - Verify VSIX package builds without errors
+               - Test installation in clean VSCode environment
+               - Validate all features work as expected
+            
+            4. **Success Metrics**:
+               - Document actual improvements achieved
+               - Record performance metrics (before/after)
+               - Note any limitations or trade-offs
+               - Provide recommendations for future enhancements
+            
+            FINAL QUALITY GATE:
+            - ALL previous validations must pass
+            - Extension must be production-ready
+            - Zero known issues remaining
+            - Complete documentation provided
+          model: auto
+          allow_all_tools: true

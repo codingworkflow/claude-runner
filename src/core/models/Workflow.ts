@@ -69,7 +69,7 @@ export interface WorkflowExecution {
   inputs: Record<string, string>;
   outputs: Record<string, StepOutput>;
   currentStep: number;
-  status: "pending" | "running" | "completed" | "failed";
+  status: "pending" | "running" | "completed" | "failed" | "paused" | "timeout";
   error?: string;
 }
 
@@ -84,7 +84,11 @@ export interface WorkflowMetadata {
 
 // Type guards
 export function isClaudeStep(step: Step): step is ClaudeStep {
-  return !!step.uses && step.uses.includes("claude-pipeline-action");
+  return (
+    !!step.uses &&
+    (step.uses.includes("claude-pipeline-action") ||
+      step.uses.includes("anthropics/claude-pipeline-action"))
+  );
 }
 
 export function hasSessionOutput(step: ClaudeStep): boolean {

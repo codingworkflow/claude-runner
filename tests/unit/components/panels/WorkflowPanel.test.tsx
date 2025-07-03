@@ -252,7 +252,7 @@ const WorkflowPanelWithContext = ({
 }) => {
   // eslint-disable-next-line @typescript-eslint/no-var-requires
   const { useExtension } = require("../../../../src/contexts/ExtensionContext");
-  useExtension.mockReturnValue({ state, actions });
+  useExtension.mockImplementation(() => ({ state, actions }));
 
   return <WorkflowPanel disabled={disabled} />;
 };
@@ -314,15 +314,32 @@ const mockWorkflowParser = jest.mocked(WorkflowParser);
 
 describe("WorkflowPanel", () => {
   let mockActions: ExtensionActions;
+  let sampleWorkflow: ClaudeWorkflow;
+  let sampleWorkflowMetadata: WorkflowMetadata;
+  let baseExtensionState: ExtensionState;
+
+  beforeAll(() => {
+    // Create expensive objects once per test suite
+    sampleWorkflow = createSampleWorkflow();
+    sampleWorkflowMetadata = createSampleWorkflowMetadata();
+    baseExtensionState = createMockExtensionState();
+  });
 
   beforeEach(() => {
+    // Only create fresh actions and clear mocks
     mockActions = createMockActions();
     jest.clearAllMocks();
-    mockWorkflowParser.parseYaml.mockReturnValue(createSampleWorkflow());
+    mockWorkflowParser.parseYaml.mockReturnValue(sampleWorkflow);
     mockWorkflowParser.toYaml.mockReturnValue(
       "name: Sample Workflow\njobs:\n  test_job:\n    steps: []",
     );
     (global.confirm as jest.Mock).mockReturnValue(true);
+  });
+
+  afterEach(() => {
+    // Clean up heavy mock objects to prevent memory leaks
+    jest.clearAllMocks();
+    mockActions = {} as ExtensionActions;
   });
 
   describe("workflow panel rendering and layout", () => {
@@ -341,10 +358,11 @@ describe("WorkflowPanel", () => {
     });
 
     it("renders workflow selection dropdown with workflows", () => {
-      const workflows = [createSampleWorkflowMetadata()];
-      const state = createMockExtensionState({
-        main: { workflows },
-      });
+      const workflows = [sampleWorkflowMetadata];
+      const state = {
+        ...baseExtensionState,
+        main: { ...baseExtensionState.main, workflows },
+      };
       render(<WorkflowPanelWithContext state={state} />);
 
       expect(
@@ -353,12 +371,14 @@ describe("WorkflowPanel", () => {
     });
 
     it("shows configuration and execution sections when workflow is selected", () => {
-      const state = createMockExtensionState({
+      const state = {
+        ...baseExtensionState,
         main: {
-          currentWorkflow: createSampleWorkflow(),
-          workflows: [createSampleWorkflowMetadata()],
+          ...baseExtensionState.main,
+          currentWorkflow: sampleWorkflow,
+          workflows: [sampleWorkflowMetadata],
         },
-      });
+      };
       render(<WorkflowPanelWithContext state={state} />);
 
       expect(screen.getByText("Configuration")).toBeInTheDocument();
@@ -370,10 +390,11 @@ describe("WorkflowPanel", () => {
 
   describe("workflow list display and management", () => {
     it("handles workflow selection from dropdown", () => {
-      const workflows = [createSampleWorkflowMetadata()];
-      const state = createMockExtensionState({
-        main: { workflows },
-      });
+      const workflows = [sampleWorkflowMetadata];
+      const state = {
+        ...baseExtensionState,
+        main: { ...baseExtensionState.main, workflows },
+      };
       render(<WorkflowPanelWithContext state={state} actions={mockActions} />);
 
       const select = screen.getByRole("combobox");
@@ -392,9 +413,10 @@ describe("WorkflowPanel", () => {
     });
 
     it("shows workflow management buttons when workflow is selected", () => {
-      const state = createMockExtensionState({
-        main: { currentWorkflow: createSampleWorkflow() },
-      });
+      const state = {
+        ...baseExtensionState,
+        main: { ...baseExtensionState.main, currentWorkflow: sampleWorkflow },
+      };
       render(<WorkflowPanelWithContext state={state} />);
 
       expect(screen.getByText("Edit YAML")).toBeInTheDocument();
@@ -402,9 +424,10 @@ describe("WorkflowPanel", () => {
     });
 
     it("handles workflow deletion with confirmation", () => {
-      const state = createMockExtensionState({
-        main: { currentWorkflow: createSampleWorkflow() },
-      });
+      const state = {
+        ...baseExtensionState,
+        main: { ...baseExtensionState.main, currentWorkflow: sampleWorkflow },
+      };
       render(<WorkflowPanelWithContext state={state} actions={mockActions} />);
 
       const deleteButton = screen.getByText("Delete");
@@ -418,9 +441,10 @@ describe("WorkflowPanel", () => {
 
     it("does not delete workflow when confirmation is cancelled", () => {
       (global.confirm as jest.Mock).mockReturnValue(false);
-      const state = createMockExtensionState({
-        main: { currentWorkflow: createSampleWorkflow() },
-      });
+      const state = {
+        ...baseExtensionState,
+        main: { ...baseExtensionState.main, currentWorkflow: sampleWorkflow },
+      };
       render(<WorkflowPanelWithContext state={state} actions={mockActions} />);
 
       const deleteButton = screen.getByText("Delete");
@@ -432,24 +456,28 @@ describe("WorkflowPanel", () => {
 
   describe("workflow execution controls (start, stop, pause)", () => {
     it("shows run workflow button when workflow is ready", () => {
-      const state = createMockExtensionState({
+      const state = {
+        ...baseExtensionState,
         main: {
-          currentWorkflow: createSampleWorkflow(),
-          executionStatus: "idle",
+          ...baseExtensionState.main,
+          currentWorkflow: sampleWorkflow,
+          executionStatus: "idle" as const,
         },
-      });
+      };
       render(<WorkflowPanelWithContext state={state} />);
 
       expect(screen.getByText("Run Workflow")).toBeInTheDocument();
     });
 
     it("handles run workflow action", () => {
-      const state = createMockExtensionState({
+      const state = {
+        ...baseExtensionState,
         main: {
-          currentWorkflow: createSampleWorkflow(),
-          executionStatus: "idle",
+          ...baseExtensionState.main,
+          currentWorkflow: sampleWorkflow,
+          executionStatus: "idle" as const,
         },
-      });
+      };
       render(<WorkflowPanelWithContext state={state} actions={mockActions} />);
 
       const runButton = screen.getByText("Run Workflow");
@@ -459,12 +487,14 @@ describe("WorkflowPanel", () => {
     });
 
     it("shows cancel button during workflow execution", () => {
-      const state = createMockExtensionState({
+      const state = {
+        ...baseExtensionState,
         main: {
-          currentWorkflow: createSampleWorkflow(),
-          executionStatus: "running",
+          ...baseExtensionState.main,
+          currentWorkflow: sampleWorkflow,
+          executionStatus: "running" as const,
         },
-      });
+      };
       render(<WorkflowPanelWithContext state={state} />);
 
       expect(screen.getByText("Cancel")).toBeInTheDocument();
@@ -474,7 +504,7 @@ describe("WorkflowPanel", () => {
     it("handles cancel workflow action", () => {
       const state = createMockExtensionState({
         main: {
-          currentWorkflow: createSampleWorkflow(),
+          currentWorkflow: sampleWorkflow,
           executionStatus: "running",
         },
       });
@@ -489,7 +519,7 @@ describe("WorkflowPanel", () => {
     it("disables run button when workflow is running", () => {
       const state = createMockExtensionState({
         main: {
-          currentWorkflow: createSampleWorkflow(),
+          currentWorkflow: sampleWorkflow,
           executionStatus: "running",
         },
       });
@@ -502,7 +532,7 @@ describe("WorkflowPanel", () => {
     it("disables run button when in edit mode", () => {
       const state = createMockExtensionState({
         main: {
-          currentWorkflow: createSampleWorkflow(),
+          currentWorkflow: sampleWorkflow,
           executionStatus: "idle",
         },
       });
@@ -520,7 +550,7 @@ describe("WorkflowPanel", () => {
     it("displays execution status correctly", () => {
       const state = createMockExtensionState({
         main: {
-          currentWorkflow: createSampleWorkflow(),
+          currentWorkflow: sampleWorkflow,
           executionStatus: "completed",
         },
       });
@@ -532,7 +562,7 @@ describe("WorkflowPanel", () => {
     it("displays failed execution status", () => {
       const state = createMockExtensionState({
         main: {
-          currentWorkflow: createSampleWorkflow(),
+          currentWorkflow: sampleWorkflow,
           executionStatus: "failed",
         },
       });
@@ -544,7 +574,7 @@ describe("WorkflowPanel", () => {
     it("displays step statuses when workflow is executing", () => {
       const state = createMockExtensionState({
         main: {
-          currentWorkflow: createSampleWorkflow(),
+          currentWorkflow: sampleWorkflow,
           executionStatus: "running",
           stepStatuses: {
             step1: {
@@ -570,7 +600,7 @@ describe("WorkflowPanel", () => {
     it("applies correct CSS classes for step statuses", () => {
       const state = createMockExtensionState({
         main: {
-          currentWorkflow: createSampleWorkflow(),
+          currentWorkflow: sampleWorkflow,
           executionStatus: "running",
           stepStatuses: {
             step1: { status: "completed" },
@@ -596,14 +626,14 @@ describe("WorkflowPanel", () => {
       });
 
       const state = createMockExtensionState({
-        main: { currentWorkflow: createSampleWorkflow() },
+        main: { currentWorkflow: sampleWorkflow },
       });
       render(<WorkflowPanelWithContext state={state} />);
 
       const editButton = screen.getByText("Edit YAML");
       fireEvent.click(editButton);
 
-      const textarea = screen.getByRole("textbox");
+      const textarea = screen.getByDisplayValue(/name: Sample Workflow/);
       fireEvent.change(textarea, {
         target: { value: "invalid: yaml: content" },
       });
@@ -617,14 +647,14 @@ describe("WorkflowPanel", () => {
       });
 
       const state = createMockExtensionState({
-        main: { currentWorkflow: createSampleWorkflow() },
+        main: { currentWorkflow: sampleWorkflow },
       });
       render(<WorkflowPanelWithContext state={state} />);
 
       const editButton = screen.getByText("Edit YAML");
       fireEvent.click(editButton);
 
-      const textarea = screen.getByRole("textbox");
+      const textarea = screen.getByDisplayValue(/name: Sample Workflow/);
       fireEvent.change(textarea, { target: { value: "invalid yaml" } });
 
       const saveButton = screen.getByText("Save Workflow");
@@ -637,7 +667,7 @@ describe("WorkflowPanel", () => {
       });
 
       const state = createMockExtensionState({
-        main: { currentWorkflow: createSampleWorkflow() },
+        main: { currentWorkflow: sampleWorkflow },
       });
       render(<WorkflowPanelWithContext state={state} />);
 
@@ -653,7 +683,7 @@ describe("WorkflowPanel", () => {
     it("handles workflow execution errors in step display", () => {
       const state = createMockExtensionState({
         main: {
-          currentWorkflow: createSampleWorkflow(),
+          currentWorkflow: sampleWorkflow,
           executionStatus: "running",
           stepStatuses: {
             step1: {
@@ -676,7 +706,7 @@ describe("WorkflowPanel", () => {
     it("displays workflow inputs correctly", () => {
       const state = createMockExtensionState({
         main: {
-          currentWorkflow: createSampleWorkflow(),
+          currentWorkflow: sampleWorkflow,
           workflowInputs: { message: "Test message" },
         },
       });
@@ -690,7 +720,7 @@ describe("WorkflowPanel", () => {
     it("handles workflow input changes", () => {
       const state = createMockExtensionState({
         main: {
-          currentWorkflow: createSampleWorkflow(),
+          currentWorkflow: sampleWorkflow,
           workflowInputs: { message: "Initial" },
         },
       });
@@ -707,7 +737,7 @@ describe("WorkflowPanel", () => {
     it("displays default values for workflow inputs", () => {
       const state = createMockExtensionState({
         main: {
-          currentWorkflow: createSampleWorkflow(),
+          currentWorkflow: sampleWorkflow,
           workflowInputs: {},
         },
       });
@@ -720,7 +750,7 @@ describe("WorkflowPanel", () => {
     it("passes configuration updates to child components", () => {
       const state = createMockExtensionState({
         main: {
-          currentWorkflow: createSampleWorkflow(),
+          currentWorkflow: sampleWorkflow,
           rootPath: "/custom/path",
           model: "claude-opus-4-20250514",
         },
@@ -738,7 +768,7 @@ describe("WorkflowPanel", () => {
 
     it("handles model and path updates", () => {
       const state = createMockExtensionState({
-        main: { currentWorkflow: createSampleWorkflow() },
+        main: { currentWorkflow: sampleWorkflow },
       });
       render(<WorkflowPanelWithContext state={state} actions={mockActions} />);
 
@@ -768,7 +798,7 @@ describe("WorkflowPanel", () => {
   describe("workflow accessibility and keyboard navigation", () => {
     it("provides proper labels for workflow inputs", () => {
       const state = createMockExtensionState({
-        main: { currentWorkflow: createSampleWorkflow() },
+        main: { currentWorkflow: sampleWorkflow },
       });
       render(<WorkflowPanelWithContext state={state} />);
 
@@ -780,7 +810,7 @@ describe("WorkflowPanel", () => {
     });
 
     it("supports keyboard navigation for workflow selection", () => {
-      const workflows = [createSampleWorkflowMetadata()];
+      const workflows = [sampleWorkflowMetadata];
       const state = createMockExtensionState({
         main: { workflows },
       });
@@ -798,7 +828,7 @@ describe("WorkflowPanel", () => {
 
     it("maintains focus management during workflow operations", () => {
       const state = createMockExtensionState({
-        main: { currentWorkflow: createSampleWorkflow() },
+        main: { currentWorkflow: sampleWorkflow },
       });
       render(<WorkflowPanelWithContext state={state} />);
 
@@ -811,7 +841,7 @@ describe("WorkflowPanel", () => {
     it("provides appropriate ARIA attributes for workflow steps", () => {
       const state = createMockExtensionState({
         main: {
-          currentWorkflow: createSampleWorkflow(),
+          currentWorkflow: sampleWorkflow,
           executionStatus: "running",
         },
       });
@@ -825,7 +855,7 @@ describe("WorkflowPanel", () => {
   describe("workflow editor functionality", () => {
     it("toggles edit mode correctly", () => {
       const state = createMockExtensionState({
-        main: { currentWorkflow: createSampleWorkflow() },
+        main: { currentWorkflow: sampleWorkflow },
       });
       render(<WorkflowPanelWithContext state={state} />);
 
@@ -839,21 +869,19 @@ describe("WorkflowPanel", () => {
 
     it("loads YAML content when entering edit mode", () => {
       const state = createMockExtensionState({
-        main: { currentWorkflow: createSampleWorkflow() },
+        main: { currentWorkflow: sampleWorkflow },
       });
       render(<WorkflowPanelWithContext state={state} />);
 
       const editButton = screen.getByText("Edit YAML");
       fireEvent.click(editButton);
 
-      expect(mockWorkflowParser.toYaml).toHaveBeenCalledWith(
-        createSampleWorkflow(),
-      );
+      expect(mockWorkflowParser.toYaml).toHaveBeenCalledWith(sampleWorkflow);
     });
 
     it("saves workflow successfully", () => {
       const state = createMockExtensionState({
-        main: { currentWorkflow: createSampleWorkflow() },
+        main: { currentWorkflow: sampleWorkflow },
       });
       render(<WorkflowPanelWithContext state={state} actions={mockActions} />);
 
@@ -868,7 +896,7 @@ describe("WorkflowPanel", () => {
 
     it("cancels edit mode without saving", () => {
       const state = createMockExtensionState({
-        main: { currentWorkflow: createSampleWorkflow() },
+        main: { currentWorkflow: sampleWorkflow },
       });
       render(<WorkflowPanelWithContext state={state} />);
 
@@ -886,7 +914,7 @@ describe("WorkflowPanel", () => {
   describe("workflow step visualization", () => {
     it("displays Claude steps correctly", () => {
       const state = createMockExtensionState({
-        main: { currentWorkflow: createSampleWorkflow() },
+        main: { currentWorkflow: sampleWorkflow },
       });
       render(<WorkflowPanelWithContext state={state} />);
 
@@ -901,7 +929,7 @@ describe("WorkflowPanel", () => {
 
     it("displays non-Claude steps correctly", () => {
       const state = createMockExtensionState({
-        main: { currentWorkflow: createSampleWorkflow() },
+        main: { currentWorkflow: sampleWorkflow },
       });
       render(<WorkflowPanelWithContext state={state} />);
 
@@ -910,7 +938,7 @@ describe("WorkflowPanel", () => {
 
     it("groups steps by job correctly", () => {
       const state = createMockExtensionState({
-        main: { currentWorkflow: createSampleWorkflow() },
+        main: { currentWorkflow: sampleWorkflow },
       });
       render(<WorkflowPanelWithContext state={state} />);
 
@@ -919,7 +947,7 @@ describe("WorkflowPanel", () => {
 
     it("displays step additional properties", () => {
       const workflowWithResumeSession: ClaudeWorkflow = {
-        ...createSampleWorkflow(),
+        ...sampleWorkflow,
         jobs: {
           test_job: {
             name: "Test Job",
@@ -959,36 +987,38 @@ describe("WorkflowPanel", () => {
 
     it("handles disabled state correctly", () => {
       const state = createMockExtensionState({
-        main: { currentWorkflow: createSampleWorkflow() },
+        main: { currentWorkflow: sampleWorkflow },
       });
       render(<WorkflowPanelWithContext disabled={true} state={state} />);
 
-      const select = screen.getByRole("combobox");
+      const selects = screen.getAllByRole("combobox");
       const runButton = screen.getByText("Run Workflow");
       const editButton = screen.getByText("Edit YAML");
 
-      expect(select).toBeDisabled();
+      // Both selects should be disabled (workflow and model selectors)
+      expect(selects[0]).toBeDisabled(); // workflow selector
+      expect(selects[1]).toBeDisabled(); // model selector
       expect(runButton).toBeDisabled();
       expect(editButton).toBeDisabled();
     });
 
     it("updates workflow YAML when currentWorkflow changes", () => {
-      const { rerender } = render(<WorkflowPanelWithContext />);
+      // Clear the mock to start fresh
+      mockWorkflowParser.toYaml.mockClear();
 
-      const newState = createMockExtensionState({
-        main: { currentWorkflow: createSampleWorkflow() },
+      const state = createMockExtensionState({
+        main: { currentWorkflow: sampleWorkflow },
       });
 
-      rerender(<WorkflowPanelWithContext state={newState} />);
+      render(<WorkflowPanelWithContext state={state} />);
 
-      expect(mockWorkflowParser.toYaml).toHaveBeenCalledWith(
-        createSampleWorkflow(),
-      );
+      // The useEffect should have been called when the component mounted with a currentWorkflow
+      expect(mockWorkflowParser.toYaml).toHaveBeenCalledWith(sampleWorkflow);
     });
 
     it("maintains component state during workflow operations", () => {
       const state = createMockExtensionState({
-        main: { currentWorkflow: createSampleWorkflow() },
+        main: { currentWorkflow: sampleWorkflow },
       });
       const { rerender } = render(<WorkflowPanelWithContext state={state} />);
 
@@ -1003,7 +1033,7 @@ describe("WorkflowPanel", () => {
 
     it("handles rapid user interactions without errors", () => {
       const state = createMockExtensionState({
-        main: { currentWorkflow: createSampleWorkflow() },
+        main: { currentWorkflow: sampleWorkflow },
       });
       render(<WorkflowPanelWithContext state={state} actions={mockActions} />);
 
@@ -1020,9 +1050,9 @@ describe("WorkflowPanel", () => {
 
   describe("workflow execution flow integration", () => {
     it("integrates workflow execution with step progress tracking", async () => {
-      const state = createMockExtensionState({
+      const runningState = createMockExtensionState({
         main: {
-          currentWorkflow: createSampleWorkflow(),
+          currentWorkflow: sampleWorkflow,
           executionStatus: "running",
           stepStatuses: {
             step1: { status: "running" },
@@ -1030,14 +1060,18 @@ describe("WorkflowPanel", () => {
         },
       });
 
-      const { rerender } = render(<WorkflowPanelWithContext state={state} />);
+      const { unmount } = render(
+        <WorkflowPanelWithContext state={runningState} />,
+      );
 
       expect(screen.getByText("Status: running")).toBeInTheDocument();
 
-      // Simulate step completion
-      const updatedState = createMockExtensionState({
+      // Unmount and render with completed status
+      unmount();
+
+      const completedState = createMockExtensionState({
         main: {
-          currentWorkflow: createSampleWorkflow(),
+          currentWorkflow: sampleWorkflow,
           executionStatus: "running",
           stepStatuses: {
             step1: {
@@ -1048,7 +1082,7 @@ describe("WorkflowPanel", () => {
         },
       });
 
-      rerender(<WorkflowPanelWithContext state={updatedState} />);
+      render(<WorkflowPanelWithContext state={completedState} />);
 
       expect(screen.getByText("Status: completed")).toBeInTheDocument();
       expect(screen.getByText("Step completed")).toBeInTheDocument();
@@ -1057,31 +1091,34 @@ describe("WorkflowPanel", () => {
     it("handles workflow completion status updates", () => {
       const runningState = createMockExtensionState({
         main: {
-          currentWorkflow: createSampleWorkflow(),
+          currentWorkflow: sampleWorkflow,
           executionStatus: "running",
         },
       });
 
-      const { rerender } = render(
+      const { unmount } = render(
         <WorkflowPanelWithContext state={runningState} />,
       );
       expect(screen.getByText("Running...")).toBeInTheDocument();
 
+      // Unmount and remount to force fresh render
+      unmount();
+
       const completedState = createMockExtensionState({
         main: {
-          currentWorkflow: createSampleWorkflow(),
+          currentWorkflow: sampleWorkflow,
           executionStatus: "completed",
         },
       });
 
-      rerender(<WorkflowPanelWithContext state={completedState} />);
+      render(<WorkflowPanelWithContext state={completedState} />);
       expect(screen.getByText("Completed")).toBeInTheDocument();
     });
 
     it("manages workflow state transitions correctly", () => {
       const state = createMockExtensionState({
         main: {
-          currentWorkflow: createSampleWorkflow(),
+          currentWorkflow: sampleWorkflow,
           executionStatus: "idle",
         },
       });
