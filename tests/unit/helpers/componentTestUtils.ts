@@ -24,6 +24,10 @@ export interface ComponentTestSetup {
   cleanup: () => void;
 }
 
+interface WindowWithVSCodeAPI extends Window {
+  vscodeApi?: MockVSCodeAPI;
+}
+
 export const setupComponentTest = (): ComponentTestSetup => {
   const mockAPI: MockVSCodeAPI = {
     postMessage: jest.fn(),
@@ -31,17 +35,19 @@ export const setupComponentTest = (): ComponentTestSetup => {
     setState: jest.fn(),
   };
 
+  const windowWithAPI = window as WindowWithVSCodeAPI;
+
   // Clean up any existing vscodeApi first
-  if ((window as any).vscodeApi) {
-    delete (window as any).vscodeApi;
+  if (windowWithAPI.vscodeApi) {
+    delete windowWithAPI.vscodeApi;
   }
 
   // Set the mock API
-  (window as any).vscodeApi = mockAPI;
+  windowWithAPI.vscodeApi = mockAPI;
 
   const cleanup = () => {
     jest.clearAllMocks();
-    delete (window as any).vscodeApi;
+    delete windowWithAPI.vscodeApi;
   };
 
   return {

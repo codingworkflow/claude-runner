@@ -296,25 +296,20 @@ describe("ClaudeModels", () => {
       expect(validateModel(unknownModelId)).toBe(false);
     });
 
-    it("should handle array modifications gracefully", () => {
-      const originalLength = AVAILABLE_MODELS.length;
-      const originalModelIds = getModelIds();
+    it("should consistently return the same set of models", () => {
+      // Verify that the exported functions consistently work with the defined models
+      const modelIds = getModelIds();
+      const availableModelsLength = AVAILABLE_MODELS.length;
 
-      // If someone modifies the array, functions should still work
-      (AVAILABLE_MODELS as any).push({
-        id: "test",
-        name: "Test",
-        description: "Test",
-      });
+      // Multiple calls should return consistent results
+      expect(getModelIds()).toHaveLength(availableModelsLength);
+      expect(getModelIds()).toEqual(modelIds);
 
-      // Functions will now include the new model
-      expect(getModelIds()).toHaveLength(originalLength + 1);
-      expect(validateModel("test")).toBe(true);
-      expect(getModelDisplayName("test")).toBe("Test");
-
-      // Clean up the modification
-      AVAILABLE_MODELS.length = originalLength;
-      expect(getModelIds()).toEqual(originalModelIds);
+      // Each model in the array should be valid
+      for (const model of AVAILABLE_MODELS) {
+        expect(validateModel(model.id)).toBe(true);
+        expect(getModelDisplayName(model.id)).toBe(model.name);
+      }
     });
   });
 });

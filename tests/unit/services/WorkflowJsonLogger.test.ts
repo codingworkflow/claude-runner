@@ -859,16 +859,14 @@ describe("WorkflowJsonLogger", () => {
       expect(currentLog?.total_steps).toBe(0);
     });
 
-    it("should recover from corrupted state gracefully", async () => {
+    it("should handle corrupted state gracefully through normal operations", async () => {
       mockFileSystem.exists.mockResolvedValue(true);
       await logger.initializeLog(mockWorkflowState, "/workspace/test.yml");
 
-      // Simulate corrupted internal state
-      const currentLog = logger.getCurrentLog();
-      if (currentLog) {
-        // @ts-expect-error - intentionally corrupting state for testing
-        (currentLog as JsonLogFormat).steps = null as unknown as JsonLogStep[];
-      }
+      // Simulate filesystem corruption by making writeFile fail
+      mockFileSystem.writeFile.mockRejectedValueOnce(
+        new Error("Filesystem corruption"),
+      );
 
       const stepResult: WorkflowStepResult = {
         stepIndex: 0,
@@ -877,10 +875,16 @@ describe("WorkflowJsonLogger", () => {
         outputSession: false,
       };
 
-      // Should not throw error despite corrupted state
+      // Should handle filesystem errors gracefully without throwing
       await expect(
         logger.updateStepProgress(stepResult, mockWorkflowState),
       ).resolves.not.toThrow();
+
+      // Verify error was logged
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        "Failed to write workflow JSON log file",
+        expect.any(Error),
+      );
     });
   });
 

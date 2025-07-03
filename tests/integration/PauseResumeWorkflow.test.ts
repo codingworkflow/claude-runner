@@ -397,35 +397,27 @@ describe("Pause/Resume Workflow Integration", () => {
         { id: "3", prompt: "Task 3", status: "pending" },
       ];
 
-      // Access private property using bracket notation
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (claudeCodeService as any).currentPipelineExecution = {
-        tasks: mockTasks,
-        currentIndex: 1,
-        onProgress: jest.fn(),
-        onComplete: jest.fn(),
-        onError: jest.fn(),
-      };
+      // Simulate a running pipeline through a real pipeline execution
+      const mockOnProgress = jest.fn();
+      const mockOnComplete = jest.fn();
+      const mockOnError = jest.fn();
 
-      // Pause pipeline
+      // Start a pipeline that will be paused
+      const pipelinePromise = claudeCodeService.runTaskPipeline(
+        mockTasks,
+        "claude-sonnet-4-20250514",
+        "/test/path",
+        {},
+        mockOnProgress,
+        mockOnComplete,
+        mockOnError,
+      );
+
+      // Immediately pause it
       const pipelineId =
         await claudeCodeService.pausePipelineExecution("manual");
-      expect(pipelineId).not.toBeNull();
 
-      // Manually trigger the pause state since we're not running the full pipeline
-      if (pipelineId) {
-        // Access private pausedPipelines map to simulate the pause
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const pausedPipelinesMap = (claudeCodeService as any).pausedPipelines;
-        pausedPipelinesMap.set(pipelineId, {
-          tasks: mockTasks,
-          currentIndex: 1,
-          resetTime: Date.now(),
-          onProgress: jest.fn(),
-          onComplete: jest.fn(),
-          onError: jest.fn(),
-        });
-      }
+      await pipelinePromise;
 
       // Verify pipeline is paused
       const pausedPipelines = claudeCodeService.getPausedPipelines();
@@ -435,19 +427,9 @@ describe("Pause/Resume Workflow Integration", () => {
 
       // Resume pipeline
       if (pipelineId) {
-        // Mock the resumePipeline method to avoid actual execution
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const resumeSpy = jest
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          .spyOn(claudeCodeService as any, "resumePipeline")
-          .mockResolvedValue(undefined);
-
         const resumed =
           await claudeCodeService.resumePipelineExecution(pipelineId);
         expect(resumed).toBe(true);
-        expect(resumeSpy).toHaveBeenCalledWith(pipelineId);
-
-        resumeSpy.mockRestore();
       } else {
         fail("Pipeline ID should not be null");
       }

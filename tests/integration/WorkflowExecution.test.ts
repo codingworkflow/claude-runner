@@ -9,7 +9,6 @@ import {
   WorkflowExecution,
   StepOutput,
 } from "../../src/types/WorkflowTypes";
-import { WorkflowOptions } from "../../src/core/models/Task";
 
 // Mock file system to prevent actual directory creation
 jest.mock("fs/promises", () => ({
@@ -43,12 +42,8 @@ describe("Workflow Execution Integration", () => {
     // Stub the executeCommand method
     executeCommandStub = sinon.stub(claudeService, "executeCommand");
 
-    // Stub the workflowEngine.executeWorkflow method to avoid actual command execution
-    executeWorkflowStub = sinon.stub(
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (claudeService as any).workflowEngine,
-      "executeWorkflow",
-    );
+    // Stub the executeWorkflow method to avoid actual command execution
+    executeWorkflowStub = sinon.stub(claudeService, "executeWorkflow");
   });
 
   afterEach(() => {
@@ -84,11 +79,13 @@ describe("Workflow Execution Integration", () => {
         output?: unknown;
       }> = [];
 
-      // Mock the workflow engine execution to simulate step progress
+      // Mock the workflow execution to simulate step progress
       executeWorkflowStub.callsFake(
         async (
           _exec: WorkflowExecution,
-          _options: WorkflowOptions,
+          _workflowService: WorkflowService,
+          _defaultModel: string,
+          _rootPath: string,
           onStepProgress: (
             stepId: string,
             status: "running" | "completed" | "failed",
@@ -168,11 +165,13 @@ describe("Workflow Execution Integration", () => {
       const execution = workflowService.createExecution(workflow, {});
       const completedSteps: string[] = [];
 
-      // Mock the workflow engine execution to simulate session chaining
+      // Mock the workflow execution to simulate session chaining
       executeWorkflowStub.callsFake(
         async (
           exec: WorkflowExecution,
-          _options: WorkflowOptions,
+          _workflowService: WorkflowService,
+          _defaultModel: string,
+          _rootPath: string,
           onStepProgress: (
             stepId: string,
             status: "running" | "completed" | "failed",
@@ -313,11 +312,13 @@ describe("Workflow Execution Integration", () => {
       const execution = workflowService.createExecution(workflow, {});
       let errorMessage = "";
 
-      // Mock the workflow engine execution to simulate failure
+      // Mock the workflow execution to simulate failure
       executeWorkflowStub.callsFake(
         async (
           exec: WorkflowExecution,
-          _options: WorkflowOptions,
+          _workflowService: WorkflowService,
+          _defaultModel: string,
+          _rootPath: string,
           onStepProgress: (
             stepId: string,
             status: "running" | "completed" | "failed",
@@ -375,11 +376,13 @@ describe("Workflow Execution Integration", () => {
       const execution = workflowService.createExecution(workflow, {});
       let stepsExecuted = 0;
 
-      // Mock the workflow engine execution to simulate cancellation
+      // Mock the workflow execution to simulate cancellation
       executeWorkflowStub.callsFake(
         async (
           _exec: WorkflowExecution,
-          _options: WorkflowOptions,
+          _workflowService: WorkflowService,
+          _defaultModel: string,
+          _rootPath: string,
           onStepProgress: (
             stepId: string,
             status: "running" | "completed" | "failed",

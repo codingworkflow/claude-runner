@@ -458,7 +458,7 @@ describe("TerminalService", () => {
       );
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (vscode.window.showQuickPick as any).mockResolvedValue({
+      (vscode.window.showQuickPick as jest.Mock).mockResolvedValue({
         label: "Test Terminal",
         terminal: mockTerminal,
       });
@@ -491,7 +491,7 @@ describe("TerminalService", () => {
       );
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (vscode.window.showQuickPick as any).mockResolvedValue(undefined);
+      (vscode.window.showQuickPick as jest.Mock).mockResolvedValue(undefined);
 
       await service.runInteractive(
         "claude-3-5-sonnet-20241022",
@@ -665,7 +665,7 @@ describe("TerminalService", () => {
       await service.runInteractive("claude-3-haiku-20240307", "/other", false);
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (vscode.window.showQuickPick as any).mockRejectedValue(
+      (vscode.window.showQuickPick as jest.Mock).mockRejectedValue(
         new Error("Quick pick failed"),
       );
 
@@ -709,7 +709,8 @@ describe("TerminalService", () => {
       );
     });
 
-    it("should handle terminal disposal errors", () => {
+    it("should handle terminal disposal errors", async () => {
+      // Create a mock terminal that throws when disposed
       const errorTerminal = {
         ...mockTerminal,
         dispose: jest.fn().mockImplementation(() => {
@@ -717,10 +718,21 @@ describe("TerminalService", () => {
         }),
       };
 
-      const terminalKey = "test-key";
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (service as any).terminals.set(terminalKey, errorTerminal);
+      // Mock createTerminal to return our error terminal
+      (vscode.window.createTerminal as jest.Mock).mockReturnValueOnce(
+        errorTerminal,
+      );
 
+      // Create a terminal through the public API
+      await service.runInteractive(
+        "claude-3-5-sonnet-20241022",
+        "/test/path",
+        false,
+        "test prompt",
+      );
+
+      // Now try to dispose it - should throw
+      const terminalKey = "claude-3-5-sonnet-20241022-/test/path";
       expect(() => service.disposeTerminal(terminalKey)).toThrow(
         "Dispose failed",
       );

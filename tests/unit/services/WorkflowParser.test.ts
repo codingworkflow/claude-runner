@@ -1,15 +1,6 @@
 import { describe, it, expect } from "@jest/globals";
 import { WorkflowParser } from "../../../src/services/WorkflowParser";
-import {
-  ClaudeWorkflow,
-  ClaudeStep,
-  ConditionType,
-} from "../../../src/types/WorkflowTypes";
-
-// Interface for accessing private static methods in tests
-interface WorkflowParserWithPrivates {
-  validateConditionalStep: (step: ClaudeStep) => void;
-}
+import { ClaudeWorkflow } from "../../../src/types/WorkflowTypes";
 
 describe("WorkflowParser", () => {
   describe("parseYaml", () => {
@@ -239,99 +230,96 @@ jobs:
     });
   });
 
-  describe("validateConditionalStep", () => {
+  describe("validateConditionalStep through workflow parsing", () => {
     it("should accept valid conditional step with check and condition", () => {
-      const validStep: ClaudeStep = {
-        id: "test-step",
-        name: "Test Step",
-        uses: "anthropics/claude-pipeline-action@v1",
-        with: {
-          prompt: "Test prompt",
-          check: "npm test",
-          condition: "on_success",
-        },
-      };
+      const yaml = `
+name: Test Workflow
+jobs:
+  test:
+    steps:
+      - id: test-step
+        name: Test Step
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: Test prompt
+          check: npm test
+          condition: on_success
+`;
 
-      expect(() => {
-        (
-          WorkflowParser as unknown as WorkflowParserWithPrivates
-        ).validateConditionalStep(validStep);
-      }).not.toThrow();
+      expect(() => WorkflowParser.parseYaml(yaml)).not.toThrow();
     });
 
     it("should accept step with check but no condition", () => {
-      const validStep: ClaudeStep = {
-        id: "test-step",
-        name: "Test Step",
-        uses: "anthropics/claude-pipeline-action@v1",
-        with: {
-          prompt: "Test prompt",
-          check: "make lint",
-        },
-      };
+      const yaml = `
+name: Test Workflow
+jobs:
+  test:
+    steps:
+      - id: test-step
+        name: Test Step
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: Test prompt
+          check: make lint
+`;
 
-      expect(() => {
-        (
-          WorkflowParser as unknown as WorkflowParserWithPrivates
-        ).validateConditionalStep(validStep);
-      }).not.toThrow();
+      expect(() => WorkflowParser.parseYaml(yaml)).not.toThrow();
     });
 
     it("should throw error for non-string check command", () => {
-      const invalidStep = {
-        id: "test-step",
-        name: "Test Step",
-        uses: "anthropics/claude-pipeline-action@v1",
-        with: {
-          prompt: "Test prompt",
-          check: 123 as unknown,
-        },
-      };
+      const yaml = `
+name: Test Workflow
+jobs:
+  test:
+    steps:
+      - id: test-step
+        name: Test Step
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: Test prompt
+          check: 123
+`;
 
-      expect(() => {
-        (
-          WorkflowParser as unknown as WorkflowParserWithPrivates
-        ).validateConditionalStep(invalidStep as ClaudeStep);
-      }).toThrow("Check command in step 'Test Step' must be a string");
+      expect(() => WorkflowParser.parseYaml(yaml)).toThrow(
+        "Check command in step 'Test Step' must be a string",
+      );
     });
 
     it("should throw error for invalid condition type", () => {
-      const invalidStep = {
-        id: "test-step",
-        name: "Test Step",
-        uses: "anthropics/claude-pipeline-action@v1",
-        with: {
-          prompt: "Test prompt",
-          check: "npm test",
-          condition: "invalid_condition" as unknown,
-        },
-      };
+      const yaml = `
+name: Test Workflow
+jobs:
+  test:
+    steps:
+      - id: test-step
+        name: Test Step
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: Test prompt
+          check: npm test
+          condition: invalid_condition
+`;
 
-      expect(() => {
-        (
-          WorkflowParser as unknown as WorkflowParserWithPrivates
-        ).validateConditionalStep(invalidStep as ClaudeStep);
-      }).toThrow(
+      expect(() => WorkflowParser.parseYaml(yaml)).toThrow(
         "Invalid condition type in step 'Test Step': invalid_condition",
       );
     });
 
     it("should throw error for condition without check command", () => {
-      const invalidStep = {
-        id: "test-step",
-        name: "Test Step",
-        uses: "anthropics/claude-pipeline-action@v1",
-        with: {
-          prompt: "Test prompt",
-          condition: "on_success" as const,
-        },
-      };
+      const yaml = `
+name: Test Workflow
+jobs:
+  test:
+    steps:
+      - id: test-step
+        name: Test Step
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: Test prompt
+          condition: on_success
+`;
 
-      expect(() => {
-        (
-          WorkflowParser as unknown as WorkflowParserWithPrivates
-        ).validateConditionalStep(invalidStep as ClaudeStep);
-      }).toThrow(
+      expect(() => WorkflowParser.parseYaml(yaml)).toThrow(
         "Step 'Test Step' has condition 'on_success' but no check command specified",
       );
     });
@@ -340,22 +328,21 @@ jobs:
       const conditionTypes = ["on_success", "on_failure", "always"];
 
       conditionTypes.forEach((condition) => {
-        const validStep: ClaudeStep = {
-          id: `test-step-${condition}`,
-          name: "Test Step",
-          uses: "anthropics/claude-pipeline-action@v1",
-          with: {
-            prompt: "Test prompt",
-            check: "npm test",
-            condition: condition as ConditionType,
-          },
-        };
+        const yaml = `
+name: Test Workflow
+jobs:
+  test:
+    steps:
+      - id: test-step-${condition}
+        name: Test Step
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: Test prompt
+          check: npm test
+          condition: ${condition}
+`;
 
-        expect(() => {
-          (
-            WorkflowParser as unknown as WorkflowParserWithPrivates
-          ).validateConditionalStep(validStep);
-        }).not.toThrow();
+        expect(() => WorkflowParser.parseYaml(yaml)).not.toThrow();
       });
     });
   });

@@ -22,51 +22,83 @@ import { VSCodeLogger, VSCodeConfigSource } from "../../../src/adapters/vscode";
 import { ConfigManager } from "../../../src/core/services/ConfigManager";
 import { ClaudeDetectionService } from "../../../src/services/ClaudeDetectionService";
 
-const mockExecutor = {
-  executeTask: jest.fn() as jest.MockedFunction<
-    (...args: any[]) => Promise<any>
-  >,
-  executePipeline: jest.fn() as jest.MockedFunction<
-    (...args: any[]) => Promise<void>
-  >,
+interface MockExecutor {
+  executeTask: jest.MockedFunction<(...args: any[]) => Promise<any>>;
+  executePipeline: jest.MockedFunction<(...args: any[]) => Promise<void>>;
+  cancelCurrentTask: jest.MockedFunction<() => void>;
+  isTaskRunning: jest.MockedFunction<() => boolean>;
+  validateClaudeCommand: jest.MockedFunction<
+    (...args: any[]) => Promise<boolean>
+  >;
+  formatCommandPreview: jest.MockedFunction<(...args: any[]) => string>;
+}
+
+interface MockConfigManager {
+  addSource: jest.MockedFunction<(source: any) => void>;
+  validateModel: jest.MockedFunction<(model: string) => boolean>;
+}
+
+interface MockLogger {
+  info: jest.MockedFunction<(...args: any[]) => void>;
+  warn: jest.MockedFunction<(...args: any[]) => void>;
+  error: jest.MockedFunction<(...args: any[]) => void>;
+  debug: jest.MockedFunction<(...args: any[]) => void>;
+}
+
+interface MockConfigSource {
+  get: jest.MockedFunction<(key: string) => any>;
+  set: jest.MockedFunction<(key: string, value: any) => void>;
+}
+
+interface MockWorkflowService {
+  getExecutionSteps: jest.MockedFunction<(...args: any[]) => any[]>;
+  resolveStepVariables: jest.MockedFunction<(...args: any[]) => any>;
+  updateExecutionOutput: jest.MockedFunction<(...args: any[]) => void>;
+}
+
+const mockExecutor: MockExecutor = {
+  executeTask: jest.fn(),
+  executePipeline: jest.fn(),
   cancelCurrentTask: jest.fn(),
   isTaskRunning: jest.fn(),
-  validateClaudeCommand: jest.fn() as jest.MockedFunction<
-    (...args: any[]) => Promise<boolean>
-  >,
-  formatCommandPreview: jest.fn() as jest.MockedFunction<
-    (...args: any[]) => string
-  >,
+  validateClaudeCommand: jest.fn(),
+  formatCommandPreview: jest.fn(),
 };
 
-const mockConfigManager = {
+const mockConfigManager: MockConfigManager = {
   addSource: jest.fn(),
   validateModel: jest.fn(),
 };
 
-const mockWorkflowService = {
+const mockWorkflowService: MockWorkflowService = {
   getExecutionSteps: jest.fn(),
   resolveStepVariables: jest.fn(),
   updateExecutionOutput: jest.fn(),
 };
 
+const mockLogger: MockLogger = {
+  info: jest.fn(),
+  warn: jest.fn(),
+  error: jest.fn(),
+  debug: jest.fn(),
+};
+
+const mockConfigSource: MockConfigSource = {
+  get: jest.fn(),
+  set: jest.fn(),
+};
+
 (ClaudeExecutor as jest.MockedClass<typeof ClaudeExecutor>).mockImplementation(
-  () => mockExecutor as any,
+  () => mockExecutor as unknown as ClaudeExecutor,
 );
 (VSCodeLogger as jest.MockedClass<typeof VSCodeLogger>).mockImplementation(
-  () =>
-    ({
-      info: jest.fn(),
-      warn: jest.fn(),
-      error: jest.fn(),
-      debug: jest.fn(),
-    }) as any,
+  () => mockLogger as unknown as VSCodeLogger,
 );
 (
   VSCodeConfigSource as jest.MockedClass<typeof VSCodeConfigSource>
-).mockImplementation(() => ({ get: jest.fn(), set: jest.fn() }) as any);
+).mockImplementation(() => mockConfigSource as unknown as VSCodeConfigSource);
 (ConfigManager as jest.MockedClass<typeof ConfigManager>).mockImplementation(
-  () => mockConfigManager as any,
+  () => mockConfigManager as unknown as ConfigManager,
 );
 
 describe("ClaudeService - Error Handling", () => {
@@ -153,9 +185,7 @@ describe("ClaudeService - Error Handling", () => {
 
   describe("execution errors", () => {
     it("should handle task execution timeout", async () => {
-      (mockExecutor.executeTask as any).mockRejectedValue(
-        new Error("Request timeout"),
-      );
+      mockExecutor.executeTask.mockRejectedValue(new Error("Request timeout"));
 
       await expect(
         service.executeTask("test", "claude-3-5-sonnet-20241022", "/workspace"),
@@ -163,7 +193,7 @@ describe("ClaudeService - Error Handling", () => {
     });
 
     it("should handle network connectivity issues", async () => {
-      (mockExecutor.executeTask as any).mockRejectedValue(
+      mockExecutor.executeTask.mockRejectedValue(
         new Error("Network unreachable"),
       );
 
@@ -173,7 +203,7 @@ describe("ClaudeService - Error Handling", () => {
     });
 
     it("should handle API rate limiting", async () => {
-      (mockExecutor.executeTask as any).mockRejectedValue(
+      mockExecutor.executeTask.mockRejectedValue(
         new Error("Rate limit exceeded"),
       );
 
@@ -183,7 +213,7 @@ describe("ClaudeService - Error Handling", () => {
     });
 
     it("should handle pipeline execution errors", async () => {
-      (mockExecutor.executePipeline as any).mockRejectedValue(
+      mockExecutor.executePipeline.mockRejectedValue(
         new Error("Pipeline failed"),
       );
 
@@ -234,7 +264,7 @@ describe("ClaudeService - Error Handling", () => {
         with: { prompt: "test" },
       });
 
-      (mockExecutor.executeTask as any).mockRejectedValue("String error");
+      mockExecutor.executeTask.mockRejectedValue("String error");
 
       await service.executeWorkflow(
         mockExecution,
@@ -287,7 +317,7 @@ describe("ClaudeService - Error Handling", () => {
         with: { prompt: "test" },
       });
 
-      (mockExecutor.executeTask as any).mockResolvedValue({
+      mockExecutor.executeTask.mockResolvedValue({
         taskId: "step1",
         success: false,
         output: "",
@@ -311,7 +341,7 @@ describe("ClaudeService - Error Handling", () => {
 
   describe("command validation errors", () => {
     it("should handle executor validation errors", async () => {
-      (mockExecutor.validateClaudeCommand as any).mockRejectedValue(
+      mockExecutor.validateClaudeCommand.mockRejectedValue(
         new Error("Validation service unavailable"),
       );
 
@@ -350,7 +380,7 @@ describe("ClaudeService - Error Handling", () => {
 
   describe("retry scenarios", () => {
     it("should handle retry mechanism through executor", async () => {
-      (mockExecutor.executeTask as any)
+      mockExecutor.executeTask
         .mockRejectedValueOnce(new Error("Temporary failure"))
         .mockResolvedValueOnce({
           taskId: "retry-test",
@@ -377,7 +407,7 @@ describe("ClaudeService - Error Handling", () => {
     });
 
     it("should handle malformed API responses", async () => {
-      (mockExecutor.executeTask as any).mockResolvedValue({
+      mockExecutor.executeTask.mockResolvedValue({
         taskId: "malformed-123",
         success: true,
         output: null as unknown as string,

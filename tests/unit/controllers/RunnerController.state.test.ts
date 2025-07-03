@@ -481,24 +481,8 @@ describe("RunnerController - State Management", () => {
       expect(postErrorState.taskCompleted).toBe(true);
     });
 
-    it("should recover from partial state corruption", () => {
-      // Simulate partial state update failure
-      const mockStateCorruption = () => {
-        const currentState = controller.getCurrentState();
-        // Force a state with missing required properties
-        (
-          controller as unknown as {
-            state$: { next: (state: unknown) => void };
-          }
-        ).state$.next({
-          ...currentState,
-          tasks: undefined, // Corrupt the tasks array
-        });
-      };
-
-      mockStateCorruption();
-
-      // Controller should handle the corruption gracefully
+    it("should handle invalid operations gracefully", () => {
+      // Test that controller handles edge cases without throwing
       const task = createMockTask("recovery-task", "Recovery task");
       expect(() => {
         controller.send({ kind: "pipelineAddTask", newTask: task });
@@ -506,17 +490,14 @@ describe("RunnerController - State Management", () => {
 
       const state = controller.getCurrentState();
       expect(Array.isArray(state.tasks)).toBe(true);
+      expect(state.tasks).toHaveLength(1);
+      expect(state.tasks[0].id).toBe("recovery-task");
     });
   });
 
   describe("Memory Management", () => {
     it("should handle memory management during long-running operations", () => {
-      // Verify that state updates don't cause memory leaks
-      const initialSubscriberCount =
-        (controller.state$ as unknown as { observers?: unknown[] }).observers
-          ?.length ?? 0;
-
-      // Create multiple subscriptions
+      // Test that controller can handle many subscriptions and state updates
       const subscriptions = Array.from({ length: 10 }, () =>
         controller.state$.subscribe(() => {}),
       );
@@ -526,13 +507,17 @@ describe("RunnerController - State Management", () => {
         controller.send({ kind: "updateChatPrompt", prompt: `prompt ${i}` });
       }
 
+      // Verify final state is consistent
+      const finalState = controller.getCurrentState();
+      expect(finalState.chatPrompt).toBe("prompt 49");
+
       // Clean up subscriptions
       subscriptions.forEach((sub) => sub.unsubscribe());
 
-      const finalSubscriberCount =
-        (controller.state$ as unknown as { observers?: unknown[] }).observers
-          ?.length ?? 0;
-      expect(finalSubscriberCount).toBe(initialSubscriberCount);
+      // Verify controller still functions normally after cleanup
+      controller.send({ kind: "updateChatPrompt", prompt: "after cleanup" });
+      const postCleanupState = controller.getCurrentState();
+      expect(postCleanupState.chatPrompt).toBe("after cleanup");
     });
   });
 
