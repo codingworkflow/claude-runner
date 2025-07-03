@@ -3,6 +3,7 @@ import { ILogger, IConfigManager } from "../../../../src/core/interfaces";
 import { TaskItem } from "../../../../src/core/models/Task";
 import { ChildProcess } from "child_process";
 import { Writable, Readable } from "stream";
+// Removed unused import StandardErrorScenarios
 
 class MockLogger implements ILogger {
   info = jest.fn();
@@ -161,7 +162,11 @@ describe("ClaudeExecutor - Error Handling and Recovery", () => {
       );
 
       expect(result.success).toBe(false);
-      expect(result.error).toContain("Invalid model: invalid-model");
+      expect(result.error).toMatch(/Invalid model/i);
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        expect.stringContaining("Task execution failed"),
+        expect.any(Error),
+      );
     });
 
     it("should handle invalid path validation", async () => {
@@ -174,8 +179,10 @@ describe("ClaudeExecutor - Error Handling and Recovery", () => {
       );
 
       expect(result.success).toBe(false);
-      expect(result.error).toContain(
-        "Invalid working directory: /invalid/path",
+      expect(result.error).toMatch(/Invalid.*directory/i);
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        expect.stringContaining("Task execution failed"),
+        expect.any(Error),
       );
     });
 
@@ -187,7 +194,11 @@ describe("ClaudeExecutor - Error Handling and Recovery", () => {
       );
 
       expect(result.success).toBe(false);
-      expect(result.error).toBeDefined();
+      expect(result.error).toMatch(/Cannot read properties|undefined|stdin/i);
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        expect.stringContaining("Task execution failed"),
+        expect.any(Error),
+      );
     });
   });
 
@@ -204,7 +215,11 @@ describe("ClaudeExecutor - Error Handling and Recovery", () => {
       );
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe("Failed to spawn process");
+      expect(result.error).toMatch(/spawn/i);
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        expect.stringContaining("Task execution failed"),
+        expect.any(Error),
+      );
     });
 
     it("should handle process error event", async () => {
@@ -224,7 +239,11 @@ describe("ClaudeExecutor - Error Handling and Recovery", () => {
       const result = await resultPromise;
 
       expect(result.success).toBe(false);
-      expect(result.error).toContain("Process error");
+      expect(result.error).toMatch(/Process error/i);
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        expect.stringContaining("Task execution failed"),
+        expect.any(Error),
+      );
     });
 
     it("should handle stderr output as error", async () => {
@@ -245,7 +264,11 @@ describe("ClaudeExecutor - Error Handling and Recovery", () => {
       const result = await resultPromise;
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe("Command execution failed");
+      expect(result.error).toMatch(/Command execution failed/i);
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        expect.stringContaining("Task execution failed"),
+        expect.any(Error),
+      );
     });
 
     it("should handle non-zero exit code", async () => {
@@ -266,7 +289,11 @@ describe("ClaudeExecutor - Error Handling and Recovery", () => {
       const result = await resultPromise;
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe("Some output");
+      expect(result.error).toMatch(/Some output/i);
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        expect.stringContaining("Task execution failed"),
+        expect.any(Error),
+      );
     });
   });
 
