@@ -102,3 +102,4 @@ claude-runner-cli-*.tgz
 .sonarlint/
 .github/workflows/*.json
 claude-runner
+eslint-report.json

@@ -10,6 +10,7 @@
 
 import * as fs from "fs/promises";
 import * as path from "path";
+
 import { JobLog, JobLogStep } from "../types/JobLog";
 
 export class JobLogManager {
@@ -17,7 +18,6 @@ export class JobLogManager {
   /**
    * Generate job log file path - matches Go CLI's GetJobLogPath()
    * Creates {workflow-name}.job.json alongside the workflow file
-   *
    * @param workflowFile - Path to the workflow file
    * @returns Path to the job log file
    */
@@ -42,7 +42,6 @@ export class JobLogManager {
   /**
    * Save job log to file - matches Go CLI's SaveToFile()
    * Persists job log with proper formatting for cross-compatibility
-   *
    * @param jobLog - The job log to save
    * @param filePath - Path to save the job log file
    */
@@ -64,13 +63,12 @@ export class JobLogManager {
   /**
    * Load job log from file - matches Go CLI's LoadFromFile()
    * Returns null if file doesn't exist (not an error condition)
-   *
    * @param filePath - Path to the job log file
    * @returns The loaded job log or null if file doesn't exist
    */
   static async loadJobLog(filePath: string): Promise<JobLog | null> {
     try {
-      const content = await fs.readFile(filePath, "utf-8");
+      const content = await fs.readFile(filePath, "utf8");
       const jobLog = JSON.parse(content) as JobLog;
 
       // Validate the loaded job log has required fields
@@ -102,7 +100,6 @@ export class JobLogManager {
   /**
    * Create new job log - matches Go CLI's NewJobLog()
    * Initializes a new job log with proper defaults
-   *
    * @param workflowName - Name of the workflow
    * @param workflowFile - Path to the workflow file
    * @param totalSteps - Total number of steps in the workflow
@@ -135,7 +132,6 @@ export class JobLogManager {
   /**
    * Add or update step in job log - matches Go CLI's AddStep() with deduplication
    * Prevents duplicate step entries and updates lastCompletedStep for completed steps
-   *
    * @param jobLog - The job log to update
    * @param step - The step to add or update
    */
@@ -181,7 +177,6 @@ export class JobLogManager {
 
   /**
    * Get the next step index to execute during resume
-   *
    * @param jobLog - The job log to analyze
    * @returns Step index to start from (0-based)
    */
@@ -192,7 +187,6 @@ export class JobLogManager {
   /**
    * Check if next step has timeout status and get its session ID
    * Implements KISS timeout resume logic: next job exists + status == timeout → RESUME
-   *
    * @param jobLog - The job log to analyze
    * @param stepIndex - The step index to check
    * @returns Session ID if timeout step found, undefined otherwise
@@ -209,7 +203,6 @@ export class JobLogManager {
 
   /**
    * Check if a job log exists for a workflow
-   *
    * @param workflowFile - Path to the workflow file
    * @returns True if job log exists, false otherwise
    */
@@ -225,7 +218,6 @@ export class JobLogManager {
 
   /**
    * Remove job log file for a workflow
-   *
    * @param workflowFile - Path to the workflow file
    */
   static async removeJobLog(workflowFile: string): Promise<void> {

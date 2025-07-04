@@ -41,8 +41,8 @@ describe("Bypass Functionality", () => {
       };
 
       // Simulate the parsing loop from lines 126-139
-      for (let i = 0; i < args.length; i++) {
-        if (args[i] === "--yes" || args[i] === "-y") {
+      for (const arg of args) {
+        if (arg === "--yes" || arg === "-y") {
           options.autoAccept = true;
         }
       }
@@ -61,8 +61,8 @@ describe("Bypass Functionality", () => {
         autoAccept: false,
       };
 
-      for (let i = 0; i < args.length; i++) {
-        if (args[i] === "--yes" || args[i] === "-y") {
+      for (const arg of args) {
+        if (arg === "--yes" || arg === "-y") {
           options.autoAccept = true;
         }
       }
@@ -79,8 +79,8 @@ describe("Bypass Functionality", () => {
         autoAccept: false,
       };
 
-      for (let i = 0; i < args.length; i++) {
-        if (args[i] === "--yes" || args[i] === "-y") {
+      for (const arg of args) {
+        if (arg === "--yes" || arg === "-y") {
           options.autoAccept = true;
         }
       }
@@ -97,10 +97,10 @@ describe("Bypass Functionality", () => {
         autoAccept: false,
       };
 
-      for (let i = 0; i < args.length; i++) {
-        if (args[i] === "--resume" || args[i] === "-r") {
+      for (const arg of args) {
+        if (arg === "--resume" || arg === "-r") {
           options.resume = true;
-        } else if (args[i] === "--yes" || args[i] === "-y") {
+        } else if (arg === "--yes" || arg === "-y") {
           options.autoAccept = true;
         }
       }

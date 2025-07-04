@@ -50,8 +50,8 @@ describe("Resume Functionality", () => {
       };
 
       // Simulate the parsing loop from lines 126-139
-      for (let i = 0; i < args.length; i++) {
-        if (args[i] === "--resume" || args[i] === "-r") {
+      for (const arg of args) {
+        if (arg === "--resume" || arg === "-r") {
           options.resume = true;
         }
       }
@@ -70,8 +70,8 @@ describe("Resume Functionality", () => {
         autoAccept: false,
       };
 
-      for (let i = 0; i < args.length; i++) {
-        if (args[i] === "--resume" || args[i] === "-r") {
+      for (const arg of args) {
+        if (arg === "--resume" || arg === "-r") {
           options.resume = true;
         }
       }
@@ -88,8 +88,8 @@ describe("Resume Functionality", () => {
         autoAccept: false,
       };
 
-      for (let i = 0; i < args.length; i++) {
-        if (args[i] === "--resume" || args[i] === "-r") {
+      for (const arg of args) {
+        if (arg === "--resume" || arg === "-r") {
           options.resume = true;
         }
       }
@@ -106,10 +106,10 @@ describe("Resume Functionality", () => {
         autoAccept: false,
       };
 
-      for (let i = 0; i < args.length; i++) {
-        if (args[i] === "--resume" || args[i] === "-r") {
+      for (const arg of args) {
+        if (arg === "--resume" || arg === "-r") {
           options.resume = true;
-        } else if (args[i] === "--yes" || args[i] === "-y") {
+        } else if (arg === "--yes" || arg === "-y") {
           options.autoAccept = true;
         }
       }
@@ -147,10 +147,8 @@ describe("Resume Functionality", () => {
 
       if (options.resume) {
         existingJobLog = await MockedJobLogManager.loadJobLog(jobLogPath);
-        if (existingJobLog) {
-          if (existingJobLog.lastCompletedStep >= 0) {
-            startFromStep = existingJobLog.lastCompletedStep + 1;
-          }
+        if (existingJobLog && existingJobLog.lastCompletedStep >= 0) {
+          startFromStep = existingJobLog.lastCompletedStep + 1;
         }
       }
 
@@ -175,10 +173,8 @@ describe("Resume Functionality", () => {
 
       if (options.resume) {
         existingJobLog = await MockedJobLogManager.loadJobLog(jobLogPath);
-        if (existingJobLog) {
-          if (existingJobLog.lastCompletedStep >= 0) {
-            startFromStep = existingJobLog.lastCompletedStep + 1;
-          }
+        if (existingJobLog && existingJobLog.lastCompletedStep >= 0) {
+          startFromStep = existingJobLog.lastCompletedStep + 1;
         }
       }
 
@@ -228,10 +224,8 @@ describe("Resume Functionality", () => {
 
       if (options.resume) {
         existingJobLog = await MockedJobLogManager.loadJobLog(jobLogPath);
-        if (existingJobLog) {
-          if (existingJobLog.lastCompletedStep >= 0) {
-            startFromStep = existingJobLog.lastCompletedStep + 1;
-          }
+        if (existingJobLog && existingJobLog.lastCompletedStep >= 0) {
+          startFromStep = existingJobLog.lastCompletedStep + 1;
         }
       }
 
@@ -264,10 +258,8 @@ describe("Resume Functionality", () => {
 
       if (options.resume) {
         existingJobLog = await MockedJobLogManager.loadJobLog(jobLogPath);
-        if (existingJobLog) {
-          if (existingJobLog.lastCompletedStep >= 0) {
-            startFromStep = existingJobLog.lastCompletedStep + 1;
-          }
+        if (existingJobLog && existingJobLog.lastCompletedStep >= 0) {
+          startFromStep = existingJobLog.lastCompletedStep + 1;
         }
       }
 
@@ -374,10 +366,8 @@ describe("Resume Functionality", () => {
       try {
         if (options.resume) {
           existingJobLog = await MockedJobLogManager.loadJobLog(jobLogPath);
-          if (existingJobLog) {
-            if (existingJobLog.lastCompletedStep >= 0) {
-              startFromStep = existingJobLog.lastCompletedStep + 1;
-            }
+          if (existingJobLog && existingJobLog.lastCompletedStep >= 0) {
+            startFromStep = existingJobLog.lastCompletedStep + 1;
           }
         }
       } catch (error) {

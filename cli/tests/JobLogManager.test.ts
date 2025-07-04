@@ -4,6 +4,7 @@
  */
 
 import * as fs from "fs/promises";
+
 import { JobLogManager } from "../src/utils/JobLogManager";
 import { JobLog, JobLogStep } from "../src/types/JobLog";
 
@@ -54,7 +55,7 @@ describe("JobLogManager", () => {
       expect(jobLog.lastCompletedStep).toBe(-1);
       expect(jobLog.status).toBe("running");
       expect(jobLog.steps).toEqual([]);
-      expect(jobLog.executionId).toMatch(/^\d{8}T\d{6}\d{3}$/); // YYYYMMDDTHHMMSS + counter format
+      expect(jobLog.executionId).toMatch(/^\d{8}T\d{9}$/); // YYYYMMDDTHHMMSS + counter format
       expect(jobLog.startTime).toMatch(
         /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/,
       ); // ISO format
@@ -339,7 +340,7 @@ describe("JobLogManager", () => {
         "running",
       ];
 
-      validStatuses.forEach((status) => {
+      for (const status of validStatuses) {
         const step: JobLogStep = {
           stepIndex: 0,
           stepId: "test",
@@ -350,7 +351,7 @@ describe("JobLogManager", () => {
         };
 
         expect(["completed", "failed", "running"]).toContain(step.status);
-      });
+      }
     });
   });
 });

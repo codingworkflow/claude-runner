@@ -14,7 +14,14 @@
       "jsx": true
     }
   },
-  "plugins": ["@typescript-eslint"],
+  "plugins": [
+    "@typescript-eslint",
+    "complexity",
+    "sonarjs",
+    "import",
+    "unicorn",
+    "jsdoc"
+  ],
   "extends": ["eslint:recommended", "plugin:@typescript-eslint/recommended"],
   "rules": {
     "@typescript-eslint/naming-convention": [
@@ -26,8 +33,8 @@
     ],
     "@typescript-eslint/semi": "warn",
     "curly": "warn",
-    "eqeqeq": "warn",
-    "no-throw-literal": "warn",
+    "eqeqeq": ["error", "always"],
+    "no-throw-literal": "error",
     "semi": "off",
     "@typescript-eslint/no-unused-vars": [
       "error",
@@ -38,11 +45,103 @@
     "@typescript-eslint/no-explicit-any": "warn",
     "no-console": ["warn", { "allow": ["warn", "error"] }],
     "prefer-const": "error",
-    "@typescript-eslint/prefer-nullish-coalescing": "warn",
-    "@typescript-eslint/prefer-optional-chain": "warn",
-    "@typescript-eslint/no-non-null-assertion": "warn",
+    "@typescript-eslint/prefer-nullish-coalescing": "error",
+    "@typescript-eslint/prefer-optional-chain": "error",
+    "@typescript-eslint/no-non-null-assertion": "error",
     "@typescript-eslint/consistent-type-definitions": ["error", "interface"],
-    "@typescript-eslint/prefer-readonly": "warn"
+    "@typescript-eslint/prefer-readonly": "warn",
+
+    // Complexity rules (analysis only - high thresholds to avoid noise)
+    "complexity": ["warn", { "max": 25 }],
+    "max-depth": ["warn", 8],
+    "max-lines": ["warn", 600],
+    "max-lines-per-function": ["warn", 150],
+    "max-nested-callbacks": "off", // Disabled - causes issues with tests
+    "max-params": ["warn", 8],
+    "max-statements": ["warn", 50],
+    "max-statements-per-line": "off", // Disabled - formatting issue
+
+    // SonarJS quality rules (analysis only - high thresholds)
+    "sonarjs/cognitive-complexity": ["warn", 30],
+    "sonarjs/no-duplicate-string": ["warn", { "threshold": 8 }],
+    "sonarjs/no-identical-functions": "warn",
+    "sonarjs/no-redundant-jump": "off", // Disabled - can change code
+    "sonarjs/prefer-immediate-return": "off", // Disabled - changes code style
+    "sonarjs/prefer-object-literal": "off", // Disabled - changes code style
+    "sonarjs/prefer-single-boolean-return": "off", // Disabled - changes code style
+
+    // Import rules for better organization (disabled to avoid formatting issues)
+    "import/order": "off", // Disabled - causes formatting changes
+    "import/no-unresolved": "off", // Disabled - causes issues with vscode module
+    "import/no-unused-modules": "off", // Disabled - can be noisy
+    "import/no-cycle": "warn", // Keep this for actual issues
+    "import/no-self-import": "warn",
+    "import/no-useless-path-segments": "off", // Disabled - causes formatting changes
+
+    // Security: Restrict unsafe Node.js imports while allowing CLI operation essentials
+    "no-restricted-imports": [
+      "error",
+      {
+        "paths": [
+          "crypto",
+          "http",
+          "https",
+          "net",
+          "dgram",
+          "dns",
+          "url",
+          "stream",
+          "events",
+          "buffer",
+          "querystring",
+          "cluster",
+          "tls"
+        ],
+        "patterns": ["node:*"]
+      }
+    ],
+
+    // Unicorn rules - DISABLED to prevent code style changes
+    "unicorn/prevent-abbreviations": "off",
+    "unicorn/filename-case": "off",
+    "unicorn/no-null": "off",
+    "unicorn/prefer-module": "off",
+    "unicorn/prefer-node-protocol": "off",
+    "unicorn/no-array-reduce": "off",
+    "unicorn/no-process-exit": "off",
+    "unicorn/prefer-top-level-await": "off",
+    "unicorn/prefer-string-replace-all": "off",
+    "unicorn/no-useless-undefined": "off",
+    "unicorn/no-array-for-each": "off",
+    "unicorn/numeric-separators-style": "off",
+    "unicorn/switch-case-braces": "off",
+    "unicorn/better-regex": "off",
+    "unicorn/text-encoding-identifier-case": "off",
+    "unicorn/consistent-function-scoping": "off", // Disabled - causes code changes
+    "unicorn/explicit-length-check": "off", // Disabled - stylistic
+    "unicorn/prefer-array-some": "off", // Disabled - causes code changes
+    "unicorn/prefer-includes": "off", // Disabled - causes code changes
+    "unicorn/prefer-string-starts-ends-with": "off", // Disabled - causes code changes
+    "unicorn/prefer-ternary": "off", // Disabled - causes formatting changes
+    "unicorn/import-style": "off", // Disabled - causes import style changes
+
+    // JSDoc rules - DISABLED to prevent formatting issues
+    "jsdoc/require-jsdoc": "off",
+    "jsdoc/require-param-description": "off",
+    "jsdoc/require-returns-description": "off",
+    "jsdoc/require-description": "off",
+    "jsdoc/require-param": "off", // Disabled - causes doc format changes
+    "jsdoc/require-returns": "off", // Disabled - causes doc format changes
+    "jsdoc/check-param-names": "off",
+    "jsdoc/check-tag-names": "off",
+    "jsdoc/check-types": "off"
+  },
+  "settings": {
+    "import/resolver": {
+      "node": {
+        "extensions": [".js", ".jsx", ".ts", ".tsx"]
+      }
+    }
   },
   "ignorePatterns": ["out", "dist", "**/*.d.ts", "docs/**"],
   "env": {
@@ -61,7 +160,9 @@
         "plugin:@typescript-eslint/recommended"
       ],
       "rules": {
-        "no-undef": "off"
+        "no-undef": "off",
+        "unicorn/prefer-query-selector": "off",
+        "unicorn/prefer-dom-node-text-content": "off"
       }
     },
     {
@@ -73,7 +174,26 @@
       "rules": {
         "@typescript-eslint/no-explicit-any": "off",
         "no-console": "off",
-        "@typescript-eslint/prefer-readonly": "off"
+        "@typescript-eslint/prefer-readonly": "off",
+        "complexity": "off",
+        "max-lines": "off",
+        "max-lines-per-function": "off",
+        "max-statements": "off",
+        "max-nested-callbacks": "off",
+        "sonarjs/cognitive-complexity": "off",
+        "sonarjs/no-duplicate-string": "off",
+        "import/no-unused-modules": "off",
+        "import/no-unresolved": "off",
+        "unicorn/consistent-function-scoping": "off",
+        "unicorn/no-useless-undefined": "off",
+        "jsdoc/require-jsdoc": "off",
+        "no-restricted-imports": "off"
+      }
+    },
+    {
+      "files": ["cli/**/*.{ts,tsx}", "scripts/**/*.{js,ts}"],
+      "rules": {
+        "no-restricted-imports": "off"
       }
     }
   ]
