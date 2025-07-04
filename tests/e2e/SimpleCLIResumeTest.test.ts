@@ -1,9 +1,10 @@
 import * as path from "path";
 import * as fs from "fs/promises";
 import * as os from "os";
-import { spawn } from "child_process";
+import { WorkflowParser } from "../../src/services/WorkflowParser";
+import { getSessionReference } from "../../src/core/models/Workflow";
 
-// Simple CLI test to debug session reference validation
+// Simple test to validate CLI session reference parsing (not actual CLI execution)
 describe("Simple CLI Resume Test", () => {
   let tempDir: string;
 
@@ -19,41 +20,10 @@ describe("Simple CLI Resume Test", () => {
     }
   });
 
-  async function executeCLI(args: string[]) {
-    const cliPath = path.join(__dirname, "../../cli/claude-runner.js");
-
-    return new Promise<{ stdout: string; stderr: string; exitCode: number }>(
-      (resolve) => {
-        const child = spawn("node", [cliPath, ...args], {
-          cwd: tempDir,
-          stdio: ["pipe", "pipe", "pipe"],
-        });
-
-        let stdout = "";
-        let stderr = "";
-
-        child.stdout.on("data", (data) => {
-          stdout += data.toString();
-        });
-
-        child.stderr.on("data", (data) => {
-          stderr += data.toString();
-        });
-
-        child.on("close", (code) => {
-          resolve({
-            stdout: stdout.trim(),
-            stderr: stderr.trim(),
-            exitCode: code ?? 0,
-          });
-        });
-      },
-    );
-  }
-
-  test("should validate simple session reference format", async () => {
-    // Create a very simple workflow with two steps
-    const workflowContent = `name: simple-session-test
+  describe("Session Reference Validation", () => {
+    test("should validate simple session reference format", async () => {
+      // Create workflow with simple session reference
+      const workflowContent = `name: simple-session-test
 'on':
   workflow_dispatch:
 jobs:
@@ -76,69 +46,144 @@ jobs:
           run: "echo 'second step completed'"
           resume_session: first`;
 
-    const workflowPath = path.join(tempDir, "simple-test.yml");
-    await fs.writeFile(workflowPath, workflowContent);
+      const workflowPath = path.join(tempDir, "simple-test.yml");
+      await fs.writeFile(workflowPath, workflowContent);
 
-    console.log("Testing simple session reference...");
-    console.log("Workflow content:", workflowContent);
+      console.log("Testing simple session reference parsing...");
 
-    // Try to run the workflow
-    const result = await executeCLI(["run", workflowPath, "--dry-run"]);
+      // Parse workflow to verify session reference handling
+      const workflow = WorkflowParser.parseYaml(workflowContent);
 
-    console.log(`Result: exit code ${result.exitCode}`);
-    console.log("STDOUT:", result.stdout);
-    console.log("STDERR:", result.stderr);
+      expect(workflow).toBeDefined();
+      expect(workflow.jobs.test).toBeDefined();
+      expect(workflow.jobs.test.steps).toHaveLength(2);
 
-    // Check if validation passes
-    if (result.exitCode !== 0) {
-      console.log("❌ Session reference validation failed");
-      console.log("Error:", result.stderr);
-    } else {
-      console.log("✅ Session reference validation passed");
-    }
-  }, 10000);
+      // Verify session reference parsing
+      const step2 = workflow.jobs.test.steps[1];
+      expect(step2.with?.resume_session).toBe("first");
 
-  test("should test with progressive logging workflow format", async () => {
-    // Use the exact same format as our working progressive logging test
-    const workflowContent = `name: progressive-logging-test
+      // Test session reference validation function directly
+      const sessionRef = getSessionReference("first");
+      expect(sessionRef).toBe("first");
+
+      console.log("✅ Simple session reference validation passed");
+      console.log(`   - resume_session: ${step2.with?.resume_session}`);
+      console.log(`   - parsed reference: ${sessionRef}`);
+    });
+
+    test("should validate complex session reference format directly", async () => {
+      // Test session reference validation function with complex format directly
+      // (Don't test WorkflowParser since that validates against actual step IDs)
+      console.log("Testing complex session reference parsing...");
+
+      const testCases = [
+        {
+          input: "${{ steps.step1.outputs.session_id }}",
+          expected: "step1",
+          description: "Basic complex format",
+        },
+        {
+          input: "${{steps.init.outputs.session_id}}",
+          expected: "init",
+          description: "No spaces complex format",
+        },
+        {
+          input: "${{  steps.process_data.outputs.session_id  }}",
+          expected: "process_data",
+          description: "Extra spaces complex format",
+        },
+      ];
+
+      for (const testCase of testCases) {
+        const result = getSessionReference(testCase.input);
+        expect(result).toBe(testCase.expected);
+        console.log(
+          `   - ${testCase.description}: "${testCase.input}" → "${result}"`,
+        );
+      }
+
+      console.log("✅ Complex session reference validation passed");
+    });
+
+    test("should handle invalid session references", async () => {
+      console.log("Testing invalid session reference handling...");
+
+      // Test various invalid formats
+      const invalidReferences = [
+        "invalid-format-{{}}",
+        "${ malformed }",
+        "incomplete.reference",
+        "",
+        "special@chars#invalid",
+      ];
+
+      for (const invalidRef of invalidReferences) {
+        const result = getSessionReference(invalidRef);
+        expect(result).toBeNull();
+        console.log(`   - "${invalidRef}" → null (correctly rejected)`);
+      }
+
+      console.log("✅ Invalid session reference handling passed");
+    });
+
+    test("should validate workflow parsing with simple session references", async () => {
+      // Create workflow with only simple session references (complex ones require step validation)
+      const workflowContent = `name: simple-workflow-test
 'on':
   workflow_dispatch:
 jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - id: step1
-        name: Initial Setup
+      - id: init
+        name: Initialize
         uses: anthropics/claude-pipeline-action@v1
         with:
-          prompt: "Setup initial project structure"
-          run: "echo 'step1 output'"
+          prompt: "Initialize workflow"
+          run: "./tests/fixtures/scripts/claude-step1.sh"
           output_session: true
           
-      - id: step2
-        name: Feature Implementation
+      - id: process
+        name: Process Data
         uses: anthropics/claude-pipeline-action@v1
         with:
-          prompt: "Implement core features"
-          run: "echo 'step2 output'"
-          resume_session: step1`;
+          prompt: "Process the data"
+          run: "./tests/fixtures/scripts/claude-step2.sh"
+          resume_session: init  # Simple format only`;
 
-    const workflowPath = path.join(tempDir, "progressive-test.yml");
-    await fs.writeFile(workflowPath, workflowContent);
+      const workflowPath = path.join(tempDir, "simple-workflow-test.yml");
+      await fs.writeFile(workflowPath, workflowContent);
 
-    console.log("Testing progressive logging format...");
+      console.log("Testing simple workflow parsing...");
 
-    // Try to run the workflow
-    const result = await executeCLI(["run", workflowPath, "--dry-run"]);
+      // Parse and validate workflow
+      const workflow = WorkflowParser.parseYaml(workflowContent);
 
-    console.log(`Result: exit code ${result.exitCode}`);
-    console.log("STDOUT:", result.stdout);
-    console.log("STDERR:", result.stderr);
+      expect(workflow).toBeDefined();
+      expect(workflow.name).toBe("simple-workflow-test");
+      expect(workflow.jobs.test.steps).toHaveLength(2);
 
-    if (result.exitCode !== 0) {
-      console.log("❌ Progressive format failed");
-    } else {
-      console.log("✅ Progressive format worked");
-    }
-  }, 10000);
+      // Validate each step's session handling
+      const steps = workflow.jobs.test.steps;
+
+      // Step 1: Should have output_session but no resume_session
+      expect(steps[0].with?.output_session).toBe(true);
+      expect(steps[0].with?.resume_session).toBeUndefined();
+
+      // Step 2: Should have simple resume_session reference
+      expect(steps[1].with?.resume_session).toBe("init");
+      const simpleRef = getSessionReference(
+        steps[1].with?.resume_session as string,
+      );
+      expect(simpleRef).toBe("init");
+
+      console.log("✅ Simple workflow validation passed");
+      console.log(
+        `   - Step 1: output_session = ${steps[0].with?.output_session}`,
+      );
+      console.log(
+        `   - Step 2: resume_session = "${steps[1].with?.resume_session}" → "${simpleRef}"`,
+      );
+    });
+  });
 });

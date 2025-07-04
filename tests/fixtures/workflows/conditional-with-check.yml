@@ -1,0 +1,34 @@
+name: conditional-with-check-test
+'on':
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - id: setup-step
+        name: Setup Environment
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: "Setup the environment"
+          run: "./tests/fixtures/scripts/claude-step1.sh"
+          output_session: true
+
+      - id: test-step
+        name: Run Tests
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: "Run test suite"
+          run: "./tests/fixtures/scripts/claude-step2.sh"
+          check: "test -f package.json"
+          condition: on_success
+          resume_session: setup-step
+
+      - id: skip-test-step
+        name: Skip Tests (Missing File)
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: "Run skipped test suite"
+          run: "./tests/fixtures/scripts/claude-step3.sh"
+          check: "test -f nonexistent-file.json"
+          condition: on_success
+          resume_session: setup-step

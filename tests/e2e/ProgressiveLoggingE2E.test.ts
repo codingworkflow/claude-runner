@@ -406,7 +406,7 @@ describe("Progressive Workflow Logging E2E Tests", () => {
       logState = await verifyLogState(3, 2);
 
       expect(logState.workflow_name).toBe("progressive-logging-test");
-      expect(logState.status).toBe("running"); // Updated from paused
+      expect(logState.status).toBe("completed"); // All 3 steps completed
 
       console.log("✅ RESUME SCENARIO VERIFIED:");
       console.log("   - Initial execution: 2 steps logged");

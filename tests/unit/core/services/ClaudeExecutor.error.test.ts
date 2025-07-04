@@ -311,7 +311,7 @@ describe("ClaudeExecutor - Error Handling and Recovery", () => {
       setTimeout(() => {
         mockChild.stdout?.emit(
           "data",
-          Buffer.from("Claude AI usage limit reached"),
+          Buffer.from("Claude AI usage limit reached|1234567890"),
         );
         mockChild.emit("close", 1);
       }, 0);
@@ -323,7 +323,7 @@ describe("ClaudeExecutor - Error Handling and Recovery", () => {
     });
 
     it("should handle rate limit response", async () => {
-      const rateLimitOutput = "Claude AI usage limit reached";
+      const rateLimitOutput = "Claude AI usage limit reached|1234567890";
 
       const mockChild = createMockChildProcess();
       mockSpawn.mockReturnValue(mockChild);
@@ -346,7 +346,7 @@ describe("ClaudeExecutor - Error Handling and Recovery", () => {
     });
 
     it("should handle retry timeout", async () => {
-      const rateLimitOutput = "Claude AI usage limit reached";
+      const rateLimitOutput = "Claude AI usage limit reached|1234567890";
 
       const mockChild = createMockChildProcess();
       mockSpawn.mockReturnValue(mockChild);

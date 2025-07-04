@@ -1,5 +1,5 @@
 #!/bin/bash
-# Simulate Claude Code timeout behavior with proper JSON output and exit 1
+# Simulate Claude Code failure with exit code error for real-execution-failure.yml test
 
 # Parse -r parameter for session resumption
 RESUME_SESSION=""
@@ -22,21 +22,23 @@ else
   SESSION_ID="claude-session-$(date +%s)-$(openssl rand -hex 4)"
 fi
 
-# Simulate timeout - sleep to make it realistic, then output timeout error in Claude Code format
-sleep 1
+# Debug: log to stderr so it doesn't interfere with JSON output
+echo "DEBUG: claude-failing-exit-code.sh starting, resume_session='$RESUME_SESSION', session_id='$SESSION_ID'" >&2
+
+# Simulate detailed failure - output failure error matching the test expectations
+echo "DEBUG: claude-failing-exit-code.sh outputting detailed failure error and exiting 1" >&2
 
 # Output to stdout (not stderr) even on failure - this is how Claude Code behaves
 echo "{
   \"type\": \"error\",
-  \"subtype\": \"timeout\",
+  \"subtype\": \"failure\",
   \"is_error\": true,
-  \"error\": \"Request timed out after 30000ms. This is typically due to rate limiting or high server load.\",
+  \"error\": \"ERROR: Something went wrong during execution\",
+  \"details\": \"Failed to complete the task\",
   \"session_id\": \"$SESSION_ID\",
   \"timestamp\": \"$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)\",
-  \"retry_after_seconds\": 5,
-  \"suggested_action\": \"retry_with_backoff\",
   \"request_id\": \"req_$(openssl rand -hex 8)\"
 }"
 
-# Exit with code 1 to indicate failure that should trigger retry
+# Exit with code 1 to indicate failure
 exit 1

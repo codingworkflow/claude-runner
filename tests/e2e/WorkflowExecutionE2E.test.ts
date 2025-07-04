@@ -157,9 +157,9 @@ describe("Workflow Execution E2E Tests", () => {
       expect(result.results).toHaveLength(3);
 
       // Verify each step executed correctly
-      expect(result.results[0]).toContain("step1 executed successfully");
-      expect(result.results[1]).toContain("step2 executed successfully");
-      expect(result.results[2]).toContain("step3 executed successfully");
+      expect(result.results[0]).toContain("Step 1 completed successfully");
+      expect(result.results[1]).toContain("Step 2 completed successfully");
+      expect(result.results[2]).toContain("Step 3 completed successfully");
 
       // Verify workflow execution state
       expect(workflowExecution.status).toBe("completed");
@@ -172,13 +172,13 @@ describe("Workflow Execution E2E Tests", () => {
 
       // Verify output content
       expect(workflowExecution.outputs["step1"].result).toContain(
-        "step1 executed successfully",
+        "Step 1 completed successfully",
       );
       expect(workflowExecution.outputs["step2"].result).toContain(
-        "step2 executed successfully",
+        "Step 2 completed successfully",
       );
       expect(workflowExecution.outputs["step3"].result).toContain(
-        "step3 executed successfully",
+        "Step 3 completed successfully",
       );
 
       console.log("✅ All 3 steps executed successfully");
@@ -202,8 +202,8 @@ describe("Workflow Execution E2E Tests", () => {
       // Should fail on step2
       expect(result.success).toBe(false);
       expect(result.results).toHaveLength(2); // step1 + failed step2
-      expect(result.results[0]).toContain("step1 executed successfully");
-      expect(result.results[1]).toContain("step2 failed with error");
+      expect(result.results[0]).toContain("Step 1 completed successfully");
+      expect(result.results[1]).toContain("timed out");
 
       // Verify execution state
       expect(workflowExecution.status).toBe("failed");
@@ -266,7 +266,7 @@ describe("Workflow Execution E2E Tests", () => {
       expect(steps[0].id).toBe("step1");
       expect(steps[0].uses).toBe("anthropics/claude-pipeline-action@v1");
       expect((steps[0].with as any).run).toBe(
-        "./tests/fixtures/scripts/step1.sh",
+        "./tests/fixtures/scripts/claude-step1.sh",
       );
 
       expect(steps[1].id).toBe("step2");

@@ -10,7 +10,7 @@ jobs:
         uses: anthropics/claude-pipeline-action@v1
         with:
           prompt: "Execute step 1 script"
-          run: "./tests/fixtures/scripts/step1.sh"
+          run: "./tests/fixtures/scripts/claude-step1.sh"
           output_session: true
           
       - id: step2
@@ -18,7 +18,7 @@ jobs:
         uses: anthropics/claude-pipeline-action@v1
         with:
           prompt: "Execute step 2 script"
-          run: "./tests/fixtures/scripts/step2.sh"
+          run: "./tests/fixtures/scripts/claude-step2.sh"
           resume_session: step1
           
       - id: step3
@@ -26,5 +26,5 @@ jobs:
         uses: anthropics/claude-pipeline-action@v1
         with:
           prompt: "Execute step 3 script"
-          run: "./tests/fixtures/scripts/step3.sh"
+          run: "./tests/fixtures/scripts/claude-step3.sh"
           resume_session: step2

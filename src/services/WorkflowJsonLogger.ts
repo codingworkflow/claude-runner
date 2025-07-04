@@ -202,14 +202,8 @@ export class WorkflowJsonLogger {
       // Update log metadata
       this.currentLog.last_update_time = new Date().toISOString();
 
-      // Update overall status
-      if (workflowState.status === "completed") {
-        this.currentLog.status = "completed";
-      } else if (workflowState.status === "failed") {
-        this.currentLog.status = "failed";
-      } else if (stepResult.status === "paused") {
-        this.currentLog.status = "paused";
-      }
+      // Update overall workflow status based on step results (following Go CLI pattern)
+      this.calculateWorkflowStatusFromSteps(workflowState);
 
       await this.writeLogFile();
     } catch (error) {
@@ -292,5 +286,45 @@ export class WorkflowJsonLogger {
         return sessionId || match; // Return original if no mapping found
       },
     );
+  }
+
+  /**
+   * Calculate and update workflow status following Go CLI pattern:
+   * - If any step failed -> "failed"
+   * - If any step timed out -> "paused" (resumable)
+   * - If all steps completed -> "completed"
+   * - Otherwise -> "running"
+   */
+  private calculateWorkflowStatusFromSteps(workflowState: WorkflowState): void {
+    if (!this.currentLog) {
+      return;
+    }
+
+    // Use workflow state status if explicitly set
+    if (
+      workflowState.status === "completed" ||
+      workflowState.status === "failed"
+    ) {
+      this.currentLog.status = workflowState.status;
+      return;
+    }
+
+    // Calculate status based on step results (Go CLI pattern)
+    const steps = this.currentLog.steps;
+    const failedSteps = steps.filter((s) => s.status === "failed").length;
+    const timeoutSteps = steps.filter((s) => s.status === "timeout").length;
+    const completedSteps = steps.filter((s) => s.status === "completed").length;
+    const totalSteps = this.currentLog.total_steps;
+
+    if (failedSteps > 0) {
+      this.currentLog.status = "failed";
+    } else if (timeoutSteps > 0) {
+      // CRITICAL: Timeout steps make workflow "paused" (not "timeout") - following Go CLI pattern
+      this.currentLog.status = "paused";
+    } else if (completedSteps === totalSteps && totalSteps > 0) {
+      this.currentLog.status = "completed";
+    } else {
+      this.currentLog.status = "running";
+    }
   }
 }

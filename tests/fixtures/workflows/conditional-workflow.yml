@@ -1,0 +1,42 @@
+name: conditional-workflow-test
+'on':
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - id: build-step
+        name: Build Project
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: "Build the project"
+          run: "./tests/fixtures/scripts/claude-step1.sh"
+          output_session: true
+
+      - id: deploy-step
+        name: Deploy to Production
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: "Deploy the application"
+          run: "./tests/fixtures/scripts/claude-step2.sh"
+          resume_session: build-step
+          condition: on_success
+          check: "echo 'deploy check'"
+
+      - id: cleanup-step
+        name: Cleanup on Failure
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: "Clean up failed build artifacts"
+          run: "./tests/fixtures/scripts/claude-step3.sh"
+          condition: on_failure
+          check: "echo 'cleanup check'"
+
+      - id: notify-step
+        name: Send Notification
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: "Send build notification"
+          run: "./tests/fixtures/scripts/claude-step1.sh"
+          condition: always
+          check: "echo 'notify check'"

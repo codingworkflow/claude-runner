@@ -11,7 +11,7 @@ jobs:
         with:
           prompt: "Execute step1.sh script"
           model: "claude-sonnet-4-20250514"
-          run: "./tests/fixtures/scripts/step1.sh"
+          run: "./tests/fixtures/scripts/claude-step1.sh"
           output_session: true
           
       - id: step2
@@ -20,5 +20,5 @@ jobs:
         with:
           prompt: "Execute step2.sh script"
           model: "claude-sonnet-4-20250514"
-          run: "./tests/fixtures/scripts/step2.sh"
+          run: "./tests/fixtures/scripts/claude-step2.sh"
           resume_session: step1

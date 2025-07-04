@@ -15,7 +15,6 @@ describe("Timeout Recovery E2E Tests", () => {
   let pipelineService: PipelineService;
   let workflowJsonLogger: WorkflowJsonLogger;
   let workflowExecution: WorkflowExecution;
-  let logPath: string;
   let workflowFile: string;
 
   beforeEach(async () => {
@@ -38,9 +37,8 @@ describe("Timeout Recovery E2E Tests", () => {
     const logger = new VSCodeLogger();
     workflowJsonLogger = new WorkflowJsonLogger(fileSystem, logger);
 
-    // Setup workflow file and log path
+    // Setup workflow file
     workflowFile = path.join(tempDir, "timeout-recovery-test.yml");
-    logPath = path.join(tempDir, "timeout-recovery-test.json");
   });
 
   afterEach(async () => {
@@ -79,7 +77,15 @@ describe("Timeout Recovery E2E Tests", () => {
         const args = [scriptPath];
         if (sessionId && (step.with as any).resume_session) {
           args.push("-r", sessionId);
+          console.log(`🔧 Adding resume session args: -r ${sessionId}`);
+        } else if (sessionId) {
+          // For timeout recovery, always pass session ID if provided
+          args.push("-r", sessionId);
+          console.log(
+            `🔧 Adding timeout recovery session args: -r ${sessionId}`,
+          );
         }
+        console.log(`🔧 Full command: bash ${args.join(" ")}`);
 
         const result = await new Promise<{
           success: boolean;
@@ -114,6 +120,11 @@ describe("Timeout Recovery E2E Tests", () => {
         let parsedOutput;
 
         try {
+          // Debug: Show raw output before parsing
+          console.log(
+            `🔧 Raw output (length ${result.output.length}):`,
+            JSON.stringify(result.output),
+          );
           parsedOutput = JSON.parse(result.output);
 
           if (result.success) {
@@ -165,35 +176,29 @@ describe("Timeout Recovery E2E Tests", () => {
               attempts: attempt + 1,
             };
           } else {
-            // Failure - check if this is a timeout that should be retried
+            // Failure - check if this is a timeout
             if (
               parsedOutput.type === "error" &&
-              parsedOutput.subtype === "timeout" &&
-              attempt < maxRetries
+              parsedOutput.subtype === "timeout"
             ) {
-              sessionId = parsedOutput.session_id; // Preserve session ID for retry
-              const retryAfter =
-                parsedOutput.retry_after_seconds || retryDelaySeconds;
+              sessionId = parsedOutput.session_id; // Preserve session ID
 
               console.log(
                 `⏱️  Step ${stepIndex + 1} timed out (attempt ${attempt + 1}). Session ID: ${sessionId}`,
               );
-              console.log(`⏳ Waiting ${retryAfter}s before retry...`);
 
-              // Log the failure with session ID preservation
+              // ALWAYS log timeout steps (following Go CLI pattern) - regardless of retry attempts
               const stepResult = {
                 stepIndex,
                 stepId: task.id,
                 sessionId: sessionId,
                 outputSession: (step.with as any).output_session || false,
                 resumeSession: (step.with as any).resume_session,
-                status: "failed" as any,
+                status: "timeout" as any, // CRITICAL: Use "timeout" not "failed" for timeout scenarios
                 startTime: new Date().toISOString(),
                 endTime: new Date().toISOString(),
                 output: result.output,
                 error: parsedOutput.error,
-                retryAttempt: attempt,
-                willRetry: true,
               };
 
               const mockWorkflowState = {
@@ -210,25 +215,33 @@ describe("Timeout Recovery E2E Tests", () => {
                 canResume: true,
               };
 
-              // Force log the failed step
-              try {
-                await workflowJsonLogger.updateStepProgress(
-                  stepResult,
-                  mockWorkflowState,
-                );
-              } catch (logError) {
-                console.log("Failed to log step progress:", logError);
-              }
-
-              // Wait before retry
-              await new Promise((resolve) =>
-                setTimeout(resolve, retryAfter * 1000),
+              // Log the timeout step (following Go CLI pattern)
+              await workflowJsonLogger.updateStepProgress(
+                stepResult,
+                mockWorkflowState,
               );
-              attempt++;
-              lastError = parsedOutput;
-              continue;
+
+              // Only retry if attempts remain
+              if (attempt < maxRetries) {
+                const retryAfter =
+                  parsedOutput.retry_after_seconds || retryDelaySeconds;
+                console.log(`⏳ Waiting ${retryAfter}s before retry...`);
+
+                // Wait before retry
+                await new Promise((resolve) =>
+                  setTimeout(resolve, retryAfter * 1000),
+                );
+                attempt++;
+                lastError = parsedOutput;
+                continue;
+              } else {
+                // No more retries - timeout is logged, now throw error
+                throw new Error(
+                  `Step timed out: ${parsedOutput.error || "Unknown timeout error"}`,
+                );
+              }
             } else {
-              // Not a retryable error or max retries exceeded
+              // Not a timeout error
               throw new Error(
                 `Step failed: ${parsedOutput.error || "Unknown error"}`,
               );
@@ -236,8 +249,10 @@ describe("Timeout Recovery E2E Tests", () => {
           }
         } catch (parseError) {
           console.log(
-            `⚠️  Step ${stepIndex + 1} output not valid JSON: ${result.output}`,
+            `⚠️  Step ${stepIndex + 1} JSON parse error:`,
+            parseError,
           );
+          console.log(`⚠️  Raw output: ${JSON.stringify(result.output)}`);
           throw new Error(`Invalid JSON output: ${result.output}`);
         }
       }
@@ -253,7 +268,14 @@ describe("Timeout Recovery E2E Tests", () => {
 
   // Helper to read and verify log state
   async function verifyLogState() {
-    const actualLogContent = await fs.readFile(logPath, "utf-8");
+    // Get the actual log file path from the logger (not our assumed path)
+    const actualLogPath = workflowJsonLogger.getLogFilePath();
+    if (!actualLogPath) {
+      throw new Error("Logger has no log file path");
+    }
+
+    console.log(`🔍 Reading log from: ${actualLogPath}`);
+    const actualLogContent = await fs.readFile(actualLogPath, "utf-8");
     const actualLog = JSON.parse(actualLogContent);
 
     console.log(
@@ -327,7 +349,7 @@ describe("Timeout Recovery E2E Tests", () => {
         // Verify timeout was logged with session ID
         const logState = await verifyLogState();
         expect(logState.steps).toHaveLength(1);
-        expect(logState.steps[0].status).toBe("failed");
+        expect(logState.steps[0].status).toBe("timeout");
         expect(logState.steps[0].session_id).toBeDefined();
 
         const timeoutSessionId = logState.steps[0].session_id;
@@ -454,7 +476,7 @@ describe("Timeout Recovery E2E Tests", () => {
         // CRITICAL TEST: Verify session ID is preserved in logs for resume
         const logState = await verifyLogState();
         expect(logState.steps).toHaveLength(1);
-        expect(logState.steps[0].status).toBe("failed");
+        expect(logState.steps[0].status).toBe("timeout");
         expect(logState.steps[0].session_id).toBeDefined();
         expect(logState.steps[0].session_id).toMatch(
           /^claude-session-\d+-[a-f0-9]+$/,
@@ -473,10 +495,10 @@ describe("Timeout Recovery E2E Tests", () => {
 
       // Read the logs to get the preserved session ID (simulates resume logic)
       const resumeLogState = await verifyLogState();
-      const failedStep = resumeLogState.steps.find(
-        (s: any) => s.status === "failed",
+      const timeoutStep = resumeLogState.steps.find(
+        (s: any) => s.status === "timeout",
       );
-      const preservedSessionId = failedStep.session_id;
+      const preservedSessionId = timeoutStep.session_id;
 
       expect(preservedSessionId).toBe(timeoutSessionId);
       console.log(
