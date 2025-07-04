@@ -19,10 +19,17 @@
 }
 
 /* Commands Panel */
-.commands-app,
+.commands-app {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
 .global-commands-panel,
 .project-commands-panel {
   width: 100%;
+  flex: 1;
 }
 
 .panel-actions {

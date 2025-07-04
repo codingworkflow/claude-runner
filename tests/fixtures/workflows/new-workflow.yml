@@ -1,0 +1,12 @@
+name: "New Workflow"
+'on':
+  workflow_dispatch:
+jobs:
+  pipeline:
+    runs-on: ubuntu-latest
+    steps:
+      - id: "step0"
+        name: "Step 0"
+        uses: "anthropics/claude-pipeline-action"
+        with:
+          prompt: "First step"

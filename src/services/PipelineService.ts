@@ -95,7 +95,7 @@ export class PipelineService {
                 (t) => t.id === task.resumeFromTaskId,
               );
               if (sourceTask) {
-                step.with.resume_session = `\${{ steps.${sourceTask.id}.outputs.session_id }}`;
+                step.with.resume_session = sourceTask.id;
               }
             }
 
@@ -271,11 +271,15 @@ export class PipelineService {
           // Check if this step resumes from a previous one
           let resumeFromTaskId: string | undefined;
           if (claudeStep.with.resume_session) {
-            const match = claudeStep.with.resume_session.match(
+            // Handle both old format ${{ steps.x.outputs.session_id }} and new simple format (just step ID)
+            const oldFormatMatch = claudeStep.with.resume_session.match(
               /\$\{\{\s*steps\.(\w+)\.outputs\.session_id\s*\}\}/,
             );
-            if (match) {
-              resumeFromTaskId = match[1];
+            if (oldFormatMatch) {
+              resumeFromTaskId = oldFormatMatch[1];
+            } else {
+              // Simple format: just the step ID
+              resumeFromTaskId = claudeStep.with.resume_session;
             }
           }
 

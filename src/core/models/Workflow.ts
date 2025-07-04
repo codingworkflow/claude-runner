@@ -96,8 +96,15 @@ export function hasSessionOutput(step: ClaudeStep): boolean {
 }
 
 export function getSessionReference(value: string): string | null {
-  const match = value.match(
+  // Support simple format: just the step ID (KISS approach)
+  const simpleMatch = value.match(/^([a-zA-Z0-9_-]+)$/);
+  if (simpleMatch) {
+    return simpleMatch[1];
+  }
+
+  // Also support old complex format for backward compatibility
+  const complexMatch = value.match(
     /\$\{\{\s*steps\.(\w+)\.outputs\.session_id\s*\}\}/,
   );
-  return match ? match[1] : null;
+  return complexMatch ? complexMatch[1] : null;
 }

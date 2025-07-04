@@ -2,6 +2,7 @@ import React, { useEffect } from "react";
 import GlobalCommandsPanel from "../panels/GlobalCommandsPanel";
 import ProjectCommandsPanel from "../panels/ProjectCommandsPanel";
 import TabNavigation, { Tab } from "../common/TabNavigation";
+import Button from "../common/Button";
 import { useExtension } from "../../contexts/ExtensionContext";
 
 // Define tab type for this view
@@ -43,6 +44,22 @@ const CommandsView: React.FC = () => {
     actions.updateCommandsState({ activeTab: tab });
   };
 
+  const handleOpenCommandDocs = () => {
+    // Open the Claude Code slash commands documentation
+    const vscode = (
+      window as typeof window & {
+        vscodeApi?: { postMessage: (message: Record<string, unknown>) => void };
+      }
+    ).vscodeApi;
+
+    if (vscode) {
+      vscode.postMessage({
+        command: "openExternal",
+        url: "https://docs.anthropic.com/en/docs/claude-code/slash-commands",
+      });
+    }
+  };
+
   return (
     <div className="commands-app">
       <TabNavigation
@@ -73,6 +90,17 @@ const CommandsView: React.FC = () => {
             onDeleteCommand={handleDeleteCommand}
           />
         )}
+      </div>
+
+      <div className="bottom-actions">
+        <Button
+          variant="secondary"
+          onClick={handleOpenCommandDocs}
+          title="Open Claude Code slash commands documentation"
+        >
+          <span className="button-icon">🌐</span>
+          Open Command Docs
+        </Button>
       </div>
     </div>
   );

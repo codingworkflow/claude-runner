@@ -61,6 +61,9 @@ export class CommandsWebviewProvider implements vscode.WebviewViewProvider {
         case "deleteCommand":
           this.handleDeleteCommand(data.path);
           break;
+        case "openExternal":
+          this.handleOpenExternal(data.url);
+          break;
       }
     });
 
@@ -94,6 +97,15 @@ export class CommandsWebviewProvider implements vscode.WebviewViewProvider {
         type: "showAddForm",
         section: "project",
       });
+    }
+  }
+
+  private async handleOpenExternal(url: string) {
+    try {
+      await vscode.env.openExternal(vscode.Uri.parse(url));
+    } catch (error) {
+      console.error("Failed to open external URL:", error);
+      vscode.window.showErrorMessage(`Failed to open URL: ${url}`);
     }
   }
 

@@ -1,0 +1,25 @@
+name: timeout-recovery-test
+'on':
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - id: timeout-step
+        name: Task that Times Out Initially
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: "Perform a task that initially times out"
+          run: "./tests/fixtures/scripts/claude-timeout.sh"
+          output_session: true
+          retry_on_failure: true
+          max_retries: 1
+          retry_delay_seconds: 5
+          
+      - id: recovery-step  
+        name: Task that Succeeds After Recovery
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: "Continue work after timeout recovery"
+          run: "./tests/fixtures/scripts/claude-timeout-recovery.sh"
+          resume_session: timeout-step

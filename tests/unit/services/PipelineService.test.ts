@@ -124,15 +124,11 @@ describe("PipelineService YAML Format", () => {
 
       expect(steps[1].id).toBe("implement");
       expect(steps[1].with?.model).toBe("claude-3-5-sonnet-latest");
-      expect(steps[1].with?.resume_session).toBe(
-        "${{ steps.analyze.outputs.session_id }}",
-      );
+      expect(steps[1].with?.resume_session).toBe("analyze");
       expect(steps[1].with?.output_session).toBe(true);
 
       expect(steps[2].id).toBe("test");
-      expect(steps[2].with?.resume_session).toBe(
-        "${{ steps.implement.outputs.session_id }}",
-      );
+      expect(steps[2].with?.resume_session).toBe("implement");
       expect(steps[2].with?.output_session).toBeFalsy(); // Last step shouldn't output session
     });
 
@@ -193,14 +189,10 @@ describe("PipelineService YAML Format", () => {
       expect(steps[1].with?.output_session).toBe(true);
 
       // Verify that implement resumes from setup (not analyze)
-      expect(steps[2].with?.resume_session).toBe(
-        "${{ steps.setup.outputs.session_id }}",
-      );
+      expect(steps[2].with?.resume_session).toBe("setup");
 
       // Verify that test resumes from analyze (not implement)
-      expect(steps[3].with?.resume_session).toBe(
-        "${{ steps.analyze.outputs.session_id }}",
-      );
+      expect(steps[3].with?.resume_session).toBe("analyze");
     });
   });
 
@@ -256,6 +248,10 @@ describe("PipelineService YAML Format", () => {
           status: "pending",
         },
       ];
+
+      // Ensure the .github/workflows directory exists before saving
+      const workflowsDir = path.join(tempDir, ".github", "workflows");
+      await fs.mkdir(workflowsDir, { recursive: true });
 
       await service.savePipeline(
         "convert-test",

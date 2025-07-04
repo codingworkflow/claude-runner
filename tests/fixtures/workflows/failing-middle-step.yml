@@ -1,0 +1,27 @@
+name: failing-middle-step
+'on':
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - id: step1
+        name: Execute Step 1
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: "Execute step 1 script"
+          run: "./tests/fixtures/scripts/step1.sh"
+          
+      - id: step2
+        name: Execute Failing Step
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: "Execute failing step script"
+          run: "./tests/fixtures/scripts/failing-step.sh"
+          
+      - id: step3
+        name: Execute Step 3
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: "Execute step 3 script"
+          run: "./tests/fixtures/scripts/step3.sh"

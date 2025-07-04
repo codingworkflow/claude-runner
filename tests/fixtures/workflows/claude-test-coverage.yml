@@ -1,0 +1,688 @@
+name: test-coverage-improvement
+"on":
+  workflow_dispatch:
+    inputs:
+      description:
+        description: Test coverage improvement pipeline
+        required: false
+        type: string
+jobs:
+  test-coverage:
+    name: Test Coverage Improvement
+    runs-on: ubuntu-latest
+    steps:
+      # Priority 1: Critical Services Group 1 (5 tests)
+      - id: task_cli_installation_service_1
+        name: Create CLIInstallationService.test.ts
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: |
+            Create unit tests for src/services/CLIInstallationService.ts
+            Target file: tests/unit/services/CLIInstallationService.test.ts
+            Remember Mocking Rules in CLAUDE.md
+            Test cases:
+            - CLI installation detection and validation
+            - Installation path resolution across platforms
+            - Installation failure handling and recovery
+            - Installation status reporting
+          model: auto
+          allow_all_tools: true
+
+      - id: task_claude_detection_service_2
+        name: Create ClaudeDetectionService.test.ts
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: |
+            Create unit tests for src/services/ClaudeDetectionService.ts
+            Target file: tests/unit/services/ClaudeDetectionService.test.ts
+            Remember Mocking Rules in CLAUDE.md
+            Test cases:
+            - Claude CLI detection in PATH
+            - Detection across different operating systems
+            - Detection failure scenarios
+            - Binary validation and verification
+            - Detection caching mechanisms
+          model: auto
+          allow_all_tools: true
+
+      - id: task_claude_service_3
+        name: Create ClaudeService.test.ts
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: |
+            Create unit tests for src/services/ClaudeService.ts
+            Target file: tests/unit/services/ClaudeService.test.ts
+            Remember Mocking Rules in CLAUDE.md
+            Test cases:
+            - Core Claude service wrapper functionality
+            - API communication and response handling
+            - Error handling and retry mechanisms
+            - Service initialization and configuration
+            - Service lifecycle management
+          model: auto
+          allow_all_tools: true
+
+      - id: validate_group_1
+        name: Validate Group 1 - Run linting and tests
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: |
+            Run validation for the first 5 test files created:
+            1. Run `make lint` to check code quality
+            2. Run `npm run test:unit` to execute unit tests
+            3. Verify all new test files pass
+            4. Check TypeScript compilation
+            5. Report any issues found and fix them
+          model: auto
+          allow_all_tools: true
+
+      # Priority 1: Critical Services Group 2 (3 tests + 2 core services)
+      - id: task_terminal_service_6
+        name: Create TerminalService.test.ts
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: |
+            Create unit tests for src/services/TerminalService.ts
+            Target file: tests/unit/services/TerminalService.test.ts
+            Remember Mocking Rules in CLAUDE.md
+            Test cases:
+            - Terminal interaction and command execution
+            - Terminal error handling
+          model: auto
+          allow_all_tools: true
+
+      - id: task_runner_controller_7
+        name: Create RunnerController.test.ts
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: |
+            Create unit tests for src/controllers/RunnerController.ts
+            Target file: tests/unit/controllers/RunnerController.test.ts
+            Remember Mocking Rules in CLAUDE.md
+            Test cases:
+            - Main application controller orchestration
+            - Service coordination and lifecycle
+            - State management and synchronization
+            - Event handling and dispatching
+            - Error propagation and recovery
+          model: auto
+          allow_all_tools: true
+
+      - id: task_claude_executor_8
+        name: Create ClaudeExecutor.test.ts
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: |
+            Create unit tests for src/core/services/ClaudeExecutor.ts
+            Target file: tests/unit/core/services/ClaudeExecutor.test.ts
+            Remember Mocking Rules in CLAUDE.md
+            Test cases:
+            - Core Claude execution engine functionality
+            - Execution context management
+            - Execution result processing
+            - Execution error handling and recovery
+            - Execution performance monitoring
+          model: auto
+          allow_all_tools: true
+
+      - id: task_workflow_engine_9
+        name: Create WorkflowEngine.test.ts
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: |
+            Create unit tests for src/core/services/WorkflowEngine.ts
+            Target file: tests/unit/core/services/WorkflowEngine.test.ts
+            Remember Mocking Rules in CLAUDE.md
+            Test cases:
+            - Workflow execution engine functionality
+            - Workflow step processing and sequencing
+            - Workflow state transitions
+            - Workflow error handling and rollback
+            - Workflow performance optimization
+            If test got created do a full review, ensure it's complient with 
+            Mocking Rules in CLAUDE.md.
+          model: auto
+          allow_all_tools: true
+
+      - id: task_workflow_json_logger_10
+        name: Create WorkflowJsonLogger.test.ts
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: |
+            Create unit tests for src/services/WorkflowJsonLogger.ts
+            Target file: tests/unit/services/WorkflowJsonLogger.test.ts
+            Ensure test don't duplicate core code and over mock the key logic
+            Remember Mocking Rules in CLAUDE.md
+            Test cases:
+            - JSON workflow logging functionality
+            - Log format validation and structure
+            - Log file management and rotation
+            - Log data serialization and deserialization
+            - Log error handling and recovery
+          model: auto
+          allow_all_tools: true
+
+      # Validation Step 2
+      - id: validate_group_2
+        name: Validate Group 2 - Run linting and tests
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: |
+            Run validation for the second group of 5 test files: 1. Run `make lint` to
+            check code quality 2. Run `npm run test:unit` to execute unit tests 3.
+            Verify all new test files pass 4. Check TypeScript compilation 5. Report
+            any issues found and fix them If you find any issue spin 3 agent to fix the
+            test / linting issues you may find, review compliance of tests with mock Rules
+            - tests/unit/core/services/WorkflowEngine.test.ts
+            - tests/unit/core/services/WorkflowEngine.test.ts
+            - tests/unit/core/services/ClaudeExecutor.test.ts
+            - tests/unit/controllers/RunnerController.test.ts
+          model: auto
+          allow_all_tools: true
+
+      # Priority 2: Core Components Group 1 (5 tests)
+      - id: task_button_component_11
+        name: Create Button.test.tsx
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: |
+            Create unit tests for src/components/common/Button.tsx
+            Target file: tests/unit/components/common/Button.test.tsx
+            Remember Mocking Rules in CLAUDE.md
+            Test cases:
+            - Button component rendering and props
+            - Button click event handling
+            - Button disabled state behavior
+            - Button styling and theme integration
+            - Button accessibility features
+          model: auto
+          allow_all_tools: true
+
+      - id: task_input_component_12
+        name: Create Input.test.tsx
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: |
+            Create unit tests for src/components/common/Input.tsx
+            Target file: tests/unit/components/common/Input.test.tsx
+            Remember Mocking Rules in CLAUDE.md
+            Test cases:
+            - Input field validation and state management
+            - Input value changes and event handling
+            - Input error states and validation messages
+            - Input placeholder and label functionality
+            - Input accessibility and keyboard navigation
+          model: auto
+          allow_all_tools: true
+
+      - id: task_toggle_component_13
+        name: Create Toggle.test.tsx
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: |
+            Create unit tests for src/components/common/Toggle.tsx
+            Target file: tests/unit/components/common/Toggle.test.tsx
+            Remember Mocking Rules in CLAUDE.md
+            Test cases:
+            - Toggle switch functionality and state changes
+            - Toggle event handling and callbacks
+            - Toggle disabled state behavior
+            - Toggle styling and visual feedback
+            - Toggle accessibility and keyboard support
+          model: auto
+          allow_all_tools: true
+
+      - id: task_model_selector_component_14
+        name: Create ModelSelector.test.tsx
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: |
+            Create unit tests for src/components/common/ModelSelector.tsx
+            Target file: tests/unit/components/common/ModelSelector.test.tsx
+            Remember Mocking Rules in CLAUDE.md
+            Test cases:
+            - Model selection and validation
+            - Model dropdown functionality and options
+            - Model change event handling
+            - Model availability checking
+            - Model selector error states
+          model: auto
+          allow_all_tools: true
+
+      - id: task_command_form_component_15
+        name: Create CommandForm.test.tsx
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: |
+            Create unit tests for src/components/common/CommandForm.tsx
+            Target file: tests/unit/components/common/CommandForm.test.tsx
+            Remember Mocking Rules in CLAUDE.md
+            Test cases:
+            - Command form validation and submission
+            - Form field interactions and state management
+            - Form error handling and validation messages
+            - Form reset and clear functionality
+            - Form accessibility and user experience
+          model: auto
+          allow_all_tools: true
+
+      # Validation Step 3
+      - id: validate_group_3
+        name: Validate Group 3 - Run linting and tests
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: |
+            Run validation for the third group of 5 test files:
+            1. Run `make lint` to check code quality
+            2. Run `npm run test:unit` to execute unit tests
+            3. Verify all new test files pass
+            4. Check TypeScript compilation
+            5. Report any issues found and fix them
+          model: auto
+          allow_all_tools: true
+
+      # Priority 2: Core Components Group 2 (3 tests + 2 utilities)
+      - id: task_command_list_component_16
+        name: Create CommandList.test.tsx
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: |
+            Create unit tests for src/components/common/CommandList.tsx
+            Target file: tests/unit/components/common/CommandList.test.tsx
+            Remember Mocking Rules in CLAUDE.md
+            Test cases:
+            - Command list display and rendering
+            - Command list item interactions
+            - Command list filtering and search
+            - Command list sorting and organization
+            - Command list empty state handling
+          model: auto
+          allow_all_tools: true
+
+      - id: task_tab_navigation_component_17
+        name: Create TabNavigation.test.tsx
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: |
+            Create unit tests for src/components/common/TabNavigation.tsx
+            Target file: tests/unit/components/common/TabNavigation.test.tsx
+            Remember Mocking Rules in CLAUDE.md
+            Test cases:
+            - Tab navigation and state management
+            - Tab switching and active state
+            - Tab accessibility and keyboard navigation
+            - Tab content rendering and lifecycle
+            - Tab validation and error handling
+          model: auto
+          allow_all_tools: true
+
+      - id: task_chat_panel_component_18
+        name: Create ChatPanel.test.tsx
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: |
+            Create unit tests for src/components/panels/ChatPanel.tsx
+            Target file: tests/unit/components/panels/ChatPanel.test.tsx
+            Remember Mocking Rules in CLAUDE.md
+            Test cases:
+            - Chat interface functionality and message handling
+            - Chat message display and formatting
+            - Chat input validation and submission
+            - Chat history management and persistence
+            - Chat error handling and connection states
+          model: auto
+          allow_all_tools: true
+
+      - id: task_shell_detection_utility_19
+        name: Create ShellDetection.test.ts
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: |
+            Create unit tests for src/utils/ShellDetection.ts
+            Target file: tests/unit/utils/ShellDetection.test.ts
+            Remember Mocking Rules in CLAUDE.md
+            Test cases:
+            - Shell detection across different platforms
+            - Shell type identification and validation
+            - Shell path resolution and verification
+            - Shell compatibility checking
+            - Shell detection error handling
+          model: auto
+          allow_all_tools: true
+
+      - id: task_parallel_tasks_utility_20
+        name: Create detectParallelTasksCount.test.ts
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: |
+            Create unit tests for src/utils/detectParallelTasksCount.ts
+            Target file: tests/unit/utils/detectParallelTasksCount.test.ts
+            Remember Mocking Rules in CLAUDE.md
+            Test cases:
+            - Parallel task count detection logic
+            - System resource analysis and optimization
+            - Task count validation and limits
+            - Performance impact assessment
+            - Task count configuration management
+          model: auto
+          allow_all_tools: true
+
+      # Validation Step 4
+      - id: validate_group_4
+        name: Validate Group 4 - Run linting and tests
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: |
+            Run validation for the fourth group of 5 test files:
+            1. Run `make lint` to check code quality
+            2. Run `npm run test:unit` to execute unit tests
+            3. Verify all new test files pass
+            4. Check TypeScript compilation
+            5. Report any issues found and fix them
+          model: auto
+          allow_all_tools: true
+
+      # Priority 3: Utilities and Helpers Group (5 tests)
+      - id: task_error_handlers_utility_21
+        name: Create errorHandlers.test.ts
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: |
+            Create unit tests for src/utils/errorHandlers.ts
+            Target file: tests/unit/utils/errorHandlers.test.ts
+            Remember Mocking Rules in CLAUDE.md
+            Test cases:
+            - Error handling and recovery mechanisms
+            - Error classification and categorization
+            - Error message formatting and localization
+            - Error logging and reporting
+            - Error propagation and bubbling
+          model: auto
+          allow_all_tools: true
+
+      - id: task_response_handlers_utility_22
+        name: Create responseHandlers.test.ts
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: |
+            Create unit tests for src/utils/responseHandlers.ts
+            Target file: tests/unit/utils/responseHandlers.test.ts
+            Remember Mocking Rules in CLAUDE.md
+            Test cases:
+            - Response processing and formatting
+            - Response validation and sanitization
+            - Response transformation and mapping
+            - Response caching and optimization
+            - Response error handling and fallbacks
+          model: auto
+          allow_all_tools: true
+
+      - id: task_webview_helpers_utility_23
+        name: Create webviewHelpers.test.ts
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: |
+            Create unit tests for src/utils/webviewHelpers.ts
+            Target file: tests/unit/utils/webviewHelpers.test.ts
+            Remember Mocking Rules in CLAUDE.md
+            Test cases:
+            - Webview utility functions and helpers
+            - Webview communication and messaging
+            - Webview state management and persistence
+          model: auto
+          allow_all_tools: true
+
+      - id: task_command_form_hook_24
+        name: Create useCommandForm.test.ts
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: |
+            Create unit tests for src/hooks/useCommandForm.ts
+            Target file: tests/unit/hooks/useCommandForm.test.ts
+            Remember Mocking Rules in CLAUDE.md
+            Test cases:
+            - Command form hook behavior and state management
+            - Form validation and error handling
+            - Form submission and reset functionality
+            - Form field interactions and updates
+            - Form lifecycle and cleanup
+          model: auto
+          allow_all_tools: true
+
+      - id: task_vscode_api_hook_25
+        name: Create useVSCodeAPI.test.ts
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: |
+            Create unit tests for src/components/hooks/useVSCodeAPI.ts
+            Target file: tests/unit/components/hooks/useVSCodeAPI.test.ts
+            Remember Mocking Rules in CLAUDE.md
+            Test cases:
+            - VSCode API communication hook functionality
+            - API message handling and routing
+            - API error handling and recovery
+            - API state synchronization
+            - API performance and optimization
+          model: auto
+          allow_all_tools: true
+
+      # Validation Step 5
+      - id: validate_group_5
+        name: Validate Group 5 - Run linting and tests
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: |
+            Run validation for the fifth group of 5 test files:
+            1. Run `make lint` to check code quality
+            2. Run `npm run test:unit` to execute unit tests
+            3. Verify all new test files pass
+            4. Check TypeScript compilation
+            5. Report any issues found and fix them
+          model: auto
+          allow_all_tools: true
+
+      # Priority 4: Adapters and Storage Group (5 tests)
+      - id: task_message_router_26
+        name: Create MessageRouter.test.ts
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: |
+            Create unit tests for src/components/webview/MessageRouter.ts
+            Target file: tests/unit/components/webview/MessageRouter.test.ts
+            Remember Mocking Rules in CLAUDE.md
+            Test cases:
+            - Webview message routing functionality
+            - Message validation and sanitization
+            - Route registration and management
+            - Message handling and processing
+            - Router error handling and fallbacks
+          model: auto
+          allow_all_tools: true
+
+      - id: task_vscode_config_source_27
+        name: Create VSCodeConfigSource.test.ts
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: |
+            Create unit tests for src/adapters/vscode/VSCodeConfigSource.ts
+            Target file: tests/unit/adapters/vscode/VSCodeConfigSource.test.ts
+            Remember Mocking Rules in CLAUDE.md
+            Test cases:
+            - VSCode configuration source adapter functionality
+            - Configuration reading and writing
+            - Configuration validation and defaults
+            - Configuration change detection
+            - Configuration error handling
+          model: auto
+          allow_all_tools: true
+
+      - id: task_vscode_filesystem_28
+        name: Create VSCodeFileSystem.test.ts
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: |
+            Create unit tests for src/adapters/vscode/VSCodeFileSystem.ts
+            Target file: tests/unit/adapters/vscode/VSCodeFileSystem.test.ts
+            Remember Mocking Rules in CLAUDE.md
+            Test cases:
+            - VSCode file system operations and management
+            - File reading and writing functionality
+            - Directory operations and navigation
+            - File system error handling and recovery
+            - File system security and validation
+          model: auto
+          allow_all_tools: true
+
+      - id: task_vscode_logger_29
+        name: Create VSCodeLogger.test.ts
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: |
+            Create unit tests for src/adapters/vscode/VSCodeLogger.ts
+            Target file: tests/unit/adapters/vscode/VSCodeLogger.test.ts
+            Remember Mocking Rules in CLAUDE.md
+            Test cases:
+            - VSCode logging adapter functionality
+            - Log level management and filtering
+            - Log formatting and output
+            - Log persistence and rotation
+            - Log error handling and fallbacks
+          model: auto
+          allow_all_tools: true
+
+      - id: task_vscode_notification_30
+        name: Create VSCodeNotification.test.ts
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: |
+            Create unit tests for src/adapters/vscode/VSCodeNotification.ts
+            Target file: tests/unit/adapters/vscode/VSCodeNotification.test.ts
+            Remember Mocking Rules in CLAUDE.md
+            Test cases:
+            - VSCode notification system functionality
+            - Notification display and management
+            - Notification types and severity levels
+            - Notification user interaction handling
+            - Notification error handling and fallbacks
+          model: auto
+          allow_all_tools: true
+
+      # Validation Step 6
+      - id: validate_group_6
+        name: Validate Group 6 - Run linting and tests
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: |
+            Run validation for the sixth group of 5 test files:
+            1. Run `make lint` to check code quality
+            2. Run `npm run test:unit` to execute unit tests
+            3. Verify all new test files pass
+            4. Check TypeScript compilation
+            5. Report any issues found and fix them
+          model: auto
+          allow_all_tools: true
+
+      # Priority 5: Models and Complex Components Group (5 tests)
+      - id: task_workflow_storage_adapter_31
+        name: Create WorkflowStorageAdapter.test.ts
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: |
+            Create unit tests for src/adapters/storage/WorkflowStorageAdapter.ts
+            Target file: tests/unit/adapters/storage/WorkflowStorageAdapter.test.ts
+            Remember Mocking Rules in CLAUDE.md
+            Test cases:
+            - Workflow storage operations and management
+            - Workflow data serialization and persistence
+            - Workflow storage error handling and recovery
+            - Workflow storage performance optimization
+            - Workflow storage security and validation
+          model: auto
+          allow_all_tools: true
+
+      - id: task_task_model_32
+        name: Create Task.test.ts
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: |
+            Create unit tests for src/core/models/Task.ts
+            Target file: tests/unit/core/models/Task.test.ts
+            Remember Mocking Rules in CLAUDE.md
+            Test cases:
+            - Task model validation and operations
+            - Task state management and transitions
+            - Task serialization and deserialization
+            - Task relationship and dependency handling
+            - Task error handling and validation
+          model: auto
+          allow_all_tools: true
+
+      - id: task_workflow_model_33
+        name: Create Workflow.test.ts
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: |
+            Create unit tests for src/core/models/Workflow.ts
+            Target file: tests/unit/core/models/Workflow.test.ts
+            Remember Mocking Rules in CLAUDE.md
+            Test cases:
+            - Workflow model and state management
+            - Workflow validation and structure
+            - Workflow execution flow and control
+            - Workflow serialization and persistence
+            - Workflow error handling and recovery
+          model: auto
+          allow_all_tools: true
+
+      - id: task_claude_models_34
+        name: Create ClaudeModels.test.ts
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: |
+            Create unit tests for src/models/ClaudeModels.ts
+            Target file: tests/unit/models/ClaudeModels.test.ts
+            Remember Mocking Rules in CLAUDE.md
+            Test cases:
+            - Claude model definitions and validation
+            - Model capability and feature checking
+            - Model selection and compatibility
+            - Model configuration and parameters
+            - Model error handling and fallbacks
+          model: auto
+          allow_all_tools: true
+
+      - id: task_unified_app_component_35
+        name: Create UnifiedApp.test.tsx
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: |
+            Create unit tests for src/components/UnifiedApp.tsx
+            Target file: tests/unit/components/UnifiedApp.test.tsx
+            Remember Mocking Rules in CLAUDE.md
+            Test cases:
+            - Main application component integration
+            - Application state management and lifecycle
+            - Component routing and navigation
+            - Application error boundary and recovery
+            - Application performance and optimization
+          model: auto
+          allow_all_tools: true
+
+      # Final Validation
+      - id: final_validation
+        name: Final Validation - Complete test suite
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: |
+            Run comprehensive validation for all created test files: 1. Run `make lint`
+            to check code quality across all files 2. Run `npm run test:unit` to
+            execute complete unit test suite 3. Run `npm run test:unit:coverage` to
+            check coverage improvement 4. Verify TypeScript compilation for entire
+            project 5. Generate final test coverage report 6. Identify any remaining
+            issues and provide recommendations 7. Spin 5 agents to do full review of
+            the tests mocks, goal here ensure that tests are not dulicating ou app
+            business logic and code and creating comlexity, focus on the unit tests so
+            do deep review and write a doc listing the issues you found docs
+            docs/tests_review.md
+          model: auto
+          allow_all_tools: true

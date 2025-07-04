@@ -100,19 +100,13 @@ export function hasSessionOutput(_step: ClaudeStep): boolean {
 }
 
 export function getSessionReference(value: string): string | null {
-  // Handle complex format: ${{ steps.stepId.outputs.session_id }}
-  const complexMatch = value.match(
-    /\$\{\{\s*steps\.(\w+)\.outputs\.session_id\s*\}\}/,
-  );
-  if (complexMatch) {
-    return complexMatch[1];
-  }
-
-  // Handle simple format: just the step ID (KISS approach)
+  // Only handle simple format: just the step ID (KISS approach)
+  // NO LONGER SUPPORT old complex format: ${{ steps.stepId.outputs.session_id }}
   const simpleMatch = value.match(/^([a-zA-Z0-9_-]+)$/);
   if (simpleMatch) {
     return simpleMatch[1];
   }
 
+  // Return null for any complex format - this will cause validation to fail
   return null;
 }

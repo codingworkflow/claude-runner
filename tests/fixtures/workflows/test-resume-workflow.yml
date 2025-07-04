@@ -1,0 +1,17 @@
+name: "Test Resume Workflow"
+'on':
+  workflow_dispatch:
+jobs:
+  pipeline:
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Step 0"
+        uses: "anthropics/claude-pipeline-action"
+        with:
+          prompt: "First step"
+          output_session: true
+      - name: "Step 1" 
+        uses: "anthropics/claude-pipeline-action"
+        with:
+          prompt: "Second step"
+          resume_session: "${{ steps.step-0.outputs.session_id }}"

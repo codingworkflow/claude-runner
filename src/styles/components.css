@@ -89,6 +89,19 @@ select:focus {
   margin-bottom: var(--spacing-md);
 }
 
+/* Bottom Actions - Persistent button area */
+.bottom-actions {
+  padding: var(--spacing-md) 0;
+  border-top: 1px solid var(--vscode-tab-border);
+  margin-top: auto;
+  display: flex;
+  justify-content: center;
+}
+
+.bottom-actions .button-icon {
+  margin-right: var(--spacing-xs);
+}
+
 .tab-button {
   padding: var(--spacing-xs) var(--spacing-md);
   background: transparent;
@@ -261,6 +274,7 @@ button {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-xs);
+  align-items: flex-start;
 }
 
 .check-command-row {

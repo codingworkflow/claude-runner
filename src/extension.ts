@@ -172,6 +172,7 @@ export async function activate(context: vscode.ExtensionContext) {
     vscode.window.registerWebviewViewProvider(
       "claude-runner.mainView",
       claudeRunnerPanel,
+      { webviewOptions: { retainContextWhenHidden: true } },
     ),
     vscode.window.registerWebviewViewProvider(
       CommandsWebviewProvider.viewType,

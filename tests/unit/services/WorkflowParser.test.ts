@@ -98,7 +98,7 @@ jobs:
         uses: anthropics/claude-pipeline-action@v1
         with:
           prompt: Second step
-          resume_session: \${{ steps.first.outputs.session_id }}
+          resume_session: first
 `;
       const workflow = WorkflowParser.parseYaml(yaml);
       expect(workflow.jobs.test.steps.length).toBe(2);
@@ -118,7 +118,7 @@ jobs:
         uses: anthropics/claude-pipeline-action@v1
         with:
           prompt: Second step
-          resume_session: \${{ steps.nonexistent.outputs.session_id }}
+          resume_session: nonexistent
 `;
       expect(() => WorkflowParser.parseYaml(yaml)).toThrow(
         /references unknown step/,

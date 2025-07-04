@@ -1,0 +1,44 @@
+name: test
+'on':
+  workflow_dispatch:
+    inputs:
+      description:
+        description: Pipeline execution
+        required: false
+        type: string
+jobs:
+  pipeline:
+    name: Pipeline Execution
+    runs-on: ubuntu-latest
+    steps:
+      - id: task_1749136020946_r4mql2lom
+        name: Task 1
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: test
+          model: claude-opus-4-20250514
+          allow_all_tools: true
+          output_session: true
+          
+      - id: task_1749136022714_z5t92m803
+        name: Task 2
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: test
+          model: claude-opus-4-20250514
+          allow_all_tools: true
+          resume_session: ${{ steps.task_1749136020946_r4mql2lom.outputs.session_id }}
+      - id: task_1749136024478_042mecw7u
+        name: Task 3
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: test
+          model: claude-opus-4-20250514
+          allow_all_tools: true
+      - id: task_1749136025585_vnyzcmorp
+        name: Task 4
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: test
+          model: claude-opus-4-20250514
+          allow_all_tools: true

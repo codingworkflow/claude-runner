@@ -1,0 +1,16 @@
+name: input-test
+'on':
+  workflow_dispatch:
+    inputs:
+      task_description:
+        description: "Task to perform"
+        required: true
+jobs:
+  main:
+    runs-on: ubuntu-latest
+    steps:
+      - id: task
+        name: Execute Task
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: "Please ${{ inputs.task_description }}"

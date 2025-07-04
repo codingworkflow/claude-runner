@@ -1,0 +1,30 @@
+name: real-execution-failure
+'on':
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - id: step1
+        name: Successful Step
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: "Execute successful step"
+          run: "./tests/fixtures/scripts/step1.sh"
+          output_session: true
+          
+      - id: step2
+        name: Failing Step
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: "Execute failing step"
+          run: "./tests/fixtures/scripts/failing-exit-code.sh"
+          resume_session: step1
+          
+      - id: step3
+        name: Should Not Execute
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: "This should not execute"
+          run: "./tests/fixtures/scripts/step3.sh"
+          resume_session: step2

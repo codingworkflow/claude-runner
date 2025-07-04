@@ -1,0 +1,24 @@
+name: executable-test
+'on':
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - id: step1
+        name: Execute Step 1
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: "Execute step1.sh script"
+          model: "claude-sonnet-4-20250514"
+          run: "./tests/fixtures/scripts/step1.sh"
+          output_session: true
+          
+      - id: step2
+        name: Execute Step 2
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: "Execute step2.sh script"
+          model: "claude-sonnet-4-20250514"
+          run: "./tests/fixtures/scripts/step2.sh"
+          resume_session: step1

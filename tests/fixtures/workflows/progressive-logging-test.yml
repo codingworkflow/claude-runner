@@ -1,0 +1,30 @@
+name: progressive-logging-test
+'on':
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - id: step1
+        name: Initial Setup
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: "Setup initial project structure"
+          run: "./tests/fixtures/scripts/claude-step1.sh"
+          output_session: true
+          
+      - id: step2
+        name: Feature Implementation
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: "Implement core features"
+          run: "./tests/fixtures/scripts/claude-step2.sh"
+          resume_session: step1
+          
+      - id: step3
+        name: Project Finalization
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: "Finalize and document project"
+          run: "./tests/fixtures/scripts/claude-step3.sh"
+          resume_session: step2
