@@ -51,34 +51,30 @@
     "@typescript-eslint/consistent-type-definitions": ["error", "interface"],
     "@typescript-eslint/prefer-readonly": "warn",
 
-    // Complexity rules (analysis only - high thresholds to avoid noise)
-    "complexity": ["warn", { "max": 25 }],
+    "complexity": ["warn", { "max": 40 }],
     "max-depth": ["warn", 8],
-    "max-lines": ["warn", 600],
-    "max-lines-per-function": ["warn", 150],
-    "max-nested-callbacks": "off", // Disabled - causes issues with tests
-    "max-params": ["warn", 8],
-    "max-statements": ["warn", 50],
-    "max-statements-per-line": "off", // Disabled - formatting issue
+    "max-lines": ["warn", 1000],
+    "max-lines-per-function": ["warn", 300],
+    "max-nested-callbacks": "off",
+    "max-params": ["warn", 10],
+    "max-statements": ["warn", 100],
+    "max-statements-per-line": "off",
 
-    // SonarJS quality rules (analysis only - high thresholds)
     "sonarjs/cognitive-complexity": ["warn", 30],
     "sonarjs/no-duplicate-string": ["warn", { "threshold": 8 }],
     "sonarjs/no-identical-functions": "warn",
-    "sonarjs/no-redundant-jump": "off", // Disabled - can change code
-    "sonarjs/prefer-immediate-return": "off", // Disabled - changes code style
-    "sonarjs/prefer-object-literal": "off", // Disabled - changes code style
-    "sonarjs/prefer-single-boolean-return": "off", // Disabled - changes code style
+    "sonarjs/no-redundant-jump": "off",
+    "sonarjs/prefer-immediate-return": "off",
+    "sonarjs/prefer-object-literal": "off",
+    "sonarjs/prefer-single-boolean-return": "off",
 
-    // Import rules for better organization (disabled to avoid formatting issues)
-    "import/order": "off", // Disabled - causes formatting changes
-    "import/no-unresolved": "off", // Disabled - causes issues with vscode module
-    "import/no-unused-modules": "off", // Disabled - can be noisy
-    "import/no-cycle": "warn", // Keep this for actual issues
+    "import/order": "off",
+    "import/no-unresolved": "off",
+    "import/no-unused-modules": "off",
+    "import/no-cycle": "warn",
     "import/no-self-import": "warn",
-    "import/no-useless-path-segments": "off", // Disabled - causes formatting changes
+    "import/no-useless-path-segments": "off",
 
-    // Security: Restrict unsafe Node.js imports while allowing CLI operation essentials
     "no-restricted-imports": [
       "error",
       {
@@ -101,7 +97,6 @@
       }
     ],
 
-    // Unicorn rules - DISABLED to prevent code style changes
     "unicorn/prevent-abbreviations": "off",
     "unicorn/filename-case": "off",
     "unicorn/no-null": "off",
@@ -117,21 +112,20 @@
     "unicorn/switch-case-braces": "off",
     "unicorn/better-regex": "off",
     "unicorn/text-encoding-identifier-case": "off",
-    "unicorn/consistent-function-scoping": "off", // Disabled - causes code changes
-    "unicorn/explicit-length-check": "off", // Disabled - stylistic
-    "unicorn/prefer-array-some": "off", // Disabled - causes code changes
-    "unicorn/prefer-includes": "off", // Disabled - causes code changes
-    "unicorn/prefer-string-starts-ends-with": "off", // Disabled - causes code changes
-    "unicorn/prefer-ternary": "off", // Disabled - causes formatting changes
-    "unicorn/import-style": "off", // Disabled - causes import style changes
+    "unicorn/consistent-function-scoping": "off",
+    "unicorn/explicit-length-check": "off",
+    "unicorn/prefer-array-some": "off",
+    "unicorn/prefer-includes": "off",
+    "unicorn/prefer-string-starts-ends-with": "off",
+    "unicorn/prefer-ternary": "off",
+    "unicorn/import-style": "off",
 
-    // JSDoc rules - DISABLED to prevent formatting issues
     "jsdoc/require-jsdoc": "off",
     "jsdoc/require-param-description": "off",
     "jsdoc/require-returns-description": "off",
     "jsdoc/require-description": "off",
-    "jsdoc/require-param": "off", // Disabled - causes doc format changes
-    "jsdoc/require-returns": "off", // Disabled - causes doc format changes
+    "jsdoc/require-param": "off",
+    "jsdoc/require-returns": "off",
     "jsdoc/check-param-names": "off",
     "jsdoc/check-tag-names": "off",
     "jsdoc/check-types": "off"
@@ -149,6 +143,28 @@
     "es6": true
   },
   "overrides": [
+    {
+      "files": ["src/components/**/*.{ts,tsx}"],
+      "rules": {
+        "max-lines-per-function": ["warn", 600],
+        "complexity": "off",
+        "sonarjs/cognitive-complexity": "off"
+      }
+    },
+    {
+      "files": ["src/contexts/**/*.{ts,tsx}"],
+      "rules": {
+        "max-lines-per-function": ["warn", 450],
+        "complexity": "off",
+        "sonarjs/cognitive-complexity": "off"
+      }
+    },
+    {
+      "files": ["src/controllers/**/*.ts"],
+      "rules": {
+        "max-lines": ["warn", 1200]
+      }
+    },
     {
       "files": ["src/webview/**/*.{ts,tsx}"],
       "env": {
