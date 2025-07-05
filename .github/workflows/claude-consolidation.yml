@@ -1,0 +1,972 @@
+name: state-consolidation-cli-removal
+"on":
+  workflow_dispatch:
+    inputs:
+      description:
+        description: State consolidation with CLI removal for simplified architecture
+        required: false
+        type: string
+      
+# PLAN REFERENCES:
+# - State Consolidation Plan: docs/STATE_CONSOLIDATION_PLAN.md
+# - CLI Removal Analysis: docs/cli-removal-analysis.md (to be created)
+# - Architecture Simplification: docs/architecture-simplification.md (to be created)
+#
+# IMPACTED FILES:
+# - src/controllers/RunnerController.ts (major refactor)
+# - src/services/ClaudeCodeService.ts (CLI removal)
+# - src/services/CLIInstallationService.ts (remove)
+# - src/services/ClaudeDetectionService.ts (simplify)
+# - src/types/runner.ts (state consolidation)
+# - CLI directory: cli/ (remove entirely)
+
+jobs:
+  state-consolidation:
+    name: State Consolidation & CLI Removal
+    runs-on: ubuntu-latest
+    steps:
+      # === PHASE 0: CLI REMOVAL PREPARATION ===
+      
+      # Session 1: CLI Dependency Analysis
+      - id: analyze_cli_dependencies
+        name: "Session 1: Analyze CLI dependencies and create removal plan"
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: |
+            CLI DEPENDENCY ANALYSIS TASK:
+            
+            REFERENCE DOCUMENTS:
+            - Read docs/STATE_CONSOLIDATION_PLAN.md for context on state management
+            - Follow CLAUDE.md coding guidelines and file modification rules
+            
+            1. COMPREHENSIVE CLI ANALYSIS:
+               - Read src/services/CLIInstallationService.ts
+               - Read src/services/ClaudeDetectionService.ts
+               - Read src/services/ClaudeCodeService.ts (focus on CLI process spawning)
+               - Read cli/package.json and cli/README.md
+               - Analyze all CLI dependencies in main package.json
+               
+            2. IDENTIFY CLI USAGE PATTERNS:
+               - Map all places where CLI is spawned or referenced
+               - Document session management through CLI processes
+               - Find CLI-specific error handling patterns
+               - Identify CLI configuration and setup code
+               
+            3. CREATE REMOVAL PLAN:
+               - Document exactly which files will be removed
+               - Identify which files need CLI references stripped
+               - Plan replacement architecture without CLI
+               - Map CLI functionality to direct API integration
+               
+            4. DOCUMENT FINDINGS:
+               - Create docs/cli-removal-analysis.md
+               - List all CLI-dependent code with line numbers
+               - Document replacement strategy for each CLI function
+               - Cross-reference with STATE_CONSOLIDATION_PLAN.md
+               
+            5. ARCHITECTURE SIMPLIFICATION:
+               - Create docs/architecture-simplification.md
+               - Document simplified execution flow without CLI
+               - Plan state management without process tracking
+               - Design direct API integration approach
+               
+            CONSTRAINTS:
+            - NO implementation changes in this session
+            - ONLY analysis and planning
+            - Document facts, not opinions
+            - Follow CLAUDE.md quality rules
+          model: auto
+          allow_all_tools: true
+          output_session: true
+
+      - id: validate_cli_analysis
+        name: "Validate CLI analysis completeness"
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: |
+            VALIDATION STEP:
+            
+            1. Verify analysis documents exist and are comprehensive
+            2. Run `make lint` to confirm current state passes
+            3. Run `npm run test:unit` to establish baseline
+            4. Check that all CLI dependencies are identified
+            5. Validate removal plan is complete and actionable
+            6. Cross-reference with docs/STATE_CONSOLIDATION_PLAN.md
+            7. **RUN SESSION CONTINUITY TESTS**: Execute `npm run test:unit -- --testPathPattern="SessionContinuity" --verbose`
+            8. **VALIDATE REAL EXECUTION**: Verify tests execute real scripts and maintain session IDs
+            
+            QUALITY GATE: Complete CLI analysis, all tests pass with real execution
+            TEST REQUIREMENT: Session continuity must work with actual script execution
+          model: auto
+          allow_all_tools: true
+          resume_session: analyze_cli_dependencies
+
+      # Session 2: Remove CLI Infrastructure  
+      - id: remove_cli_infrastructure
+        name: "Session 2: Remove CLI installation and detection services"
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: |
+            CLI INFRASTRUCTURE REMOVAL:
+            
+            REFERENCE: Use CLI analysis from analyze_cli_dependencies session
+            PLAN: Follow docs/cli-removal-analysis.md created in Session 1
+            
+            TARGET ACTIONS:
+            
+            1. REMOVE FILES COMPLETELY:
+               - src/services/CLIInstallationService.ts
+               - cli/ directory and all contents
+               - Any CLI-related test files
+               
+            2. SIMPLIFY ClaudeDetectionService.ts:
+               - Remove all CLI detection logic
+               - Keep only API key validation
+               - Remove shell detection and CLI path logic
+               - Simplify to basic Claude API connectivity check
+               
+            3. UPDATE PACKAGE.JSON:
+               - Remove CLI-related scripts and dependencies
+               - Remove cli/ references from build scripts
+               - Clean up any CLI-specific configurations
+               
+            4. UPDATE EXTENSION.TS:
+               - Remove CLI installation service calls
+               - Remove CLI cleanup code
+               - Remove CLI-related extension activation logic
+               
+            CONSTRAINTS:
+            - DO NOT modify ClaudeCodeService.ts yet (next session)
+            - DO NOT touch RunnerController.ts yet (Phase 1)
+            - Follow CLAUDE.md file modification rules
+            - Maintain all non-CLI functionality
+            - Update imports and references appropriately
+          model: auto
+          allow_all_tools: true
+          resume_session: analyze_cli_dependencies
+
+      - id: validate_cli_removal
+        name: "Validate CLI infrastructure removal"
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: |
+            VALIDATION STEP:
+            
+            1. Verify all CLI files are removed
+            2. Check imports are updated correctly
+            3. Run `make lint` - must pass
+            4. Run TypeScript compilation - must succeed
+            5. **RUN SESSION CONTINUITY TESTS**: Execute `npm run test:unit -- --testPathPattern="SessionContinuity" --verbose`
+            6. **VERIFY REAL EXECUTION**: Confirm session tests still use actual script execution
+            7. Extension should still load (even if some features don't work)
+            
+            QUALITY GATE: CLI infrastructure removed, compilation passes, session tests work with real execution
+            TEST REQUIREMENT: Session continuity must be preserved with actual execution
+          model: auto
+          allow_all_tools: true
+          resume_session: analyze_cli_dependencies
+
+      # Session 3: Replace CLI Service with Direct API
+      - id: replace_cli_service
+        name: "Session 3: Replace ClaudeCodeService CLI spawning with direct API"
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: |
+            CLI SERVICE REPLACEMENT:
+            
+            REFERENCE: Use CLI analysis from analyze_cli_dependencies session
+            PLAN: Follow docs/cli-removal-analysis.md and docs/architecture-simplification.md
+            
+            TARGET FILE: src/services/ClaudeCodeService.ts
+            
+            MAJOR CHANGES:
+            
+            1. REMOVE CLI PROCESS SPAWNING:
+               - Remove spawn() and child_process imports
+               - Remove currentProcess tracking
+               - Remove executeCommand() method
+               - Remove CLI command building logic
+               
+            2. IMPLEMENT DIRECT API INTEGRATION:
+               - Add Claude API client integration
+               - Replace CLI execution with direct API calls
+               - Implement proper error handling for API calls
+               - Maintain same interface for existing callers
+               
+            3. SIMPLIFY STATE MANAGEMENT:
+               - Remove process-specific state fields
+               - Remove CLI session ID tracking
+               - Simplify execution tracking to in-memory state
+               - Remove CLI-specific error handling
+               
+            4. UPDATE TASK EXECUTION:
+               - Replace CLI task execution with API calls
+               - Maintain pipeline execution flow
+               - Keep pause/resume functionality (simplified)
+               - Remove CLI-specific rate limiting detection
+               
+            CONSTRAINTS:
+            - Maintain same public interface where possible
+            - Keep existing pause/resume functionality working
+            - Follow CLAUDE.md coding standards
+            - Prepare for state consolidation in Phase 1
+          model: auto
+          allow_all_tools: true
+          resume_session: analyze_cli_dependencies
+
+      - id: validate_api_integration
+        name: "Validate API integration replacement"
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: |
+            VALIDATION STEP:
+            
+            1. Run `make lint` - must pass
+            2. Run TypeScript compilation - must succeed
+            3. **RUN SESSION CONTINUITY TESTS**: Execute `npm run test:unit -- --testPathPattern="SessionContinuity" --verbose`
+            4. **VERIFY REAL EXECUTION**: Confirm session tests use actual execution, not CLI processes
+            5. Test basic task execution works with new API integration
+            6. Verify error handling is appropriate
+            7. Check that pause/resume still functions
+            
+            QUALITY GATE: API integration working, no CLI dependencies, session continuity preserved
+            TEST REQUIREMENT: Session tests must demonstrate actual functionality without CLI
+          model: auto
+          allow_all_tools: true
+          resume_session: analyze_cli_dependencies
+
+      # === PHASE 1: STATE MODEL REDESIGN ===
+
+      # Session 4: Implement Unified Execution State
+      - id: implement_execution_state
+        name: "Session 4: Implement unified execution state model"
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: |
+            EXECUTION STATE IMPLEMENTATION:
+            
+            REFERENCE: Follow docs/STATE_CONSOLIDATION_PLAN.md Phase 1.1
+            CONTEXT: CLI removal completed, now implement state consolidation
+            
+            TARGET FILE: src/types/runner.ts
+            
+            IMPLEMENT NEW STATE INTERFACES:
+            
+            1. CREATE ExecutionState interface:
+            ```typescript
+            interface ExecutionState {
+              phase: "idle" | "running" | "paused" | "completed" | "error";
+              type?: "task" | "pipeline" | "workflow";
+              executionId?: string;
+              currentIndex?: number;
+              result?: string;
+              error?: string;
+              pauseReason?: "manual" | "condition" | "error";
+            }
+            ```
+            
+            2. CREATE PauseResumeState interface:
+            ```typescript
+            interface PauseResumeState {
+              activePauses: Array<{
+                id: string;
+                type: "pipeline" | "workflow";
+                pausedAt: number;
+                reason: "manual" | "condition" | "error";
+                context: PipelineContext | WorkflowContext;
+              }>;
+              resumableItems: Array<{
+                id: string;
+                name: string;
+                type: "pipeline" | "workflow";
+                canResume: boolean;
+                lastStep: number;
+                totalSteps: number;
+              }>;
+            }
+            ```
+            
+            3. UPDATE UIState interface:
+            - Replace overlapping fields with new consolidated state
+            - Remove CLI-specific fields
+            - Add execution: ExecutionState
+            - Add pauseResume: PauseResumeState
+            - Mark deprecated fields for removal
+            
+            CONSTRAINTS:
+            - Add new interfaces alongside existing ones
+            - Mark old fields as @deprecated
+            - Don't break existing code yet
+            - Follow TypeScript strict mode requirements
+          model: auto
+          allow_all_tools: true
+          resume_session: analyze_cli_dependencies
+
+      - id: create_execution_state_machine
+        name: "Session 5: Create execution state machine"
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: |
+            STATE MACHINE IMPLEMENTATION:
+            
+            REFERENCE: Follow docs/STATE_CONSOLIDATION_PLAN.md Phase 2.1
+            CONTEXT: State interfaces defined, now implement state machine logic
+            
+            CREATE: src/core/ExecutionStateMachine.ts
+            
+            IMPLEMENT STATE MACHINE CLASS:
+            
+            ```typescript
+            export class ExecutionStateMachine {
+              private state: ExecutionState;
+              
+              constructor(initialState: ExecutionState = { phase: "idle" }) {
+                this.state = initialState;
+              }
+              
+              transition(event: ExecutionEvent): ExecutionState {
+                switch (this.state.phase) {
+                  case "idle":
+                    if (event.type === "START") {
+                      return {
+                        phase: "running",
+                        type: event.executionType,
+                        executionId: event.id,
+                        currentIndex: 0,
+                      };
+                    }
+                    break;
+                    
+                  case "running":
+                    if (event.type === "PAUSE") {
+                      return { ...this.state, phase: "paused", pauseReason: event.reason };
+                    }
+                    if (event.type === "COMPLETE") {
+                      return { ...this.state, phase: "completed", result: event.result };
+                    }
+                    if (event.type === "ERROR") {
+                      return { ...this.state, phase: "error", error: event.error };
+                    }
+                    break;
+                    
+                  case "paused":
+                    if (event.type === "RESUME") {
+                      return { ...this.state, phase: "running" };
+                    }
+                    if (event.type === "CANCEL") {
+                      return { phase: "idle" };
+                    }
+                    break;
+                }
+                
+                throw new Error(`Invalid transition: ${this.state.phase} -> ${event.type}`);
+              }
+              
+              getCurrentState(): ExecutionState {
+                return { ...this.state };
+              }
+            }
+            ```
+            
+            ALSO CREATE: src/types/ExecutionEvents.ts for event definitions
+            
+            CONSTRAINTS:
+            - Pure state machine logic only
+            - No side effects in transitions
+            - Comprehensive error handling
+            - Full TypeScript strict mode compliance
+          model: auto
+          allow_all_tools: true
+          resume_session: analyze_cli_dependencies
+
+      - id: create_pause_resume_manager
+        name: "Session 6: Create centralized pause/resume manager"
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: |
+            PAUSE/RESUME MANAGER IMPLEMENTATION:
+            
+            REFERENCE: Follow docs/STATE_CONSOLIDATION_PLAN.md Phase 2.2
+            CONTEXT: State machine created, now implement pause/resume logic
+            
+            CREATE: src/core/PauseResumeManager.ts
+            
+            IMPLEMENT MANAGER CLASS:
+            
+            ```typescript
+            export class PauseResumeManager {
+              private pausedItems = new Map<string, PausedItem>();
+              
+              async pause(type: "pipeline" | "workflow", context: any): Promise<string> {
+                const id = this.generateId();
+                const pausedItem = {
+                  id,
+                  type,
+                  pausedAt: Date.now(),
+                  reason: "manual" as const,
+                  context,
+                };
+                
+                this.pausedItems.set(id, pausedItem);
+                return id;
+              }
+              
+              async resume(id: string): Promise<boolean> {
+                const item = this.pausedItems.get(id);
+                if (!item) return false;
+                
+                // Unified resume logic regardless of type
+                const success = await this.performResume(item);
+                if (success) {
+                  this.pausedItems.delete(id);
+                }
+                return success;
+              }
+              
+              getResumableItems(): ResumableItem[] {
+                return Array.from(this.pausedItems.values()).map(item => 
+                  this.toResumableItem(item)
+                );
+              }
+              
+              private generateId(): string {
+                return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+              }
+              
+              private async performResume(item: PausedItem): Promise<boolean> {
+                // Unified resume logic for both pipelines and workflows
+                try {
+                  // Implementation based on item.type and item.context
+                  return true;
+                } catch (error) {
+                  console.error("Resume failed:", error);
+                  return false;
+                }
+              }
+              
+              private toResumableItem(pausedItem: PausedItem): ResumableItem {
+                // Convert paused item to UI-friendly resumable item
+                return {
+                  id: pausedItem.id,
+                  name: pausedItem.context.name || `${pausedItem.type}-${pausedItem.id}`,
+                  type: pausedItem.type,
+                  canResume: true,
+                  lastStep: pausedItem.context.currentIndex || 0,
+                  totalSteps: pausedItem.context.totalSteps || 0,
+                };
+              }
+            }
+            ```
+            
+            CONSTRAINTS:
+            - Centralized pause/resume logic for both pipelines and workflows
+            - Type-safe implementation with proper interfaces
+            - Error handling for all operations
+            - Memory-based storage (no persistence yet)
+          model: auto
+          allow_all_tools: true
+          resume_session: analyze_cli_dependencies
+
+      - id: validate_state_foundation
+        name: "Validate state management foundation"
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: |
+            VALIDATION STEP:
+            
+            1. Run `make lint` - must pass
+            2. Run TypeScript compilation - must succeed
+            3. **RUN SESSION CONTINUITY TESTS**: Execute `npm run test:unit -- --testPathPattern="SessionContinuity" --verbose`
+            4. **VERIFY REAL EXECUTION**: Confirm session tests still use actual execution
+            5. Verify new state classes work correctly
+            6. Check state machine transitions are valid
+            7. Test pause/resume manager basic functionality
+            
+            QUALITY GATE: State foundation implemented, all tests pass with real execution
+            TEST REQUIREMENT: Session continuity must be preserved throughout state changes
+          model: auto
+          allow_all_tools: true
+          resume_session: analyze_cli_dependencies
+
+      # === PHASE 2: CONTROLLER REFACTOR ===
+
+      # Session 7: Split RunnerController Responsibilities
+      - id: split_controller_responsibilities
+        name: "Session 7: Split RunnerController into focused controllers"
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: |
+            CONTROLLER SPLIT IMPLEMENTATION:
+            
+            REFERENCE: Follow docs/STATE_CONSOLIDATION_PLAN.md Phase 3.1
+            CONTEXT: State foundation ready, now refactor controller architecture
+            
+            CREATE FOCUSED CONTROLLERS:
+            
+            1. CREATE: src/controllers/ExecutionController.ts
+            ```typescript
+            export class ExecutionController {
+              constructor(
+                private stateMachine: ExecutionStateMachine,
+                private claudeCodeService: ClaudeCodeService,
+              ) {}
+              
+              async runTask(task: string): Promise<void> {
+                this.stateMachine.transition({ type: "START", executionType: "task" });
+                // Implementation
+              }
+              
+              async runPipeline(tasks: TaskItem[]): Promise<void> {
+                this.stateMachine.transition({ type: "START", executionType: "pipeline" });
+                // Implementation
+              }
+            }
+            ```
+            
+            2. CREATE: src/controllers/PauseResumeController.ts
+            ```typescript
+            export class PauseResumeController {
+              constructor(
+                private pauseManager: PauseResumeManager,
+                private executionController: ExecutionController,
+              ) {}
+              
+              async pauseExecution(): Promise<void> {
+                // Unified pause logic for both pipelines and workflows
+              }
+              
+              async resumeExecution(id: string): Promise<void> {
+                // Unified resume logic
+              }
+            }
+            ```
+            
+            3. CREATE: src/controllers/ConfigurationController.ts
+            - Extract configuration management from RunnerController
+            - Handle model selection, path validation, etc.
+            
+            4. PREPARE RunnerController.ts for refactor:
+            - Don't modify yet, just prepare by understanding current structure
+            - Plan routing logic for new controller architecture
+            
+            CONSTRAINTS:
+            - Create new controllers without breaking existing functionality
+            - Use composition over inheritance
+            - Follow dependency injection patterns
+            - Maintain type safety throughout
+          model: auto
+          allow_all_tools: true
+          resume_session: analyze_cli_dependencies
+
+      - id: refactor_runner_controller
+        name: "Session 8: Refactor RunnerController to use new architecture"
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: |
+            RUNNER CONTROLLER REFACTOR:
+            
+            REFERENCE: Follow docs/STATE_CONSOLIDATION_PLAN.md Phase 3.1
+            CONTEXT: Focused controllers created, now refactor main controller
+            
+            TARGET FILE: src/controllers/RunnerController.ts
+            
+            MAJOR REFACTOR:
+            
+            1. REPLACE OVERLAPPING STATE FIELDS:
+            - Remove old status, taskCompleted, taskError, isPaused fields
+            - Replace with unified execution state from ExecutionStateMachine
+            - Update all state readers to use new consolidated state
+            
+            2. IMPLEMENT CONTROLLER COMPOSITION:
+            ```typescript
+            export class RunnerController {
+              constructor(
+                private executionController: ExecutionController,
+                private pauseResumeController: PauseResumeController, 
+                private configController: ConfigurationController,
+                // ... other focused controllers
+              ) {}
+              
+              readonly send = (cmd: RunnerCommand): void => {
+                // Route to appropriate controller
+                switch (cmd.kind) {
+                  case "runTask":
+                  case "runTasks":
+                    return this.executionController.handle(cmd);
+                    
+                  case "pausePipeline":
+                  case "pauseWorkflow":
+                  case "resumePipeline":
+                  case "resumeWorkflow":
+                    return this.pauseResumeController.handle(cmd);
+                    
+                  // ... other routing
+                }
+              };
+            }
+            ```
+            
+            3. CONSOLIDATE PAUSE/RESUME WORKFLOWS:
+            - Remove separate pausePipeline and pauseWorkflow methods
+            - Use unified pause/resume controller for both types
+            - Eliminate inconsistent state handling between workflows
+            
+            4. SIMPLIFY STATE MANAGEMENT:
+            - Remove manual state clearing scattered across methods
+            - Use state machine for all state transitions
+            - Centralize state updates through single source of truth
+            
+            CONSTRAINTS:
+            - Maintain same public interface for UI components
+            - Preserve all existing functionality
+            - Follow CLAUDE.md modification rules
+            - Aim for <400 lines in main RunnerController
+          model: auto
+          allow_all_tools: true
+          resume_session: analyze_cli_dependencies
+
+      - id: update_ui_state_usage
+        name: "Session 9: Update UI components to use consolidated state"
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: |
+            UI STATE UPDATE:
+            
+            REFERENCE: Use new state model from previous sessions
+            CONTEXT: Controller refactored, now update UI state usage
+            
+            TARGET FILES:
+            - src/components/panels/RunnerPanel.tsx
+            - src/components/pipeline/PipelineControls.tsx
+            - src/components/panels/WorkflowPanel.tsx
+            - Any other components using old state fields
+            
+            UPDATES REQUIRED:
+            
+            1. REPLACE OLD STATE FIELD USAGE:
+            - status → execution.phase
+            - taskCompleted → execution.phase === "completed"
+            - taskError → execution.phase === "error"
+            - isPaused → execution.phase === "paused"
+            
+            2. UPDATE CONDITIONAL RENDERING:
+            ```typescript
+            // OLD
+            {status === "running" && <Spinner />}
+            
+            // NEW
+            {execution.phase === "running" && <Spinner />}
+            ```
+            
+            3. CONSOLIDATE PAUSE/RESUME UI:
+            - Use unified pause/resume interface
+            - Remove separate pipeline/workflow pause buttons
+            - Update resumable items display to use new format
+            
+            4. UPDATE STATE TYPE IMPORTS:
+            - Import new ExecutionState and PauseResumeState types
+            - Remove imports of deprecated state fields
+            - Update component prop types accordingly
+            
+            CONSTRAINTS:
+            - Maintain identical UI behavior and appearance
+            - No visual changes for users
+            - Preserve all existing functionality
+            - Follow React component patterns in CLAUDE.md
+          model: auto
+          allow_all_tools: true
+          resume_session: analyze_cli_dependencies
+
+      - id: validate_controller_refactor
+        name: "Validate controller refactor completion"
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: |
+            VALIDATION STEP:
+            
+            1. Run `make lint` - must pass
+            2. Run TypeScript compilation - must succeed  
+            3. **RUN FULL TEST SUITE**: Execute `npm run test:unit` to ensure all functionality preserved
+            4. **CRITICAL SESSION VALIDATION**: Execute `npm run test:unit -- --testPathPattern="SessionContinuity" --verbose`
+            5. **VERIFY REAL EXECUTION**: Confirm session tests maintain actual execution without CLI
+            6. Test all controller functionality works
+            7. Verify UI components display correctly with new state
+            8. Check pause/resume functionality works for both pipelines and workflows
+            
+            QUALITY GATE: All functionality preserved, state consolidated, session continuity maintained with real execution
+            TEST REQUIREMENT: Session tests must demonstrate actual functionality throughout refactor
+          model: auto
+          allow_all_tools: true
+          resume_session: analyze_cli_dependencies
+
+      # === PHASE 3: CLEANUP & OPTIMIZATION ===
+
+      # Session 10: Remove Deprecated Code
+      - id: remove_deprecated_code
+        name: "Session 10: Remove deprecated state fields and dead code"
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: |
+            DEPRECATED CODE REMOVAL:
+            
+            REFERENCE: Complete consolidation based on all previous sessions
+            CONTEXT: New state system working, now clean up old code
+            
+            CLEANUP TASKS:
+            
+            1. REMOVE DEPRECATED STATE FIELDS:
+            - Remove @deprecated fields from UIState interface
+            - Remove old status, taskCompleted, taskError, isPaused
+            - Remove currentExecutionId and other duplicate fields
+            - Clean up type definitions
+            
+            2. REMOVE DEAD CODE:
+            - Remove unused methods from RunnerController
+            - Remove duplicate pause/resume logic
+            - Remove CLI-related helper functions
+            - Clean up imports and exports
+            
+            3. SIMPLIFY STATE UPDATES:
+            - Remove manual state clearing methods
+            - Remove scattered state update logic
+            - Ensure all state changes go through state machine
+            
+            4. OPTIMIZE PERFORMANCE:
+            - Remove unnecessary state recalculations
+            - Eliminate redundant state transformations
+            - Optimize UI state updates
+            
+            CONSTRAINTS:
+            - Don't break any existing functionality
+            - Verify all tests still pass after each removal
+            - Follow CLAUDE.md cleanup rules (no _temp files)
+            - Maintain backward compatibility where needed
+          model: auto
+          allow_all_tools: true
+          resume_session: analyze_cli_dependencies
+
+      - id: optimize_architecture
+        name: "Session 11: Optimize new architecture performance"
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: |
+            ARCHITECTURE OPTIMIZATION:
+            
+            REFERENCE: Completed consolidation with CLI removal
+            CONTEXT: Clean architecture in place, now optimize for performance
+            
+            OPTIMIZATION TARGETS:
+            
+            1. STATE MACHINE PERFORMANCE:
+            - Add state caching where appropriate
+            - Optimize state transition performance
+            - Minimize unnecessary state recalculations
+            
+            2. CONTROLLER PERFORMANCE:
+            - Optimize controller initialization
+            - Add lazy loading for expensive operations
+            - Minimize memory usage in pause/resume manager
+            
+            3. UI STATE UPDATES:
+            - Optimize React re-renders with new state structure
+            - Add memoization where beneficial
+            - Minimize state update frequency
+            
+            4. MEMORY OPTIMIZATION:
+            - Ensure proper cleanup of paused executions
+            - Optimize state history management
+            - Add garbage collection for old execution states
+            
+            CONSTRAINTS:
+            - Don't over-engineer or add complexity
+            - Measure performance before and after changes
+            - Follow KISS principles from CLAUDE.md
+            - Maintain all existing functionality
+          model: auto
+          allow_all_tools: true
+          resume_session: analyze_cli_dependencies
+
+      # === FINAL VALIDATION & TESTING ===
+
+      # Session 12: Comprehensive Testing
+      - id: comprehensive_testing
+        name: "Session 12: Comprehensive testing and validation"
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: |
+            COMPREHENSIVE VALIDATION:
+            
+            REFERENCE: Complete state consolidation with CLI removal
+            CONTEXT: Final validation of entire consolidation effort
+            
+            1. RUN ALL QUALITY CHECKS:
+               - `make lint` - must pass with zero warnings
+               - `npm run test:unit` - all tests must pass
+               - `npm run test:unit:coverage` - coverage maintained
+               - `npm run test:e2e` - if available
+               - TypeScript compilation - zero errors
+               - **CRITICAL SESSION VALIDATION**: `npm run test:unit -- --testPathPattern="SessionContinuity" --verbose`
+            
+            2. FUNCTIONALITY TESTING:
+               - Test task execution (single tasks)
+               - Test pipeline execution (multiple tasks)
+               - Test workflow execution
+               - Test pause/resume for all execution types
+               - Test error handling and recovery
+               - Test configuration management
+               - **VERIFY REAL EXECUTION**: Confirm all tests use actual functionality, not CLI
+            
+            3. STATE MANAGEMENT VALIDATION:
+               - Verify state machine transitions work correctly
+               - Test pause/resume manager with various scenarios
+               - Validate UI state updates are consistent
+               - Check memory management and cleanup
+            
+            4. PERFORMANCE VERIFICATION:
+               - Compare performance before/after consolidation
+               - Verify no memory leaks in new architecture
+               - Check UI responsiveness with new state model
+               - Validate execution timing is preserved
+            
+            5. INTEGRATION TESTING:
+               - Test all controller interactions
+               - Verify service layer integration
+               - Test VSCode extension lifecycle
+               - Validate configuration persistence
+               - **SESSION CONTINUITY VALIDATION**: Confirm session management works without CLI
+            
+            6. FIX ANY ISSUES FOUND:
+               - If any tests fail, resolve immediately
+               - If performance regressions found, optimize
+               - If functionality broken, restore it
+               - Document any issues and resolutions
+          model: auto
+          allow_all_tools: true
+
+      - id: create_consolidation_documentation
+        name: "Session 13: Create final consolidation documentation"
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: |
+            DOCUMENTATION TASK:
+            
+            CREATE: docs/state-consolidation-report.md
+            REFERENCE: Use all analysis and implementation from previous sessions
+            
+            REQUIRED CONTENT:
+            
+            1. **Executive Summary**:
+               - What was consolidated and why
+               - CLI removal benefits and approach
+               - Performance improvements achieved
+               - Complexity reduction metrics
+            
+            2. **Architecture Changes**:
+               - Before/after architecture diagrams (text)
+               - New controller structure explanation
+               - State management simplification
+               - API integration approach (replacing CLI)
+            
+            3. **Implementation Details**:
+               - ExecutionStateMachine design and usage
+               - PauseResumeManager centralized logic
+               - Controller responsibility separation
+               - UI state consolidation patterns
+            
+            4. **CLI Removal Summary**:
+               - What CLI functionality was removed
+               - How it was replaced with direct API integration
+               - Benefits of removing external process dependencies
+               - Simplified error handling and state management
+            
+            5. **Performance Metrics**:
+               - RunnerController line count reduction
+               - State field count consolidation
+               - Memory usage improvements
+               - Execution speed improvements
+            
+            6. **Migration Guide**:
+               - How to work with new state model
+               - Controller usage patterns
+               - Best practices for future development
+               - Testing approach for new architecture
+            
+            7. **Maintenance Guidelines**:
+               - How to add new execution types
+               - State machine extension patterns
+               - Controller composition guidelines
+               - Quality gates for future changes
+            
+            CONSTRAINTS:
+            - Document facts and measurements, not opinions
+            - Include specific examples and code snippets
+            - Follow CLAUDE.md documentation standards
+            - Keep it actionable and maintainable
+          model: auto
+          allow_all_tools: true
+
+      # Session 14: Final Quality Gates
+      - id: final_quality_gates
+        name: "Session 14: Final quality validation and deployment readiness"
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: |
+            FINAL QUALITY VALIDATION:
+            
+            MANDATORY CHECKS (ALL MUST PASS):
+            
+            1. **Code Quality**:
+               - `make lint` - ZERO warnings allowed
+               - TypeScript strict mode - ZERO errors
+               - No unused imports or dead code
+               - All files follow CLAUDE.md naming conventions
+               - No forbidden file patterns (_fix, _temp, etc.)
+            
+            2. **Testing**:
+               - `npm run test:unit` - 100% test pass rate
+               - No test coverage regression
+               - All component tests updated and valid
+               - **SESSION CONTINUITY**: Execute `npm run test:unit -- --testPathPattern="SessionContinuity" --verbose`
+               - **REAL EXECUTION VALIDATION**: Verify session tests use actual functionality without CLI
+            
+            3. **Functionality**:
+               - Extension loads without errors
+               - All execution types work (task, pipeline, workflow)
+               - Pause/resume functionality works for all types
+               - Configuration management preserved
+               - Error handling works correctly
+               - **NO CLI DEPENDENCIES**: Confirm no CLI processes are spawned
+            
+            4. **Performance**:
+               - No performance regressions
+               - Memory usage within acceptable limits
+               - UI responsiveness maintained
+               - State transitions are fast
+            
+            5. **Architecture Quality**:
+               - RunnerController reduced to <400 lines
+               - State fields consolidated (no overlaps)
+               - Controller responsibilities clearly separated
+               - Pause/resume logic unified
+               - CLI completely removed
+            
+            6. **Compliance**:
+               - All changes follow DRY/KISS principles
+               - No over-engineering detected
+               - CLAUDE.md guidelines followed
+               - Documentation complete and accurate
+            
+            IF ANY CHECK FAILS:
+            - Fix the issue immediately
+            - Re-run all validation steps
+            - Document the fix in the report
+            
+            SUCCESS CRITERIA:
+            - All quality gates pass
+            - Zero regressions introduced
+            - State consolidation complete
+            - CLI removal successful
+            - Documentation complete
+            - Code ready for production
+          model: auto
+          allow_all_tools: true

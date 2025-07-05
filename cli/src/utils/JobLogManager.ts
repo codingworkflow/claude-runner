@@ -68,7 +68,7 @@ export class JobLogManager {
    */
   static async loadJobLog(filePath: string): Promise<JobLog | null> {
     try {
-      const content = await fs.readFile(filePath, "utf8");
+      const content = await fs.readFile(filePath, "utf-8");
       const jobLog = JSON.parse(content) as JobLog;
 
       // Validate the loaded job log has required fields

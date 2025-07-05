@@ -124,11 +124,12 @@ export class WorkflowJsonLogger {
     }
 
     try {
-      // Only add steps when they are COMPLETED, FAILED, or TIMEOUT
+      // Only add steps when they are COMPLETED, FAILED, TIMEOUT, or PAUSED
       if (
         stepResult.status === "completed" ||
         stepResult.status === "failed" ||
-        stepResult.status === "timeout"
+        stepResult.status === "timeout" ||
+        stepResult.status === "paused"
       ) {
         // Calculate duration
         const startTime = new Date(
@@ -176,7 +177,9 @@ export class WorkflowJsonLogger {
               ? "completed"
               : stepResult.status === "timeout"
                 ? "timeout"
-                : "failed",
+                : stepResult.status === "paused"
+                  ? "paused"
+                  : "failed",
           start_time: stepResult.startTime ?? new Date().toISOString(),
           end_time: stepResult.endTime ?? new Date().toISOString(),
           duration_ms: durationMs,
@@ -291,7 +294,7 @@ export class WorkflowJsonLogger {
   /**
    * Calculate and update workflow status following Go CLI pattern:
    * - If any step failed -> "failed"
-   * - If any step timed out -> "paused" (resumable)
+   * - If any step timed out or paused -> "paused" (resumable)
    * - If all steps completed -> "completed"
    * - Otherwise -> "running"
    */
@@ -313,13 +316,14 @@ export class WorkflowJsonLogger {
     const steps = this.currentLog.steps;
     const failedSteps = steps.filter((s) => s.status === "failed").length;
     const timeoutSteps = steps.filter((s) => s.status === "timeout").length;
+    const pausedSteps = steps.filter((s) => s.status === "paused").length;
     const completedSteps = steps.filter((s) => s.status === "completed").length;
     const totalSteps = this.currentLog.total_steps;
 
     if (failedSteps > 0) {
       this.currentLog.status = "failed";
-    } else if (timeoutSteps > 0) {
-      // CRITICAL: Timeout steps make workflow "paused" (not "timeout") - following Go CLI pattern
+    } else if (timeoutSteps > 0 || pausedSteps > 0) {
+      // CRITICAL: Timeout or paused steps make workflow "paused" (not "timeout") - following Go CLI pattern
       this.currentLog.status = "paused";
     } else if (completedSteps === totalSteps && totalSteps > 0) {
       this.currentLog.status = "completed";

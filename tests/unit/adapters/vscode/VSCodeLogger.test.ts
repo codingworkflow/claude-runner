@@ -117,27 +117,23 @@ describe("VSCodeLogger", () => {
   });
 
   describe("debug", () => {
-    it("should log debug messages using console.debug", () => {
+    it("should suppress debug messages in test environment", () => {
       const message = "Debug message";
       logger.debug(message);
 
-      expect(consoleSpy.debug).toHaveBeenCalledWith(message);
+      expect(consoleSpy.debug).not.toHaveBeenCalled();
     });
 
-    it("should log debug messages with additional arguments", () => {
+    it("should suppress debug messages with additional arguments in test environment", () => {
       const message = "Debug with data";
       const debugData = { userId: 123, action: "test" };
       const timestamp = Date.now();
       logger.debug(message, debugData, timestamp);
 
-      expect(consoleSpy.debug).toHaveBeenCalledWith(
-        message,
-        debugData,
-        timestamp,
-      );
+      expect(consoleSpy.debug).not.toHaveBeenCalled();
     });
 
-    it("should handle complex debug data structures", () => {
+    it("should suppress complex debug data structures in test environment", () => {
       const message = "Complex debug";
       const complexData = {
         nested: { deep: { value: "test" } },
@@ -146,7 +142,7 @@ describe("VSCodeLogger", () => {
       };
       logger.debug(message, complexData);
 
-      expect(consoleSpy.debug).toHaveBeenCalledWith(message, complexData);
+      expect(consoleSpy.debug).not.toHaveBeenCalled();
     });
   });
 
@@ -163,7 +159,8 @@ describe("VSCodeLogger", () => {
       expect(consoleSpy.log).toHaveBeenCalledTimes(1);
       expect(consoleSpy.warn).toHaveBeenCalledTimes(1);
       expect(consoleSpy.error).toHaveBeenCalledTimes(1);
-      expect(consoleSpy.debug).toHaveBeenCalledTimes(1);
+      // Debug is suppressed in test environment
+      expect(consoleSpy.debug).toHaveBeenCalledTimes(0);
     });
 
     it("should not interfere between different log levels", () => {
@@ -190,7 +187,8 @@ describe("VSCodeLogger", () => {
       expect(consoleSpy.log).toHaveBeenCalledWith("");
       expect(consoleSpy.warn).toHaveBeenCalledWith("");
       expect(consoleSpy.error).toHaveBeenCalledWith("");
-      expect(consoleSpy.debug).toHaveBeenCalledWith("");
+      // Debug is suppressed in test environment
+      expect(consoleSpy.debug).not.toHaveBeenCalled();
     });
 
     it("should handle special characters in messages", () => {
@@ -211,7 +209,8 @@ describe("VSCodeLogger", () => {
       const longMessage = "A".repeat(10000);
       logger.debug(longMessage);
 
-      expect(consoleSpy.debug).toHaveBeenCalledWith(longMessage);
+      // Debug is suppressed in test environment
+      expect(consoleSpy.debug).not.toHaveBeenCalled();
     });
 
     it("should handle circular reference objects gracefully", () => {
@@ -264,6 +263,47 @@ describe("VSCodeLogger", () => {
     it("should handle Error objects properly", () => {
       const error = new Error("test error");
       expect(() => logger.error("message", error)).not.toThrow();
+    });
+  });
+
+  describe("environment detection", () => {
+    it("should detect test environment correctly", () => {
+      // In test environment, debug should be suppressed
+      jest.clearAllMocks();
+      logger.debug("test message");
+      expect(consoleSpy.debug).not.toHaveBeenCalled();
+    });
+
+    it("should handle production environment debug logging", () => {
+      // Temporarily mock environment to simulate production
+      const originalEnv = process.env.NODE_ENV;
+      const originalJestWorker = process.env.JEST_WORKER_ID;
+      const originalGlobal = (global as any).jest;
+
+      try {
+        process.env.NODE_ENV = "production";
+        delete process.env.JEST_WORKER_ID;
+        delete (global as any).jest;
+
+        // Create a new logger instance to pick up the environment change
+        const prodLogger = new VSCodeLogger();
+        jest.clearAllMocks();
+
+        const message = "Production debug message";
+        prodLogger.debug(message);
+
+        // In production, debug should be called
+        expect(consoleSpy.debug).toHaveBeenCalledWith(message);
+      } finally {
+        // Restore environment
+        process.env.NODE_ENV = originalEnv;
+        if (originalJestWorker) {
+          process.env.JEST_WORKER_ID = originalJestWorker;
+        }
+        if (originalGlobal) {
+          (global as any).jest = originalGlobal;
+        }
+      }
     });
   });
 });

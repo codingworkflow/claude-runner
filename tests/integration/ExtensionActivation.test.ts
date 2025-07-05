@@ -107,10 +107,24 @@ describe("Extension Activation Flow", () => {
         expect.any(Function),
       );
 
-      // Verify webview provider registration
+      // Verify webview provider registrations
+      expect(vscode.window.registerWebviewViewProvider).toHaveBeenCalledTimes(
+        3,
+      );
       expect(vscode.window.registerWebviewViewProvider).toHaveBeenCalledWith(
         "claude-runner.mainView",
         expect.any(Object),
+        { webviewOptions: { retainContextWhenHidden: true } },
+      );
+      expect(vscode.window.registerWebviewViewProvider).toHaveBeenCalledWith(
+        "claude-runner.commandsView",
+        expect.any(Object),
+        { webviewOptions: { retainContextWhenHidden: true } },
+      );
+      expect(vscode.window.registerWebviewViewProvider).toHaveBeenCalledWith(
+        "claude-runner.usageLogsView",
+        expect.any(Object),
+        { webviewOptions: { retainContextWhenHidden: true } },
       );
 
       // Verify disposables are registered
@@ -187,9 +201,13 @@ describe("Extension Activation Flow", () => {
       );
 
       // Webview providers should still be created
+      expect(vscode.window.registerWebviewViewProvider).toHaveBeenCalledTimes(
+        3,
+      );
       expect(vscode.window.registerWebviewViewProvider).toHaveBeenCalledWith(
         "claude-runner.mainView",
         expect.any(Object),
+        { webviewOptions: { retainContextWhenHidden: true } },
       );
     });
 
@@ -304,21 +322,29 @@ describe("Extension Activation Flow", () => {
       await activate(mockContext);
 
       // ConfigurationService should be initialized first
+      expect(vscode.window.registerWebviewViewProvider).toHaveBeenCalledTimes(
+        3,
+      );
       expect(vscode.window.registerWebviewViewProvider).toHaveBeenCalledWith(
         "claude-runner.mainView",
-        expect.objectContaining({
-          constructor: expect.any(Function),
-        }),
+        expect.any(Object),
+        { webviewOptions: { retainContextWhenHidden: true } },
       );
     });
 
     it("should create webview providers with proper context", async () => {
       await activate(mockContext);
 
+      // All three webview providers should be registered
+      expect(vscode.window.registerWebviewViewProvider).toHaveBeenCalledTimes(
+        3,
+      );
+
       // Main view provider
       expect(vscode.window.registerWebviewViewProvider).toHaveBeenCalledWith(
         "claude-runner.mainView",
         expect.any(Object),
+        { webviewOptions: { retainContextWhenHidden: true } },
       );
 
       // Commands view provider
