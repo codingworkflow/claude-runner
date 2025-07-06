@@ -1,12 +1,29 @@
 # Claude Runner
 
-**Seamlessly integrate Claude AI directly into your VS Code and add automated workflow with an intuitive, feature-rich interface.**
+**Run complex multi steps Claude Code task directly into your VS Code.**
 
 ![Claude Runner Logo](https://raw.githubusercontent.com/codingworkflow/claude-runner/main/assets/icon.png)
 
-Claude Runner transforms your development experience by bringing Anthropic's powerful Claude AI models directly into Visual Studio Code. Whether you're debugging code, writing documentation, or architecting solutions, Claude Runner provides the tools you need to work smarter, not harder, automating tasking thru workflows.
+Create and run mutli steps task in your VS Code. Create workflows & save them to re-use.
+Get cost usage (estimate if you use subscription), and check conversation history.
 
 ## Key Features
+
+### **Pipeline Workflows**
+
+Create and execute sophisticated multi-step workflows:
+
+- Chain multiple Claude Code tasks together
+- Mix different Claude models per task or keeep in Auto mode
+- Session continuity between tasks
+- Save and reuse pipelines
+- Format similar to Claude Code Github action
+
+![Create Workflow](https://raw.githubusercontent.com/codingworkflow/claude-runner/main/assets/pipeline.png)
+
+![Save Workflow](https://raw.githubusercontent.com/codingworkflow/claude-runner/main/assets/savepipeline.png)
+
+![Run Workflow](https://raw.githubusercontent.com/codingworkflow/claude-runner/main/assets/runworkflow.png)
 
 ### **Select Claude Models**
 
@@ -29,20 +46,6 @@ Start conversations with Claude directly in your VS Code terminal:
 - Smart working directory integration
 
 ![Quick start chat](https://raw.githubusercontent.com/codingworkflow/claude-runner/main/assets/chat.png)
-
-### **Pipeline Workflows**
-
-Create and execute sophisticated multi-step workflows:
-
-- Chain multiple Claude Code tasks together
-- Mix different Claude models per task or keeep in Auto mode
-- Session continuity between tasks
-- Save and reuse pipelines
-- Format similar to Claude Code Github action
-
-![Create Pipeline](https://raw.githubusercontent.com/codingworkflow/claude-runner/main/assets/pipeline.png)
-
-![Save Pipeline](https://raw.githubusercontent.com/codingworkflow/claude-runner/main/assets/savepipeline.png)
 
 ### **Access session logs**
 
@@ -85,6 +88,8 @@ View in vscode previous Claude code chats:
 **Latest Features:**
 
 - Pipeline system for complex workflows
+- pause & resume
+- auto-resume on timeout
 - Comprehensive usage analytics and cost tracking
 - Conversation history and search
 
