@@ -147,39 +147,9 @@ export class WorkflowSimulationWorkspace {
 
       return tasks;
     } catch (error) {
-      console.warn(`Failed to parse workflow ${workflowPath}:`, error);
-      // Fallback to simple parsing for invalid workflows
-      const fallbackTasks = this.parseSimpleWorkflow(content);
-
-      this.workflowState.tasks = fallbackTasks;
-      this.workflowState.selectedWorkflow = workflowPath;
-      this.workflowState.isLoaded = true;
-
-      return fallbackTasks;
+      console.error(`Failed to parse workflow ${workflowPath}:`, error);
+      throw error;
     }
-  }
-
-  private parseSimpleWorkflow(content: string): TaskItem[] {
-    const tasks: TaskItem[] = [];
-
-    // Simple fallback parsing for workflows that don't parse correctly
-    const simpleStepMatches = content.match(/- name: ([^\n]+)/g);
-    if (simpleStepMatches) {
-      simpleStepMatches.forEach((step, index) => {
-        const nameMatch = step.match(/- name: ([^\n]+)/);
-        if (nameMatch) {
-          tasks.push({
-            id: `step_${index + 1}`,
-            name: nameMatch[1].trim(),
-            prompt: `Execute: ${nameMatch[1].trim()}`,
-            status: "pending" as const,
-            model: "claude-sonnet-4-20250514",
-          });
-        }
-      });
-    }
-
-    return tasks;
   }
 
   async executeWorkflow(): Promise<WorkflowExecutionResult> {

@@ -76,7 +76,7 @@
       },
       {
         "command": "claude-runner.recheckClaude",
-        "title": "Claude Runner: Recheck Claude Installation"
+        "title": "Claude Runner: Recheck Claude API Connection"
       },
       {
         "command": "claude-runner.refreshCommands",
@@ -155,12 +155,12 @@
         "claudeRunner.defaultRootPath": {
           "type": "string",
           "default": "",
-          "description": "Default root path for Claude commands (empty = current workspace)"
+          "description": "Default root path for Claude tasks (empty = current workspace)"
         },
         "claudeRunner.allowAllTools": {
           "type": "boolean",
           "default": false,
-          "description": "Allow all tools by default (uses --dangerously-skip-permissions)"
+          "description": "Allow all tools by default"
         },
         "claudeRunner.outputFormat": {
           "type": "string",
@@ -233,7 +233,6 @@
     "watch": "webpack --watch --mode development",
     "compile-tests": "tsc -p ./tsconfig.test.json --outDir out",
     "watch-tests": "tsc -p ./tsconfig.test.json -w --outDir out",
-    "build-cli": "tsc -p ./tsconfig.cli.json",
     "pretest": "npm run lint",
     "lint": "eslint . --ext ts,tsx --ignore-path .gitignore",
     "lint:fix": "eslint . --ext ts,tsx --fix --ignore-path .gitignore",
@@ -247,8 +246,7 @@
     "test:integration:coverage": "jest --testPathPattern=tests/integration --coverage",
     "test:all": "npm run test:unit && npm run test:e2e && npm run test:integration",
     "test:all:coverage": "jest --coverage --testPathPattern=\"(tests/e2e|tests/integration|src/test/services)\"",
-    "test:claude-detection": "node scripts/test-claude-detection.js",
-    "test:ci:without-claude": "npm run test:unit && npm run test:claude-detection",
+    "test:ci:without-claude": "npm run test:unit",
     "test:ci:with-claude": "npm run test:ci:without-claude && npm run test:e2e && npm run test:integration",
     "test:watch": "npm run test -- --watch",
     "clean": "rimraf dist out coverage *.vsix *.log",
@@ -280,11 +278,7 @@
     "cleanup-css:auto": "node scripts/cleanup-css.js auto-clean",
     "cleanup-css:list": "node scripts/cleanup-css.js list",
     "convert-todo": "node scripts/convert-todo-to-workflow.js",
-    "publish:cli": "node scripts/publish-cli.js",
-    "publish:extension": "node scripts/publish-extension.js",
-    "package:cli": "cd cli && npm pack",
-    "install:cli:global": "cd cli && npm install -g .",
-    "uninstall:cli:global": "npm uninstall -g claude-runner-cli"
+    "publish:extension": "node scripts/publish-extension.js"
   },
   "devDependencies": {
     "@fullhuman/postcss-purgecss": "^7.0.2",

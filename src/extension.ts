@@ -10,7 +10,6 @@ import { ConfigurationService } from "./services/ConfigurationService";
 import { ClaudeDetectionService } from "./services/ClaudeDetectionService";
 import { UsageReportService } from "./services/UsageReportService";
 import { LogsService } from "./services/LogsService";
-import { detectParallelTasksCount } from "./utils/detectParallelTasksCount";
 import { VSCodeWorkflowStorageAdapter } from "./adapters/storage/WorkflowStorageAdapter";
 import { WorkflowStateService } from "./services/WorkflowStateService";
 
@@ -36,10 +35,6 @@ export async function activate(context: vscode.ExtensionContext) {
   // Do the one-time Claude detection here and nowhere else. Persist the result.
   const result = await ClaudeDetectionService.detectClaude("auto");
   context.globalState.update("claude.detected", result);
-
-  // Detect parallel tasks count once at startup
-  const parallelTasks = await detectParallelTasksCount();
-  context.globalState.update("claude.parallelTasks", parallelTasks);
 
   const isClaudeInstalled = result.isInstalled;
   if (isClaudeInstalled) {

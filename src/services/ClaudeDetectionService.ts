@@ -158,9 +158,13 @@ export class ClaudeDetectionService {
    * Detect current shell environment
    */
   private static detectCurrentShell(): string {
-    return (
-      process.env.SHELL?.split("/").pop() ?? process.env.SHELL_NAME ?? "bash" // Default fallback
-    );
+    const shell = process.env.SHELL?.split("/").pop() ?? process.env.SHELL_NAME;
+    if (!shell) {
+      throw new Error(
+        "Could not detect shell - SHELL environment variable not set",
+      );
+    }
+    return shell;
   }
 
   /**

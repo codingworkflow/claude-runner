@@ -130,7 +130,12 @@ export class CLIInstallationService {
       throw new Error("Could not determine home directory");
     }
 
-    const shell = process.env.SHELL?.split("/").pop() ?? "bash";
+    const shell = process.env.SHELL?.split("/").pop();
+    if (!shell) {
+      throw new Error(
+        "Could not detect shell - SHELL environment variable not set",
+      );
+    }
     const profileFiles = this.getShellProfileFiles(shell, homeDir);
 
     const aliasLine = `alias ${this.CLI_SYMLINK_NAME}="${cliPath}"`;

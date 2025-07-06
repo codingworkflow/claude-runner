@@ -49,7 +49,6 @@ export interface TaskItem {
 export interface ExecutionOptions {
   model?: string;
   workingDirectory?: string;
-  parallelTasks?: number;
   timeoutMs?: number;
 }
 

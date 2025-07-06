@@ -151,9 +151,6 @@ export class RunnerController implements EventBus {
       case "pipelineUpdateTaskField":
         this.pipelineUpdateTaskField(cmd.taskId, cmd.field, cmd.value);
         break;
-      case "updateParallelTasksCount":
-        void this.updateParallelTasksCount(cmd.value);
-        break;
       case "requestUsageReport":
         void this.requestUsageReport(cmd.period, cmd.hours, cmd.startHour);
         break;
@@ -223,8 +220,6 @@ export class RunnerController implements EventBus {
       model: config.defaultModel,
       rootPath: config.defaultRootPath ?? this.getCurrentWorkspacePath() ?? "",
       allowAllTools: config.allowAllTools,
-      parallelTasksCount:
-        this.context.globalState.get<number>("claude.parallelTasks") ?? 1,
 
       // Tab state
       activeTab,
@@ -554,46 +549,6 @@ export class RunnerController implements EventBus {
 
   private updateOutputFormat(format: "text" | "json"): void {
     this.updateState({ outputFormat: format });
-  }
-
-  private async updateParallelTasksCount(value: number): Promise<void> {
-    try {
-      if (value < 1 || value > 8) {
-        throw new Error("Value must be between 1 and 8");
-      }
-
-      this.updateState({ parallelTasksCount: value });
-
-      const currentState = this.state$.value;
-      const result = await this.claudeCodeService.executeCommand(
-        [
-          "claude",
-          "config",
-          "set",
-          "--global",
-          "parallelTasksCount",
-          value.toString(),
-        ],
-        currentState.rootPath ?? process.cwd(),
-      );
-
-      if (!result.success) {
-        throw new Error(result.error ?? "Failed to set parallelTasksCount");
-      }
-
-      vscode.window.showInformationMessage(
-        `Parallel tasks count updated to ${value}`,
-      );
-    } catch (error) {
-      console.error("Failed to set parallelTasksCount:", error);
-      // Revert UI state on error
-      const cachedValue =
-        this.context.globalState.get<number>("claude.parallelTasks") ?? 1;
-      this.updateState({ parallelTasksCount: cachedValue });
-      vscode.window.showErrorMessage(
-        `Failed to update parallel tasks count: ${error}`,
-      );
-    }
   }
 
   private pipelineAddTask(newTask: TaskItem): void {

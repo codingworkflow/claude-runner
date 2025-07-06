@@ -97,7 +97,6 @@ export interface MainViewState {
   model: string;
   rootPath: string;
   allowAllTools: boolean;
-  parallelTasksCount: number;
   status: "stopped" | "running" | "starting" | "stopping" | "paused";
   tasks: TaskItem[];
   currentTaskIndex?: number;
@@ -215,7 +214,6 @@ const initialState: ExtensionState = {
     model: "claude-sonnet-4-20250514",
     rootPath: "",
     allowAllTools: false,
-    parallelTasksCount: 1,
     status: "stopped",
     tasks: [],
     currentTaskIndex: undefined,
@@ -331,7 +329,6 @@ export interface ExtensionActions {
   updateChatPrompt: (prompt: string) => void;
   updateShowChatPrompt: (show: boolean) => void;
   updateOutputFormat: (format: "text" | "json") => void;
-  updateParallelTasksCount: (value: number) => void;
   savePipeline: (name: string, description: string, tasks: TaskItem[]) => void;
   loadPipeline: (name: string) => void;
   pipelineAddTask: (newTask: TaskItem) => void;
@@ -454,10 +451,6 @@ export const ExtensionProvider: React.FC<{ children: ReactNode }> = ({
 
     updateOutputFormat: (format: "text" | "json") => {
       sendMessage("updateOutputFormat", { format });
-    },
-
-    updateParallelTasksCount: (value: number) => {
-      sendMessage("updateParallelTasksCount", { value });
     },
 
     savePipeline: (name: string, description: string, tasks: TaskItem[]) => {

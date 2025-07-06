@@ -1,4 +1,4 @@
-.PHONY: setup build build-cli build-vsix watch package clean test lint dev install-local install-devcontainer serve-vsix help validate dev-prepare dev-install uninstall-extension get-extension-id version-patch version-minor version-major sync-version sonar scan-secrets generate-icons prepare-marketplace publish-cli publish-extension package-cli install-cli-global uninstall-cli-global
+.PHONY: setup build build-vsix watch package clean test lint dev install-local install-devcontainer serve-vsix help validate dev-prepare dev-install uninstall-extension get-extension-id version-patch version-minor version-major sync-version sonar scan-secrets generate-icons prepare-marketplace
 
 # Default target - show help
 help:
@@ -7,7 +7,6 @@ help:
 	@echo "  make setup         - Install dependencies"
 	@echo "  make setup-ci      - Install dependencies for CI environment"
 	@echo "  make build         - Build extension (compile only)"
-	@echo "  make build-cli     - Build CLI components"
 	@echo "  make build-vsix    - Build and package VSIX file"
 	@echo "  make watch         - Watch for changes during development"
 	@echo "  make dev           - Start development mode (alias for watch)"
@@ -18,9 +17,8 @@ help:
 	@echo "  make test-e2e      - Run end-to-end tests only"
 	@echo "  make test-integration - Run integration tests only"
 	@echo "  make test-all-coverage - Run all tests with coverage"
-	@echo "  make test-claude-detection - Run Claude CLI detection test"
-	@echo "  make test-ci-phase1 - Run CI Phase 1 tests (without Claude CLI)"
-	@echo "  make test-ci-phase2 - Run CI Phase 2 tests (with Claude CLI)"
+	@echo "  make test-ci-phase1 - Run CI Phase 1 tests"
+	@echo "  make test-ci-phase2 - Run CI Phase 2 tests"
 	@echo "  make test-watch    - Run tests in watch mode"
 	@echo "  make lint          - Run ESLint and fix issues"
 	@echo "  make validate      - Run tests and linting"
@@ -45,11 +43,7 @@ help:
 	@echo "  make prepare-marketplace - Prepare assets and README for marketplace"
 	@echo ""
 	@echo "Publishing:"
-	@echo "  make publish-cli       - Publish CLI package to npm"
 	@echo "  make publish-extension - Publish extension to VSCode Marketplace"
-	@echo "  make package-cli       - Create CLI npm package (tarball)"
-	@echo "  make install-cli-global- Install CLI globally from local build"
-	@echo "  make uninstall-cli-global- Uninstall CLI globally"
 
 # Install dependencies
 setup:
@@ -71,15 +65,8 @@ setup-ci:
 build:
 	@echo "Compiling TypeScript..."
 	@npm run compile || true
-	@echo "Building CLI components..."
-	@npm run build-cli
-	@echo "Extension and CLI compiled successfully"
+	@echo "Extension compiled successfully"
 
-# Build CLI components
-build-cli:
-	@echo "Building CLI components..."
-	@npm run build-cli
-	@echo "CLI built successfully"
 
 # Build and package the VSIX file
 build-vsix: clean
@@ -160,19 +147,15 @@ test-all-coverage:
 	@echo "🧪 Running all tests with coverage..."
 	@npm run test:all:coverage
 
-# Run Claude CLI detection test
-test-claude-detection:
-	@echo "🔍 Running Claude CLI detection test..."
-	@npm run test:claude-detection
 
-# Run CI Phase 1 tests (without Claude CLI)
+# Run CI Phase 1 tests
 test-ci-phase1:
-	@echo "🧪 Running CI Phase 1 tests (without Claude CLI)..."
+	@echo "🧪 Running CI Phase 1 tests..."
 	@npm run test:ci:phase1
 
-# Run CI Phase 2 tests (with Claude CLI)
+# Run CI Phase 2 tests
 test-ci-phase2:
-	@echo "🧪 Running CI Phase 2 tests (with Claude CLI)..."
+	@echo "🧪 Running CI Phase 2 tests..."
 	@npm run test:ci:phase2
 
 # Install system dependencies for CI  
@@ -186,16 +169,6 @@ setup-test-env:
 	@echo "Setting up test environment..."
 	@export DISPLAY=:99; Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 & sleep 2
 
-# Install Claude CLI for testing
-install-claude-cli:
-	@echo "Installing Claude CLI..."
-	@npm install -g @anthropic-ai/claude-code
-
-# Setup Claude CLI configuration for testing
-setup-claude-config:
-	@echo "Setting up Claude CLI configuration..."
-	@mkdir -p ~/.claude
-	@echo '{"api_key": "test-key-for-ci", "default_model": "claude-sonnet-4-20250514"}' > ~/.claude/config.json
 
 # Run tests in watch mode
 test-watch:
@@ -402,34 +375,6 @@ cleanup-css-auto:
 	@echo "Safe CSS cleanup completed"
 	@echo "Run 'make analyze-css' to see updated results"
 
-# Run pipeline using CLI
-pipeline:
-	@if [ -z "$(PIPELINE)" ]; then \
-		echo "Error: PIPELINE parameter is required"; \
-		echo ""; \
-		echo "Usage: make pipeline PIPELINE=path/to/workflow.yml [WORKDIR=execution/path]"; \
-		echo ""; \
-		echo "Examples:"; \
-		echo "  make pipeline PIPELINE=.github/workflows/claude-integration-test.yml"; \
-		echo "  make pipeline PIPELINE=workflows/my-pipeline.yml"; \
-		echo "  make pipeline PIPELINE=workflow.yml WORKDIR=/path/to/project"; \
-		exit 1; \
-	fi
-	@if [ ! -f "$(PIPELINE)" ]; then \
-		echo "Error: Pipeline file not found: $(PIPELINE)"; \
-		exit 1; \
-	fi
-	@echo "Running pipeline: $(PIPELINE)"
-	@if [ -n "$(WORKDIR)" ]; then \
-		echo "Execution path: $(WORKDIR)"; \
-	fi
-	@echo "=================================="
-	@echo ""
-	@if [ -n "$(WORKDIR)" ]; then \
-		node ./cli/claude-runner.js run "$(PIPELINE)" --path "$(WORKDIR)"; \
-	else \
-		node ./cli/claude-runner.js run "$(PIPELINE)"; \
-	fi
 
 # Convert JSON todo file to GitHub Actions workflow
 converttodo:
@@ -455,23 +400,6 @@ converttodo:
 	@npm run convert-todo "$(SOURCE)" "$(TARGET)"
 
 # Publishing targets
-publish-cli:
-	@echo "Publishing CLI to npm..."
-	@npm run publish:cli
-
 publish-extension:
 	@echo "Publishing extension to VSCode Marketplace..."
 	@npm run publish:extension
-
-package-cli: build-cli
-	@echo "Creating CLI package..."
-	@cd cli && npm pack
-	@echo "CLI package created: cli/claude-runner-cli-*.tgz"
-
-install-cli-global:
-	@echo "Installing CLI globally..."
-	@npm run install:cli:global
-
-uninstall-cli-global:
-	@echo "Uninstalling CLI globally..."
-	@npm run uninstall:cli:global

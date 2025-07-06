@@ -1,0 +1,27 @@
+name: test3
+'on':
+  workflow_dispatch:
+    inputs:
+      description:
+        description: Pipeline execution
+        required: false
+        type: string
+jobs:
+  pipeline:
+    name: Pipeline Execution
+    runs-on: ubuntu-latest
+    steps:
+      - id: task_1751746549772_mdctcbm2g
+        name: Task 1
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: hi
+          model: auto
+          allow_all_tools: true
+      - id: task_1751746550609_e0lnydxcc
+        name: Task 2
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: hi
+          model: auto
+          allow_all_tools: true

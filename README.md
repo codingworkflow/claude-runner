@@ -1,10 +1,10 @@
 # Claude Runner
 
-**Seamlessly integrate Claude AI directly into your VS Code workflow with an intuitive, feature-rich interface.**
+**Seamlessly integrate Claude AI directly into your VS Code and add automated workflow with an intuitive, feature-rich interface.**
 
 ![Claude Runner Logo](https://raw.githubusercontent.com/codingworkflow/claude-runner/main/assets/icon.png)
 
-Claude Runner transforms your development experience by bringing Anthropic's powerful Claude AI models directly into Visual Studio Code. Whether you're debugging code, writing documentation, or architecting solutions, Claude Runner provides the tools you need to work smarter, not harder.
+Claude Runner transforms your development experience by bringing Anthropic's powerful Claude AI models directly into Visual Studio Code. Whether you're debugging code, writing documentation, or architecting solutions, Claude Runner provides the tools you need to work smarter, not harder, automating tasking thru workflows.
 
 ## Key Features
 

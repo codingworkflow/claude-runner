@@ -159,13 +159,6 @@ export const useVSCodeAPI = () => {
     [sendMessage],
   );
 
-  const updateParallelTasksCount = useCallback(
-    (value: number) => {
-      sendMessage("updateParallelTasksCount", { value });
-    },
-    [sendMessage],
-  );
-
   const requestUsageReport = useCallback(
     (
       period: "today" | "week" | "month" | "hourly",
@@ -262,7 +255,6 @@ export const useVSCodeAPI = () => {
     updateChatPrompt,
     updateShowChatPrompt,
     updateOutputFormat,
-    updateParallelTasksCount,
     savePipeline,
     loadPipeline,
     pipelineAddTask,

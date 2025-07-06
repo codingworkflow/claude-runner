@@ -70,7 +70,6 @@ export type RunnerCommand =
       field: keyof TaskItem;
       value: unknown;
     }
-  | { kind: "updateParallelTasksCount"; value: number }
   | {
       kind: "requestUsageReport";
       period: "today" | "yesterday" | "week" | "month" | "hourly";
@@ -208,10 +207,6 @@ export const RunnerCommandRegistry: {
     field: isString(m.field) ? (m.field as keyof TaskItem) : "prompt",
     value: m.value,
   }),
-  updateParallelTasksCount: (m) => ({
-    kind: "updateParallelTasksCount",
-    value: isNumber(m.value) ? m.value : 1,
-  }),
   requestUsageReport: (m) => ({
     kind: "requestUsageReport",
     period:
@@ -266,7 +261,6 @@ export interface UIState {
   model: string;
   rootPath: string;
   allowAllTools: boolean;
-  parallelTasksCount: number;
 
   // Tab state
   activeTab: "chat" | "pipeline" | "workflows" | "runner" | "usage" | "logs";
