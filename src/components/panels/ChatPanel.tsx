@@ -273,7 +273,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ disabled }) => {
                     {main.chatSending ? (
                       <>
                         <span className="loading-spinner" />
-                        <span>Sending...</span>
+                        <span>Processing...</span>
                       </>
                     ) : (
                       "Send"

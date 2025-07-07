@@ -472,13 +472,13 @@ describe("ChatPanel", () => {
       expect(sendButton).toBeDisabled();
     });
 
-    it("shows 'Sending...' when message is being sent", () => {
+    it("shows 'Processing...' when message is being sent", () => {
       const state = createMockExtensionState({
         main: { chatSending: true },
       });
       render(<ChatPanelWithContext state={state} />);
 
-      expect(screen.getByText("Sending...")).toBeInTheDocument();
+      expect(screen.getByText("Processing...")).toBeInTheDocument();
     });
 
     it("shows spinner element when message is being sent", () => {
@@ -492,7 +492,7 @@ describe("ChatPanel", () => {
       expect(spinner).toBeInTheDocument();
 
       // Check that the send button shows both spinner and text
-      const sendButton = screen.getByText("Sending...").parentElement;
+      const sendButton = screen.getByText("Processing...").parentElement;
       expect(sendButton).toContainElement(spinner as HTMLElement);
     });
 
@@ -762,7 +762,7 @@ describe("ChatPanel", () => {
       render(<ChatPanelWithContext state={stateWithSending} />);
 
       // Should show the sending text with spinner
-      expect(screen.getByText("Sending...")).toBeInTheDocument();
+      expect(screen.getByText("Processing...")).toBeInTheDocument();
 
       // Should show spinner element
       const spinner = document.querySelector(".loading-spinner");
@@ -792,7 +792,7 @@ describe("ChatPanel", () => {
       );
 
       // Should show sending text immediately
-      expect(screen.getByText("Sending...")).toBeInTheDocument();
+      expect(screen.getByText("Processing...")).toBeInTheDocument();
 
       // Should show spinner element
       const spinner = document.querySelector(".loading-spinner");

@@ -531,9 +531,6 @@
   flex-direction: column;
   flex: 1;
   margin-bottom: var(--spacing-md);
-  border: 1px solid var(--vscode-input-border);
-  border-radius: var(--border-radius-md);
-  background-color: var(--vscode-input-background);
   overflow: hidden;
 }
 
