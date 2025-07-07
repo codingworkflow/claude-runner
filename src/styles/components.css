@@ -1,8 +1,42 @@
-/* Note: Button styles moved to CSS-in-JS in Button.tsx component */
+button {
+  font-family: var(--vscode-font-family);
+  font-size: var(--vscode-font-size);
+  padding: var(--input-padding);
+  background-color: var(--vscode-button-background);
+  color: var(--vscode-button-foreground);
+  border: 1px solid var(--vscode-button-background);
+  border-radius: var(--border-radius-sm);
+  cursor: pointer;
+  line-height: 1.2;
+  white-space: nowrap;
+  transition: background-color 0.2s ease;
+}
 
-/* Note: Input styles moved to CSS-in-JS in Input.tsx component */
+button:hover:not(:disabled) {
+  background-color: var(--vscode-button-hoverBackground);
+}
 
-/* Form groups - for backward compatibility */
+button:focus {
+  outline: var(--focus-outline);
+  outline-offset: -1px;
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+button.secondary,
+.control-buttons button:last-child {
+  background-color: var(--vscode-button-secondaryBackground);
+  color: var(--vscode-button-secondaryForeground);
+  border-color: var(--vscode-button-secondaryBackground);
+}
+
+button.secondary:hover:not(:disabled) {
+  background-color: var(--vscode-list-hoverBackground);
+}
+
 .input-group {
   display: flex;
   flex-direction: column;
@@ -26,26 +60,28 @@
   margin-top: var(--spacing-xs);
 }
 
-/* Inputs - VSCode Native (for non-component inputs) */
+input[type="text"],
+input[type="number"],
 textarea,
 select {
   font-family: var(--vscode-font-family);
   font-size: var(--vscode-font-size);
-  padding: var(--spacing-xs) var(--spacing-xs);
-  background-color: var(--vscode-input-background);
-  color: var(--vscode-input-foreground);
-  border: 1px solid var(--vscode-input-border);
+  padding: var(--input-padding);
+  background-color: var(--input-bg);
+  color: var(--input-fg);
+  border: 1px solid var(--input-border);
   border-radius: var(--border-radius-sm);
   line-height: 1.2;
 }
 
+input[type="text"]:focus,
+input[type="number"]:focus,
 textarea:focus,
 select:focus {
-  outline: 1px solid var(--vscode-focusBorder);
+  outline: var(--focus-outline);
   outline-offset: -1px;
 }
 
-/* Toggle switch - simplified */
 .toggle-container {
   display: flex;
   align-items: center;
@@ -82,14 +118,12 @@ select:focus {
   background-color: var(--vscode-button-foreground);
 }
 
-/* Tab Navigation - VSCode native */
 .tab-navigation {
   display: flex;
   border-bottom: 1px solid var(--vscode-tab-border);
   margin-bottom: var(--spacing-md);
 }
 
-/* Bottom Actions - Persistent button area */
 .bottom-actions {
   padding: var(--spacing-md) 0;
   border-top: 1px solid var(--vscode-tab-border);
@@ -129,9 +163,6 @@ select:focus {
   margin-top: var(--spacing-sm);
 }
 
-/* Note: Loading spinner styles moved to CSS-in-JS in Button.tsx component */
-
-/* Pause/Resume control styling */
 .pause-resume-controls {
   display: flex;
   align-items: center;
@@ -157,7 +188,6 @@ select:focus {
   }
 }
 
-/* Card Component */
 .card {
   margin-bottom: var(--spacing-md);
 }
@@ -173,7 +203,6 @@ select:focus {
   color: var(--vscode-foreground);
 }
 
-/* Chat Panel Specific */
 .chat-info {
   margin-bottom: var(--spacing-sm);
 }
@@ -208,22 +237,8 @@ select:focus {
   width: 100%;
   min-height: 120px;
   resize: vertical;
-  font-family: var(--vscode-font-family);
-  font-size: var(--vscode-font-size);
-  padding: var(--spacing-xs) var(--spacing-xs);
-  background-color: var(--vscode-input-background);
-  color: var(--vscode-input-foreground);
-  border: 1px solid var(--vscode-input-border);
-  border-radius: var(--border-radius-sm);
-  line-height: 1.2;
 }
 
-.prompt-textarea:focus {
-  outline: 1px solid var(--vscode-focusBorder);
-  outline-offset: -1px;
-}
-
-/* Button layout consistency */
 .button-group {
   display: flex;
   gap: var(--spacing-xs);
@@ -231,7 +246,6 @@ select:focus {
   flex-wrap: wrap;
 }
 
-/* Control buttons styling */
 .control-buttons {
   display: flex;
   gap: var(--spacing-xs);
@@ -240,13 +254,11 @@ select:focus {
   margin-bottom: var(--spacing-sm);
 }
 
-/* Ensure buttons don't wrap text inside */
 button {
   white-space: nowrap;
   min-width: fit-content;
 }
 
-/* Path Selector */
 .path-selector {
   margin-bottom: var(--spacing-sm);
 }
@@ -255,7 +267,6 @@ button {
   white-space: nowrap;
 }
 
-/* Model Selector */
 .model-selector {
   display: flex;
   align-items: center;
@@ -268,7 +279,6 @@ button {
   min-width: 80px;
 }
 
-/* Condition Configuration Controls */
 .condition-controls {
   margin-top: var(--spacing-sm);
   display: flex;
@@ -324,7 +334,6 @@ button {
   min-width: 120px;
 }
 
-/* ConditionalStepBuilder Component */
 .conditional-step-builder {
   padding: var(--spacing-md);
   border: 1px solid var(--vscode-input-border);
@@ -450,7 +459,6 @@ button {
   font-size: 0.85em;
 }
 
-/* Paused pipeline and workflow sections */
 .paused-pipelines-section,
 .resumable-workflows-section {
   border: 1px solid var(--vscode-input-border);

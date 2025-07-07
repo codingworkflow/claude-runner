@@ -20,7 +20,7 @@ export class PipelineService {
   /**
    * Set the root path for workflow storage
    */
-  setRootPath(rootPath: string): void {
+  async setRootPath(rootPath: string): Promise<void> {
     this.rootPath = rootPath;
     this.updateWorkflowsDir();
     this.ensureDirectories();

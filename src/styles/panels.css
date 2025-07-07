@@ -38,20 +38,6 @@
   margin-bottom: var(--spacing-sm);
 }
 
-.add-command-form {
-  padding: var(--spacing-sm);
-  background-color: var(--vscode-input-background);
-  border: 1px solid var(--vscode-input-border);
-  border-radius: var(--border-radius-sm);
-  margin-bottom: var(--spacing-sm);
-}
-
-.form-actions {
-  display: flex;
-  gap: var(--spacing-sm);
-  margin-top: var(--spacing-sm);
-}
-
 .scanning-status {
   text-align: center;
   padding: 20px;
@@ -139,11 +125,11 @@
 }
 
 .task-item {
-  border: 1px solid var(--vscode-panel-border);
-  border-radius: var(--border-radius-sm);
+  border: 1px solid var(--vscode-input-border);
+  border-radius: var(--border-radius-md);
   padding: var(--spacing-md);
   margin-bottom: var(--spacing-sm);
-  background-color: var(--vscode-editor-background);
+  background-color: var(--vscode-input-background);
   contain: layout style;
 }
 
@@ -167,21 +153,8 @@
 }
 
 .task-name-input {
-  font-family: var(--vscode-font-family);
-  font-size: var(--vscode-font-size);
-  padding: var(--spacing-xs) var(--spacing-xs);
-  background-color: var(--vscode-input-background);
-  color: var(--vscode-input-foreground);
-  border: 1px solid var(--vscode-input-border);
-  border-radius: var(--border-radius-sm);
-  line-height: 1.2;
   flex: 1;
   margin-right: var(--spacing-sm);
-}
-
-.task-name-input:focus {
-  outline: 1px solid var(--vscode-focusBorder);
-  outline-offset: -1px;
 }
 
 .task-model-group,
@@ -201,39 +174,13 @@
 }
 
 .model-select {
-  font-family: var(--vscode-font-family);
-  font-size: var(--vscode-font-size);
-  padding: var(--spacing-xs) var(--spacing-xs);
-  background-color: var(--vscode-input-background);
-  color: var(--vscode-input-foreground);
-  border: 1px solid var(--vscode-input-border);
-  border-radius: var(--border-radius-sm);
-  line-height: 1.2;
   flex: 1;
 }
 
-.model-select:focus {
-  outline: 1px solid var(--vscode-focusBorder);
-  outline-offset: -1px;
-}
-
 .task-textarea {
-  font-family: var(--vscode-font-family);
-  font-size: var(--vscode-font-size);
-  padding: var(--spacing-xs) var(--spacing-xs);
-  background-color: var(--vscode-input-background);
-  color: var(--vscode-input-foreground);
-  border: 1px solid var(--vscode-input-border);
-  border-radius: var(--border-radius-sm);
-  line-height: 1.2;
   width: 100%;
   resize: vertical;
   min-height: 60px;
-}
-
-.task-textarea:focus {
-  outline: 1px solid var(--vscode-focusBorder);
-  outline-offset: -1px;
 }
 
 .checkbox-group {
@@ -551,21 +498,8 @@
 }
 
 .pipeline-select {
-  font-family: var(--vscode-font-family);
-  font-size: var(--vscode-font-size);
-  padding: var(--spacing-xs) var(--spacing-xs);
-  background-color: var(--vscode-input-background);
-  color: var(--vscode-input-foreground);
-  border: 1px solid var(--vscode-input-border);
-  border-radius: var(--border-radius-sm);
-  line-height: 1.2;
   flex: 1;
   margin-right: var(--spacing-xs);
-}
-
-.pipeline-select:focus {
-  outline: 1px solid var(--vscode-focusBorder);
-  outline-offset: -1px;
 }
 
 .pipeline-select optgroup {

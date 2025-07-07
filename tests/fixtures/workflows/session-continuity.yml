@@ -1,0 +1,29 @@
+name: session-continuity
+'on':
+  workflow_dispatch:
+    inputs:
+      description:
+        description: Test workflow with explicit session continuity
+        required: false
+        type: string
+jobs:
+  pipeline:
+    name: Pipeline Execution
+    runs-on: ubuntu-latest
+    steps:
+      - id: task_generate_number
+        name: Generate Random Number
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: say a random number that is not 42
+          model: claude-sonnet-4-20250514
+          allow_all_tools: true
+          output_session: true
+      - id: task_ask_previous
+        name: Ask About Previous Number
+        uses: anthropics/claude-pipeline-action@v1
+        with:
+          prompt: what is the previous random number?
+          model: claude-sonnet-4-20250514
+          allow_all_tools: true
+          resume_session: task_generate_number

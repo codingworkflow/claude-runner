@@ -6,7 +6,7 @@ interface PipelineControlsProps {
   canRunTasks: boolean;
   disabled: boolean;
   status?: string;
-  tasks?: Array<{ id: string; status: string }>;
+  tasks?: Array<{ id: string; status: string; prompt: string }>;
   currentTaskIndex?: number;
   addTask: () => void;
   cancelTask: () => void;
@@ -51,7 +51,7 @@ const PipelineControls: React.FC<PipelineControlsProps> = ({
   canRunTasks,
   disabled,
   status: _status,
-  tasks: _tasks,
+  tasks = [],
   currentTaskIndex: _currentTaskIndex,
   addTask,
   cancelTask,
@@ -80,34 +80,56 @@ const PipelineControls: React.FC<PipelineControlsProps> = ({
     handleRunTasks();
   }, [handleRunTasks]);
 
-  // Reset the runClicked flag when pipeline stops running
   React.useEffect(() => {
     if (!isTasksRunning && !isPaused) {
       setRunClicked(false);
     }
   }, [isTasksRunning, isPaused]);
 
-  // Memoize pipeline running state to prevent unnecessary re-renders
   const pipelineRunningMemo = React.useMemo(() => {
     return (isTasksRunning || isPaused) && !isPipelineFinished;
   }, [isTasksRunning, isPaused, isPipelineFinished]);
+
+  const hasTasks = tasks.length > 0;
+  const hasValidTasks =
+    tasks.length > 0 && tasks.some((task) => task.prompt.trim());
+
   return (
     <div className="task-controls">
-      {/* Add Task and Save Pipeline - same line at top */}
-      <div style={{ display: "flex", gap: "8px", marginBottom: "16px" }}>
-        <Button variant="secondary" onClick={addTask} disabled={isTasksRunning}>
-          Add Task
-        </Button>
-        <Button
-          variant="secondary"
-          onClick={() => setShowPipelineDialog(true)}
-          disabled={disabled || !canRunTasks}
-        >
-          Save as Pipeline
-        </Button>
-      </div>
+      {!hasTasks ? (
+        <div style={{ display: "flex", gap: "8px", marginBottom: "16px" }}>
+          <Button variant="primary" onClick={addTask} disabled={disabled}>
+            New Workflow
+          </Button>
+        </div>
+      ) : (
+        <div style={{ display: "flex", gap: "8px", marginBottom: "16px" }}>
+          <Button
+            variant="secondary"
+            onClick={addTask}
+            disabled={isTasksRunning}
+          >
+            Add Task
+          </Button>
+          <Button
+            variant="secondary"
+            onClick={() => setShowPipelineDialog(true)}
+            disabled={disabled || !hasValidTasks}
+          >
+            Save Workflow
+          </Button>
+          {isPipelineFinished && (
+            <Button
+              variant="secondary"
+              onClick={clearPipeline}
+              disabled={disabled || !clearPipeline}
+            >
+              Clear All
+            </Button>
+          )}
+        </div>
+      )}
 
-      {/* Load Pipeline - always visible */}
       {(availablePipelines.length > 0 ||
         (discoveredWorkflows && discoveredWorkflows.length > 0)) && (
         <div className="pipeline-controls" style={{ marginTop: "16px" }}>
@@ -116,10 +138,10 @@ const PipelineControls: React.FC<PipelineControlsProps> = ({
             onChange={(e) => setSelectedPipeline(e.target.value)}
             className="pipeline-select"
           >
-            <option value="">Select pipeline</option>
+            <option value="">Select a workflow to load...</option>
 
             {availablePipelines.length > 0 && (
-              <optgroup label="Saved Pipelines">
+              <optgroup label="Saved Workflows">
                 {availablePipelines.map((pipeline) => (
                   <option key={`pipeline-${pipeline}`} value={pipeline}>
                     {pipeline}
@@ -129,7 +151,7 @@ const PipelineControls: React.FC<PipelineControlsProps> = ({
             )}
 
             {discoveredWorkflows && discoveredWorkflows.length > 0 && (
-              <optgroup label="Workflows">
+              <optgroup label="Workflow Files">
                 {discoveredWorkflows.map((workflow) => (
                   <option
                     key={`workflow-${workflow.path}`}
@@ -152,9 +174,6 @@ const PipelineControls: React.FC<PipelineControlsProps> = ({
         </div>
       )}
 
-      {/* Removed redundant paused pipelines section - resume is handled by main Resume button */}
-
-      {/* Resumable Workflows Section */}
       {resumableWorkflows.length > 0 && (
         <div
           className="resumable-workflows-section"
@@ -197,65 +216,56 @@ const PipelineControls: React.FC<PipelineControlsProps> = ({
         </div>
       )}
 
-      {/* Run Pipeline / Pause / Cancel - separate section at bottom */}
-      <div
-        className="pipeline-execution-controls"
-        style={{ marginTop: "24px" }}
-      >
-        {pipelineRunningMemo ? (
-          <>
-            {isPaused ? (
-              <Button
-                variant="primary"
-                onClick={() => {
-                  const pipelineId =
-                    pausedPipelines?.[0]?.pipelineId || "current";
-                  onResumePipeline?.(pipelineId);
-                }}
-                disabled={disabled || !onResumePipeline}
-              >
-                Resume
-              </Button>
-            ) : (
-              <Button
-                variant="secondary"
-                onClick={onPausePipeline}
-                disabled={disabled || !onPausePipeline}
-              >
-                Pause
-              </Button>
-            )}
-            <Button
-              variant="secondary"
-              onClick={cancelTask}
-              disabled={disabled}
-              style={{ marginLeft: "8px" }}
-            >
-              Cancel Pipeline
-            </Button>
-          </>
-        ) : (
-          <>
-            {isPipelineFinished ? (
+      {hasTasks && hasValidTasks && (
+        <div
+          className="pipeline-execution-controls"
+          style={{ marginTop: "24px" }}
+        >
+          {pipelineRunningMemo ? (
+            <>
+              {isPaused ? (
+                <Button
+                  variant="primary"
+                  onClick={() => {
+                    const pipelineId =
+                      pausedPipelines?.[0]?.pipelineId || "current";
+                    onResumePipeline?.(pipelineId);
+                  }}
+                  disabled={disabled || !onResumePipeline}
+                >
+                  Resume
+                </Button>
+              ) : (
+                <Button
+                  variant="secondary"
+                  onClick={onPausePipeline}
+                  disabled={disabled || !onPausePipeline}
+                >
+                  Pause
+                </Button>
+              )}
               <Button
                 variant="secondary"
-                onClick={clearPipeline}
-                disabled={disabled || !clearPipeline}
+                onClick={cancelTask}
+                disabled={disabled}
+                style={{ marginLeft: "8px" }}
               >
-                Clear Pipeline
+                Cancel
               </Button>
-            ) : (
+            </>
+          ) : (
+            !isPipelineFinished && (
               <Button
                 variant="primary"
                 onClick={handleRunPipeline}
                 disabled={disabled || !canRunTasks || runClicked}
               >
-                Run Pipeline
+                Run Workflow
               </Button>
-            )}
-          </>
-        )}
-      </div>
+            )
+          )}
+        </div>
+      )}
     </div>
   );
 };

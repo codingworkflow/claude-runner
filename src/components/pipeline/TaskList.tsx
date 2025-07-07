@@ -1,5 +1,4 @@
 import React from "react";
-import Button from "../common/Button";
 import { TaskItem } from "../../services/ClaudeCodeService";
 import { ConditionType } from "../../core/models/Task";
 
@@ -39,13 +38,12 @@ const TaskList: React.FC<TaskListProps> = ({
               disabled={isTasksRunning}
             />
             {tasks.length > 1 && (
-              <Button
-                variant="secondary"
+              <button
                 onClick={() => removeTask(task.id)}
                 disabled={isTasksRunning}
               >
                 Remove
-              </Button>
+              </button>
             )}
           </div>
 
@@ -86,7 +84,7 @@ const TaskList: React.FC<TaskListProps> = ({
                   updateTask(task.id, "resumeFromTaskId", e.target.value)
                 }
                 disabled={isTasksRunning}
-                className="condition-select-inline"
+                className="model-select condition-select-inline"
               >
                 <option value="">New session</option>
                 {tasks.slice(0, index).map((prevTask, idx) => (
@@ -101,16 +99,15 @@ const TaskList: React.FC<TaskListProps> = ({
           <div className="condition-controls">
             {(!task.check || task.check.trim() === "") &&
             (!task.condition || task.condition === "always") ? (
-              <Button
-                variant="secondary"
+              <button
                 onClick={() => {
                   updateTask(task.id, "check", "");
                   updateTask(task.id, "condition", "on_success");
                 }}
                 disabled={isTasksRunning}
               >
-                Add Condition Command
-              </Button>
+                + Add Condition Command
+              </button>
             ) : (
               <>
                 <div className="check-command-row">
@@ -122,20 +119,20 @@ const TaskList: React.FC<TaskListProps> = ({
                       updateTask(task.id, "check", e.target.value)
                     }
                     placeholder="Optional check command (e.g., make lint)"
-                    className="check-command-input-inline"
+                    className="task-name-input check-command-input-inline"
                     disabled={isTasksRunning}
                   />
-                  <Button
-                    variant="secondary"
+                  <button
                     onClick={() => {
                       updateTask(task.id, "check", "");
                       updateTask(task.id, "condition", "always");
                     }}
                     disabled={isTasksRunning}
                     className="remove-condition-btn"
+                    title="Remove condition"
                   >
                     ×
-                  </Button>
+                  </button>
                 </div>
                 <div className="condition-row-inline">
                   <label className="inline-label">Condition:</label>
@@ -149,7 +146,7 @@ const TaskList: React.FC<TaskListProps> = ({
                       )
                     }
                     disabled={isTasksRunning}
-                    className="condition-select-inline"
+                    className="model-select condition-select-inline"
                   >
                     <option value="always">Always</option>
                     <option value="on_success">On Success</option>

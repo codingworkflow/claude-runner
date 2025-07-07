@@ -48,19 +48,25 @@ const RunnerPanel: React.FC<RunnerPanelProps> = ({ disabled }) => {
     }
   };
 
-  const canRunTasks =
-    tasks.some((task) => task.prompt.trim()) && !isTasksRunning;
+  const clearWorkflow = () => {
+    actions.pipelineClearAll();
+    setLoadedWorkflowName("");
+  };
+
+  const deleteWorkflow = (executionId: string) => {
+    actions.deleteWorkflowState(executionId);
+    clearWorkflow();
+  };
+
+  const hasWorkflowLoaded =
+    loadedWorkflowName || tasks.some((task) => task.prompt.trim());
+  const canRunTasks = hasWorkflowLoaded && !isTasksRunning;
 
   const isPipelineFinished =
     !isTasksRunning &&
     !isPaused &&
     tasks.some((t) => t.prompt.trim().length > 0) &&
     tasks.some((t) => t.status === "completed" || t.status === "error");
-
-  const clearResults = () => {
-    actions.pipelineClearAll();
-    setLoadedWorkflowName("");
-  };
 
   return (
     <div className="runner-panel">
@@ -100,49 +106,47 @@ const RunnerPanel: React.FC<RunnerPanelProps> = ({ disabled }) => {
 
       {loadedWorkflowName && (
         <div className="loaded-workflow">
-          <span>Current:</span>
+          Current:{" "}
           <strong>
             {loadedWorkflowName.split("/").pop()?.split("\\").pop()}
           </strong>
         </div>
       )}
 
-      <div className="execution-controls">
-        {!isTasksRunning && !isPaused && (
-          <button onClick={handleRunTasks} disabled={disabled || !canRunTasks}>
-            Run Workflow
-          </button>
-        )}
+      {!hasWorkflowLoaded && !isTasksRunning && !isPaused && (
+        <div className="workflow-message">Load workflow first</div>
+      )}
 
-        {isTasksRunning && !isPaused && (
-          <button onClick={() => actions.pausePipeline()} disabled={disabled}>
-            Pause
-          </button>
-        )}
+      {(hasWorkflowLoaded || isTasksRunning || isPipelineFinished) && (
+        <div className="execution-controls">
+          {!isTasksRunning && !isPaused && hasWorkflowLoaded && (
+            <button
+              onClick={handleRunTasks}
+              disabled={disabled || !canRunTasks}
+            >
+              Run Workflow
+            </button>
+          )}
 
-        {isPaused && pausedPipelines.length > 0 && (
-          <button
-            onClick={() =>
-              actions.resumePipeline(pausedPipelines[0].pipelineId)
-            }
-            disabled={disabled}
-          >
-            Resume
-          </button>
-        )}
+          {isTasksRunning && !isPaused && (
+            <button onClick={() => actions.pausePipeline()} disabled={disabled}>
+              Pause
+            </button>
+          )}
 
-        {isTasksRunning && (
-          <button onClick={() => actions.cancelTask()} disabled={disabled}>
-            Cancel
-          </button>
-        )}
+          {isTasksRunning && (
+            <button onClick={() => actions.cancelTask()} disabled={disabled}>
+              Cancel
+            </button>
+          )}
 
-        {isPipelineFinished && (
-          <button onClick={clearResults} disabled={disabled}>
-            Clear Results
-          </button>
-        )}
-      </div>
+          {isPipelineFinished && (
+            <button onClick={clearWorkflow} disabled={disabled}>
+              Clear Results
+            </button>
+          )}
+        </div>
+      )}
 
       {(pausedPipelines.length > 0 || resumableWorkflows.length > 0) && (
         <div className="resumable-section">
@@ -157,7 +161,7 @@ const RunnerPanel: React.FC<RunnerPanelProps> = ({ disabled }) => {
                 Resume
               </button>
               <button
-                onClick={() => actions.deleteWorkflowState(pipeline.pipelineId)}
+                onClick={() => deleteWorkflow(pipeline.pipelineId)}
                 disabled={disabled || isTasksRunning}
               >
                 Delete
@@ -174,9 +178,7 @@ const RunnerPanel: React.FC<RunnerPanelProps> = ({ disabled }) => {
                 Resume
               </button>
               <button
-                onClick={() =>
-                  actions.deleteWorkflowState(workflow.executionId)
-                }
+                onClick={() => deleteWorkflow(workflow.executionId)}
                 disabled={disabled || isTasksRunning}
               >
                 Delete

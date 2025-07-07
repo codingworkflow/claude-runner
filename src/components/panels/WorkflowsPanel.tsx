@@ -19,7 +19,7 @@ const WorkflowsPanel: React.FC<WorkflowsPanelProps> = ({ disabled }) => {
     discoveredWorkflows,
   } = main;
 
-  const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [showSaveForm, setShowSaveForm] = useState(false);
   const [workflowName, setWorkflowName] = useState("");
   const [workflowDescription, setWorkflowDescription] = useState("");
   const [selectedWorkflow, setSelectedWorkflow] = useState("");
@@ -69,10 +69,16 @@ const WorkflowsPanel: React.FC<WorkflowsPanelProps> = ({ disabled }) => {
         workflowDescription.trim(),
         validTasks,
       );
-      setShowSaveDialog(false);
+      setShowSaveForm(false);
       setWorkflowName("");
       setWorkflowDescription("");
     }
+  };
+
+  const handleCancelSave = () => {
+    setShowSaveForm(false);
+    setWorkflowName("");
+    setWorkflowDescription("");
   };
 
   const handleLoadWorkflow = () => {
@@ -93,99 +99,117 @@ const WorkflowsPanel: React.FC<WorkflowsPanelProps> = ({ disabled }) => {
     actions.pipelineClearAll();
   };
 
-  const canSave = tasks.some((task) => task.prompt.trim());
+  const hasTasks = tasks.length > 0;
+  const hasValidTasks =
+    tasks.length > 0 && tasks.some((task) => task.prompt.trim());
 
   return (
     <div className="workflows-panel">
-      <div className="workflow-load-section">
-        <select
-          value={selectedWorkflow}
-          onChange={(e) => setSelectedWorkflow(e.target.value)}
-          disabled={disabled}
-        >
-          <option value="">Select a workflow to load...</option>
-          {availablePipelines.length > 0 && (
-            <optgroup label="Saved Workflows">
-              {availablePipelines.map((pipeline) => (
-                <option key={pipeline} value={pipeline}>
-                  {pipeline}
-                </option>
-              ))}
-            </optgroup>
-          )}
-          {discoveredWorkflows && discoveredWorkflows.length > 0 && (
-            <optgroup label="Workflow Files">
-              {discoveredWorkflows.map((workflow) => (
-                <option key={workflow.path} value={workflow.path}>
-                  {workflow.name}
-                </option>
-              ))}
-            </optgroup>
-          )}
-        </select>
-        <button
-          onClick={handleLoadWorkflow}
-          disabled={disabled || !selectedWorkflow}
-        >
-          Load
-        </button>
-      </div>
+      {(availablePipelines.length > 0 ||
+        (discoveredWorkflows && discoveredWorkflows.length > 0)) && (
+        <div className="workflow-load-section">
+          <select
+            value={selectedWorkflow}
+            onChange={(e) => setSelectedWorkflow(e.target.value)}
+            disabled={disabled}
+          >
+            <option value="">Select a workflow to load...</option>
+            {availablePipelines.length > 0 && (
+              <optgroup label="Saved Workflows">
+                {availablePipelines.map((pipeline) => (
+                  <option key={pipeline} value={pipeline}>
+                    {pipeline}
+                  </option>
+                ))}
+              </optgroup>
+            )}
+            {discoveredWorkflows && discoveredWorkflows.length > 0 && (
+              <optgroup label="Workflow Files">
+                {discoveredWorkflows.map((workflow) => (
+                  <option key={workflow.path} value={workflow.path}>
+                    {workflow.name}
+                  </option>
+                ))}
+              </optgroup>
+            )}
+          </select>
+          <button
+            onClick={handleLoadWorkflow}
+            disabled={disabled || !selectedWorkflow}
+          >
+            Load
+          </button>
+        </div>
+      )}
 
       <div className="workflow-actions">
-        <button onClick={addTask} disabled={disabled}>
-          Add Task
-        </button>
-        <button
-          onClick={() => setShowSaveDialog(true)}
-          disabled={disabled || !canSave}
-        >
-          Save Workflow
-        </button>
-        <button
-          onClick={clearWorkflow}
-          disabled={disabled || tasks.length === 0}
-        >
-          Clear All
-        </button>
+        {!hasTasks ? (
+          <button onClick={addTask} disabled={disabled}>
+            New Workflow
+          </button>
+        ) : (
+          <>
+            <button onClick={addTask} disabled={disabled}>
+              Add Task
+            </button>
+            <button
+              onClick={() => setShowSaveForm(true)}
+              disabled={disabled || !hasValidTasks}
+            >
+              Save Workflow
+            </button>
+            <button onClick={clearWorkflow} disabled={disabled}>
+              Clear All
+            </button>
+          </>
+        )}
       </div>
 
-      <TaskList
-        tasks={tasks}
-        isTasksRunning={false}
-        defaultModel={defaultModel}
-        availableModels={availableModels}
-        updateTask={updateTask}
-        removeTask={removeTask}
-      />
-
-      {showSaveDialog && (
-        <div className="dialog-backdrop">
-          <div className="dialog">
-            <h3>Save Workflow</h3>
+      {showSaveForm && (
+        <div className="task-item">
+          <div className="task-header">
+            <h4>Save Workflow</h4>
+          </div>
+          <div className="input-group">
             <input
               type="text"
+              className="task-name-input"
               placeholder="Workflow name"
               value={workflowName}
               onChange={(e) => setWorkflowName(e.target.value)}
               autoFocus
             />
+          </div>
+          <div className="input-group">
             <textarea
+              className="task-textarea"
               placeholder="Description (optional)"
               value={workflowDescription}
               onChange={(e) => setWorkflowDescription(e.target.value)}
               rows={3}
             />
-            <div className="dialog-actions">
-              <button
-                onClick={handleSaveWorkflow}
-                disabled={!workflowName.trim()}
-              >
-                Save
-              </button>
-              <button onClick={() => setShowSaveDialog(false)}>Cancel</button>
-            </div>
+          </div>
+          <div className="control-buttons">
+            <button
+              onClick={handleSaveWorkflow}
+              disabled={!workflowName.trim()}
+            >
+              Save
+            </button>
+            <button onClick={handleCancelSave}>Cancel</button>
           </div>
         </div>
+      )}
+
+      {hasTasks && (
+        <TaskList
+          tasks={tasks}
+          isTasksRunning={false}
+          defaultModel={defaultModel}
+          availableModels={availableModels}
+          updateTask={updateTask}
+          removeTask={removeTask}
+        />
       )}
     </div>
   );

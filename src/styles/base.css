@@ -11,9 +11,10 @@
   --font-size-lg: calc(var(--vscode-font-size) + 1px);
   --border-radius-sm: 2px;
   --border-radius-md: 4px;
-  --input-styles: var(--vscode-font-family) var(--vscode-font-size)
-    var(--vscode-input-background) var(--vscode-input-foreground)
-    var(--vscode-input-border);
+  --input-padding: var(--spacing-xs) var(--spacing-sm);
+  --input-bg: var(--vscode-editor-background);
+  --input-fg: var(--vscode-input-foreground);
+  --input-border: var(--vscode-input-border);
   --focus-outline: 1px solid var(--vscode-focusBorder);
 }
 

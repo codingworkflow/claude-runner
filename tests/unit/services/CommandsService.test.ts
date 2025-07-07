@@ -273,7 +273,7 @@ describe("CommandsService", () => {
   });
 
   describe("openCommandFile", () => {
-    it("should open command file successfully", async () => {
+    it("should slash open commands file successfully", async () => {
       const filePath = "/test/command.md";
       mockVSCode.window.showTextDocument.mockResolvedValue(undefined);
 

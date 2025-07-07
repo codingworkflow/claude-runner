@@ -288,12 +288,6 @@ export class ClaudeCodeService {
           if (sourceTask?.sessionId) {
             taskOptions.resumeSessionId = sourceTask.sessionId;
           }
-        } else if (i > 0) {
-          // If no explicit resumeFromTaskId, continue from previous task if it completed successfully
-          const previousTask = tasks[i - 1];
-          if (previousTask.sessionId && previousTask.status === "completed") {
-            taskOptions.resumeSessionId = previousTask.sessionId;
-          }
         }
 
         // Use task-specific model if specified, otherwise use pipeline default

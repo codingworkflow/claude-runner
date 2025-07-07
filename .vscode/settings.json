@@ -1,7 +1,7 @@
 {
   "claudeRunner.defaultRootPath": "/workspace",
   "claudeRunner.allowAllTools": true,
-  "claudeRunner.defaultModel": "auto",
+  "claudeRunner.defaultModel": "claude-sonnet-4-20250514",
   "sonarlint.connectedMode.project": {
     "connectionId": "claude-runner",
     "projectKey": "claude-runner"

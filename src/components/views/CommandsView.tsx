@@ -99,7 +99,7 @@ const CommandsView: React.FC = () => {
           title="Open Claude Code slash commands documentation"
         >
           <span className="button-icon">🌐</span>
-          Open Command Docs
+          Open Slash Commands Docs
         </Button>
       </div>
     </div>

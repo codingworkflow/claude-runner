@@ -25,17 +25,20 @@ const CommandForm: React.FC<CommandFormProps> = ({
   };
 
   return (
-    <div className="add-command-form">
-      <input
-        type="text"
-        placeholder={placeholder}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        onKeyPress={handleKeyPress}
-        disabled={disabled}
-        autoFocus
-      />
-      <div className="form-actions">
+    <div className="task-item">
+      <div className="input-group">
+        <input
+          type="text"
+          className="task-name-input"
+          placeholder={placeholder}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          onKeyPress={handleKeyPress}
+          disabled={disabled}
+          autoFocus
+        />
+      </div>
+      <div className="control-buttons">
         <Button
           variant="primary"
           onClick={onSubmit}
