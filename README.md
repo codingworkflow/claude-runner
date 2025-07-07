@@ -1,10 +1,10 @@
 # Claude Runner
 
-**Run complex multi steps Claude Code task directly into your VS Code.**
+**Run complex multi-step Claude Code tasks directly in your VS Code.**
 
 ![Claude Runner Logo](https://raw.githubusercontent.com/codingworkflow/claude-runner/main/assets/icon.png)
 
-Create and run mutli steps task in your VS Code. Create workflows & save them to re-use.
+Create and run multi-step tasks in your VS Code. Create workflows & save them to reuse.
 Get cost usage (estimate if you use subscription), and check conversation history.
 
 ## Key Features
@@ -14,10 +14,10 @@ Get cost usage (estimate if you use subscription), and check conversation histor
 Create and execute sophisticated multi-step workflows:
 
 - Chain multiple Claude Code tasks together
-- Mix different Claude models per task or keeep in Auto mode
+- Mix different Claude models per task or keep in Auto mode
 - Session continuity between tasks
 - Save and reuse pipelines
-- Format similar to Claude Code Github action
+- Format similar to Claude Code GitHub action
 
 ![Create Workflow](https://raw.githubusercontent.com/codingworkflow/claude-runner/main/assets/pipeline.png)
 
@@ -33,8 +33,8 @@ Choose the perfect model for your task:
 - **Claude Sonnet 4**: Balanced performance and cost-effectiveness
 - **Claude Sonnet 3.7**: Reliable performance for most tasks
 - **Claude Haiku 3.5**: Lightning-fast responses for quick queries
-- Use bypass mode (recommended use devcontainer)
-- Setup Parallel tasks configuration
+- Use bypass mode (recommended for devcontainer)
+- Set up parallel tasks configuration
 
 ### **Interactive Chat Mode**
 
@@ -60,7 +60,7 @@ Monitor your Claude usage with detailed analytics:
 - Token consumption tracking
 - Cost estimation per model
 - Daily/weekly/monthly breakdowns
-- Estimate user per 5 hours, set start window, max output
+- Estimate usage per 5 hours, set start window, max output
 
 ![Usage Tracking](https://raw.githubusercontent.com/codingworkflow/claude-runner/main/assets/usage.png)
 
@@ -68,13 +68,13 @@ Monitor your Claude usage with detailed analytics:
 
 ### **Access session logs**
 
-View in vscode previous Claude code chats:
+View in VS Code previous Claude Code chats:
 
-- Browse sessions history
+- Browse session history
 
 ![Conversation list](https://raw.githubusercontent.com/codingworkflow/claude-runner/main/assets/logs.png)
 
-![Claude code session](https://raw.githubusercontent.com/codingworkflow/claude-runner/main/assets/conversation.png)
+![Claude Code session](https://raw.githubusercontent.com/codingworkflow/claude-runner/main/assets/conversation.png)
 
 ## Quick Start
 
@@ -88,8 +88,8 @@ View in vscode previous Claude code chats:
 **Latest Features:**
 
 - Pipeline system for complex workflows
-- pause & resume
-- auto-resume on timeout
+- Pause & resume
+- Auto-resume on timeout
 - Comprehensive usage analytics and cost tracking
 - Conversation history and search
 

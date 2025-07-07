@@ -2,7 +2,7 @@
   "name": "claude-runner",
   "displayName": "Claude Runner",
   "description": "Execute Claude Code commands directly from VS Code with an intuitive interface",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "publisher": "Codingworkflow",
   "private": false,
   "license": "GPL-3.0",
