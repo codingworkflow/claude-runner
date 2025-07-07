@@ -84,6 +84,8 @@ export type RunnerCommand =
   | { kind: "openFile"; path: string }
   | { kind: "createCommand"; name: string; isGlobal: boolean; rootPath: string }
   | { kind: "deleteCommand"; path: string }
+  | { kind: "sendChatMessage"; message: string; isFirstMessage: boolean }
+  | { kind: "clearChatSession" }
   | { kind: "webviewError"; error: string };
 
 // Command Registry for type-safe command creation
@@ -249,6 +251,12 @@ export const RunnerCommandRegistry: {
     kind: "deleteCommand",
     path: isString(m.path) ? m.path : "",
   }),
+  sendChatMessage: (m) => ({
+    kind: "sendChatMessage",
+    message: isString(m.message) ? m.message : "",
+    isFirstMessage: isBoolean(m.isFirstMessage) ? m.isFirstMessage : false,
+  }),
+  clearChatSession: () => ({ kind: "clearChatSession" }),
   webviewError: (m) => ({
     kind: "webviewError",
     error: isString(m.error) ? m.error : "",
@@ -302,6 +310,13 @@ export interface UIState {
   // Chat state
   chatPrompt: string;
   showChatPrompt: boolean;
+  chatMessages?: Array<{
+    role: "user" | "assistant";
+    content: string;
+    timestamp: string;
+  }>;
+  chatSessionId?: string;
+  chatSending?: boolean;
 
   // Claude version state
   claudeVersion: string;

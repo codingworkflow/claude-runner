@@ -104,10 +104,11 @@ src/components/
 
 **TypeScript Standards:**
 
-- Enable strict mode - no `any` types allowed
+- Enable strict mode - no `any` types allowed (linter will catch violations)
 - Use interfaces for all props and data structures
 - Prefer union types over enums for string constants
 - Use optional chaining (`?.`) and nullish coalescing (`??`)
+- NEVER use `any` - always use proper types or `unknown` when type is truly unknown
 
 **Error Handling:**
 

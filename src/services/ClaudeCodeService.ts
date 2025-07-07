@@ -462,10 +462,10 @@ export class ClaudeCodeService {
 
   private extractResultFromJson(output: string): string {
     try {
-      // Try to parse the JSON response
+      // Parse the JSON response from Claude CLI
       const jsonData = JSON.parse(output.trim());
 
-      // Extract the result field if it exists
+      // Extract the result field from the standard CLI output
       if (jsonData && typeof jsonData.result === "string") {
         return jsonData.result;
       }
@@ -479,7 +479,7 @@ export class ClaudeCodeService {
     }
   }
 
-  private buildTaskCommand(
+  buildTaskCommand(
     task: string,
     model: string,
     options: TaskOptions,

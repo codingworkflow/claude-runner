@@ -4,7 +4,7 @@
 
 ![Claude Runner Logo](https://raw.githubusercontent.com/codingworkflow/claude-runner/main/assets/icon.png)
 
-Create and run multi-step tasks in your VS Code. Create workflows & save them to reuse.
+Chat, create and run multi-step tasks in your VS Code. Create workflows & save them to reuse.
 Get cost usage (estimate if you use subscription), and check conversation history.
 
 ## Key Features
@@ -13,11 +13,14 @@ Get cost usage (estimate if you use subscription), and check conversation histor
 
 Create and execute sophisticated multi-step workflows:
 
+- Chat directly in VScode
 - Chain multiple Claude Code tasks together
 - Mix different Claude models per task or keep in Auto mode
 - Session continuity between tasks
 - Save and reuse pipelines
 - Format similar to Claude Code GitHub action
+
+![Chat](https://raw.githubusercontent.com/codingworkflow/claude-runner/main/assets/chatui.png)
 
 ![Create Workflow](https://raw.githubusercontent.com/codingworkflow/claude-runner/main/assets/pipeline.png)
 

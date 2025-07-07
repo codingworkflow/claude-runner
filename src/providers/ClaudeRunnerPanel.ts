@@ -98,6 +98,7 @@ export class ClaudeRunnerPanel implements vscode.WebviewViewProvider {
         this.postMessage.bind(this),
       ),
       onCommandScanResult: (data) => this.handleCommandScanResult(data),
+      postMessage: this.postMessage.bind(this),
     });
 
     // Load pipelines

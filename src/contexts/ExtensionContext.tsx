@@ -121,6 +121,15 @@ export interface MainViewState {
     }
   >;
 
+  // Chat state
+  chatMessages?: Array<{
+    role: "user" | "assistant";
+    content: string;
+    timestamp: string;
+  }>;
+  chatSessionId?: string;
+  chatSending?: boolean;
+
   // Pause/Resume state
   isPaused: boolean;
   currentExecutionId?: string;
@@ -355,6 +364,10 @@ export interface ExtensionActions {
   deleteWorkflowState: (executionId: string) => void;
   getResumableWorkflows: () => void;
 
+  // Chat Actions
+  sendChatMessage: (message: string, isFirstMessage: boolean) => void;
+  clearChatSession: () => void;
+
   // Commands View Actions
   updateCommandsState: (updates: Partial<CommandsViewState>) => void;
   scanCommands: (rootPath: string) => void;
@@ -542,6 +555,15 @@ export const ExtensionProvider: React.FC<{ children: ReactNode }> = ({
       sendMessage("deleteWorkflowState", { executionId });
     },
 
+    // Chat Actions
+    sendChatMessage: (message: string, isFirstMessage: boolean) => {
+      sendMessage("sendChatMessage", { message, isFirstMessage });
+    },
+
+    clearChatSession: () => {
+      sendMessage("clearChatSession");
+    },
+
     // Commands View Actions
     updateCommandsState: (updates: Partial<CommandsViewState>) => {
       dispatch({ type: "UPDATE_COMMANDS_STATE", updates });
@@ -698,6 +720,44 @@ export const ExtensionProvider: React.FC<{ children: ReactNode }> = ({
               report: null,
               loading: false,
               error: message.error || "Failed to load usage report",
+            },
+          });
+          break;
+
+        case "chatMessageResponse":
+          if (message.chatMessage) {
+            dispatch({
+              type: "UPDATE_MAIN_STATE",
+              updates: {
+                chatMessages: [
+                  ...(state.main.chatMessages ?? []),
+                  message.chatMessage,
+                ],
+                chatSessionId: message.sessionId,
+                chatSending: false,
+              },
+            });
+          }
+          break;
+
+        case "chatConversationUpdate":
+          if (message.chatMessages) {
+            dispatch({
+              type: "UPDATE_MAIN_STATE",
+              updates: {
+                chatMessages: message.chatMessages,
+                chatSessionId: message.sessionId,
+                chatSending: false,
+              },
+            });
+          }
+          break;
+
+        case "chatError":
+          dispatch({
+            type: "UPDATE_MAIN_STATE",
+            updates: {
+              chatSending: false,
             },
           });
           break;

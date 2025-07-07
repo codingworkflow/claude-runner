@@ -28,6 +28,7 @@ export interface ControllerCallbacks {
     globalCommands: CommandFile[];
     projectCommands: CommandFile[];
   }) => void;
+  postMessage?: (message: Record<string, unknown>) => void;
 }
 
 export class RunnerController implements EventBus {
@@ -177,6 +178,12 @@ export class RunnerController implements EventBus {
         break;
       case "deleteCommand":
         void this.deleteCommand(cmd.path);
+        break;
+      case "sendChatMessage":
+        void this.sendChatMessage(cmd.message, cmd.isFirstMessage);
+        break;
+      case "clearChatSession":
+        this.clearChatSession();
         break;
       case "webviewError":
         console.error("Webview error:", cmd.error);
@@ -1070,6 +1077,97 @@ export class RunnerController implements EventBus {
         resumableWorkflows: [],
       });
     }
+  }
+
+  private async sendChatMessage(
+    message: string,
+    isFirstMessage: boolean,
+  ): Promise<void> {
+    try {
+      const currentState = this.state$.value;
+
+      // Add user message to chat
+      const userMessage = {
+        role: "user" as const,
+        content: message,
+        timestamp: new Date().toISOString(),
+      };
+
+      const updatedMessages = [
+        ...(currentState.chatMessages ?? []),
+        userMessage,
+      ];
+
+      this.updateState({
+        chatMessages: updatedMessages,
+        chatSending: true,
+      });
+
+      // Build command and execute directly to get raw JSON output
+      const args = this.claudeCodeService.buildTaskCommand(
+        message,
+        currentState.model,
+        {
+          allowAllTools: currentState.allowAllTools,
+          outputFormat: "json",
+          resumeSessionId: isFirstMessage
+            ? undefined
+            : currentState.chatSessionId,
+        },
+      );
+
+      const commandResult = await this.claudeCodeService.executeCommand(
+        args,
+        currentState.rootPath,
+      );
+
+      if (!commandResult.success) {
+        throw new Error(commandResult.error ?? "Chat command failed");
+      }
+
+      // Parse the JSON response from raw output
+      const jsonResponse = JSON.parse(commandResult.output.trim());
+      const assistantMessage = {
+        role: "assistant" as const,
+        content: jsonResponse.result || "No response",
+        timestamp: new Date().toISOString(),
+      };
+
+      this.updateState({
+        chatMessages: [...updatedMessages, assistantMessage],
+        chatSessionId: jsonResponse.session_id,
+        chatSending: false,
+      });
+
+      // Send full conversation state back to webview
+      this.callbacks.postMessage?.({
+        command: "chatConversationUpdate",
+        chatMessages: [...updatedMessages, assistantMessage],
+        sessionId: jsonResponse.session_id,
+      });
+    } catch (error) {
+      this.updateState({ chatSending: false });
+      this.callbacks.postMessage?.({
+        command: "chatError",
+        error: error instanceof Error ? error.message : String(error),
+      });
+      vscode.window.showErrorMessage(`Chat error: ${error}`);
+    }
+  }
+
+  private clearChatSession(): void {
+    this.updateState({
+      chatMessages: [],
+      chatSessionId: undefined,
+      chatSending: false,
+    });
+
+    // Notify webview to clear conversation
+    this.callbacks.postMessage?.({
+      command: "chatConversationUpdate",
+      chatMessages: [],
+      sessionId: undefined,
+    });
   }
 
   private async deleteWorkflowState(executionId: string): Promise<void> {
