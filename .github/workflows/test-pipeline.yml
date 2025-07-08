@@ -10,7 +10,7 @@ on:
 jobs:
   test-without-claude:
     name: "Test Extension without Claude CLI"
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     
     steps:
       - name: Checkout code
@@ -47,7 +47,7 @@ jobs:
 
   test-with-claude:
     name: "Test Extension with Claude CLI"
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     needs: test-without-claude
     
     steps:
@@ -87,7 +87,7 @@ jobs:
 
   test-report:
     name: "Generate Test Report"
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     needs: [test-without-claude, test-with-claude]
     if: always()
     
@@ -116,4 +116,4 @@ jobs:
           echo "- Main Window Loading Tests" >> $GITHUB_STEP_SUMMARY
           echo "- Claude CLI Detection Tests" >> $GITHUB_STEP_SUMMARY
           echo "- Claude CLI Integration Tests" >> $GITHUB_STEP_SUMMARY
-          echo "- End-to-End Workflow Tests" >> $GITHUB_STEP_SUMMARY
+          echo "- End-to-End Workflow Tests (temporarily disabled)" >> $GITHUB_STEP_SUMMARY

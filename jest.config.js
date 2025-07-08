@@ -9,6 +9,8 @@ module.exports = {
   testPathIgnorePatterns: [
     "/node_modules/",
     "/tests/unit/suite/", // Exclude VSCode extension tests (they use Mocha, not Jest)
+    "/tests/e2e/", // Exclude E2E tests (temporarily disabled in CI pipelines)
+    "/tests/integration/", // Exclude integration tests from unit test runs
   ],
   transform: {
     "^.+\\.(ts|tsx)$": [

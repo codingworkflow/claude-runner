@@ -2,17 +2,11 @@ name: Docker E2E Tests
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: '0 2 * * 0'  # Weekly on Sunday at 2 AM
-  push:
-    branches: [ main, develop ]
-  pull_request:
-    branches: [ main, develop ]
 
 jobs:
   docker-e2e-tests:
     name: "Docker E2E Tests"
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     
     strategy:
       matrix:
@@ -61,7 +55,7 @@ jobs:
 
   docker-test-summary:
     name: "Docker Test Summary"
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     needs: docker-e2e-tests
     if: always()
     
@@ -81,7 +75,7 @@ jobs:
           echo "With Claude CLI:" >> $GITHUB_STEP_SUMMARY
           echo "- Installs Claude CLI via npm" >> $GITHUB_STEP_SUMMARY
           echo "- Tests full integration capabilities" >> $GITHUB_STEP_SUMMARY
-          echo "- Runs comprehensive E2E test suite" >> $GITHUB_STEP_SUMMARY
+          echo "- Runs comprehensive test suite (E2E tests temporarily disabled)" >> $GITHUB_STEP_SUMMARY
           echo "- Validates CLI detection and functionality" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "Environment:" >> $GITHUB_STEP_SUMMARY

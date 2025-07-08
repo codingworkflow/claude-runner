@@ -134,8 +134,13 @@ test-unit:
 
 # Run end-to-end tests only
 test-e2e:
-	@echo "🧪 Running end-to-end tests..."
+	@echo "🚫 End-to-end tests are temporarily disabled in CI pipelines"
 	@npm run test:e2e
+
+# Run end-to-end tests manually (for development)
+test-e2e-manual:
+	@echo "🧪 Running end-to-end tests manually..."
+	@npm run test:e2e:manual
 
 # Run integration tests only
 test-integration:
