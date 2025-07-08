@@ -85,6 +85,7 @@ export type RunnerCommand =
   | { kind: "createCommand"; name: string; isGlobal: boolean; rootPath: string }
   | { kind: "deleteCommand"; path: string }
   | { kind: "sendChatMessage"; message: string; isFirstMessage: boolean }
+  | { kind: "stopChatGeneration" }
   | { kind: "clearChatSession" }
   | { kind: "webviewError"; error: string };
 
@@ -256,6 +257,7 @@ export const RunnerCommandRegistry: {
     message: isString(m.message) ? m.message : "",
     isFirstMessage: isBoolean(m.isFirstMessage) ? m.isFirstMessage : false,
   }),
+  stopChatGeneration: () => ({ kind: "stopChatGeneration" }),
   clearChatSession: () => ({ kind: "clearChatSession" }),
   webviewError: (m) => ({
     kind: "webviewError",
@@ -317,6 +319,7 @@ export interface UIState {
   }>;
   chatSessionId?: string;
   chatSending?: boolean;
+  chatStopping?: boolean;
 
   // Claude version state
   claudeVersion: string;

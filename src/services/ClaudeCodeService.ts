@@ -574,15 +574,39 @@ export class ClaudeCodeService {
     return args;
   }
 
-  cancelCurrentTask(): void {
-    if (this.currentProcess) {
-      // Cancelling current Claude task
-      this.currentProcess.kill("SIGTERM");
-      this.currentProcess = null;
-    }
+  cancelCurrentTask(): Promise<void> {
+    return new Promise((resolve) => {
+      if (this.currentProcess) {
+        const processToCancel = this.currentProcess;
+        this.currentProcess = null; // Prevent new commands from using this handle
 
-    // Cancel pipeline execution
-    this.currentPipelineExecution = null;
+        // The ONLY thing that resolves this promise is the process actually exiting
+        const onExit = () => {
+          processToCancel.removeAllListeners(); // Clean up listeners
+          resolve();
+        };
+
+        processToCancel.once("exit", onExit);
+        processToCancel.once("error", onExit); // Also handle spawn errors
+
+        // 1. Attempt graceful shutdown
+        processToCancel.kill("SIGTERM");
+
+        // 2. Set a non-resolving fallback to forcibly kill if it gets stuck
+        setTimeout(() => {
+          if (!processToCancel.killed) {
+            console.warn("Process did not respond to SIGTERM, sending SIGKILL");
+            processToCancel.kill("SIGKILL");
+          }
+          // NOTE: We do NOT resolve() here - only the exit event resolves
+        }, 2000); // 2-second grace period
+      } else {
+        resolve();
+      }
+
+      // Cancel pipeline execution
+      this.currentPipelineExecution = null;
+    });
   }
 
   isTaskRunning(): boolean {

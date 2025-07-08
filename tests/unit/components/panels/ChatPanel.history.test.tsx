@@ -184,6 +184,7 @@ const createMockActions = (): ExtensionActions => ({
   deleteWorkflowState: jest.fn(),
   getResumableWorkflows: jest.fn(),
   sendChatMessage: jest.fn(),
+  stopChatGeneration: jest.fn(),
   clearChatSession: jest.fn(),
   updateCommandsState: jest.fn(),
   scanCommands: jest.fn(),

@@ -262,6 +262,7 @@ const createMockActions = (): ExtensionActions => ({
   deleteWorkflowState: jest.fn(),
   getResumableWorkflows: jest.fn(),
   sendChatMessage: jest.fn(),
+  stopChatGeneration: jest.fn(),
   clearChatSession: jest.fn(),
   updateCommandsState: jest.fn(),
   scanCommands: jest.fn(),
@@ -425,11 +426,6 @@ describe("ChatPanel", () => {
       const sendButton = screen.getByText("Send");
       fireEvent.click(sendButton);
 
-      // Should set chatSending to true immediately
-      expect(mockActions.updateMainState).toHaveBeenCalledWith({
-        chatSending: true,
-      });
-
       // Should send the message
       expect(mockActions.sendChatMessage).toHaveBeenCalledWith(
         "Test message",
@@ -468,32 +464,32 @@ describe("ChatPanel", () => {
     it("disables send button when message is empty", () => {
       render(<ChatPanelWithContext />);
 
-      const sendButton = screen.getByText("Send");
+      const sendButton = screen.getByText("Send").closest("button");
       expect(sendButton).toBeDisabled();
     });
 
-    it("shows 'Processing...' when message is being sent", () => {
+    it("shows 'Stop' button when message is being sent", () => {
       const state = createMockExtensionState({
         main: { chatSending: true },
       });
       render(<ChatPanelWithContext state={state} />);
 
-      expect(screen.getByText("Processing...")).toBeInTheDocument();
+      expect(screen.getByText("Stop")).toBeInTheDocument();
     });
 
-    it("shows spinner element when message is being sent", () => {
+    it("shows stop icon when message is being sent", () => {
       const state = createMockExtensionState({
         main: { chatSending: true },
       });
       render(<ChatPanelWithContext state={state} />);
 
-      // Check that the loading spinner element exists
-      const spinner = document.querySelector(".loading-spinner") as HTMLElement;
-      expect(spinner).toBeInTheDocument();
+      // Check that the stop icon element exists
+      const stopIcon = document.querySelector(".stop-icon") as HTMLElement;
+      expect(stopIcon).toBeInTheDocument();
 
-      // Check that the send button shows both spinner and text
-      const sendButton = screen.getByText("Processing...").parentElement;
-      expect(sendButton).toContainElement(spinner as HTMLElement);
+      // Check that the stop button shows both icon and text
+      const stopButton = screen.getByText("Stop").parentElement;
+      expect(stopButton).toContainElement(stopIcon as HTMLElement);
     });
 
     it("clears chat when Clear Chat button is clicked", () => {
@@ -556,7 +552,7 @@ describe("ChatPanel", () => {
       const terminalButton = screen.getByText("Terminal");
       const extensionButton = screen.getByText("VSCode");
       const input = screen.getByPlaceholderText(/Type your message/);
-      const sendButton = screen.getByText("Send");
+      const sendButton = screen.getByText("Send").closest("button");
 
       expect(terminalButton).toBeDisabled();
       expect(extensionButton).toBeDisabled();
@@ -761,12 +757,12 @@ describe("ChatPanel", () => {
 
       render(<ChatPanelWithContext state={stateWithSending} />);
 
-      // Should show the sending text with spinner
-      expect(screen.getByText("Processing...")).toBeInTheDocument();
+      // Should show the stop button with icon
+      expect(screen.getByText("Stop")).toBeInTheDocument();
 
-      // Should show spinner element
-      const spinner = document.querySelector(".loading-spinner");
-      expect(spinner).toBeInTheDocument();
+      // Should show stop icon element
+      const stopIcon = document.querySelector(".stop-icon");
+      expect(stopIcon).toBeInTheDocument();
 
       // Should show both user message and loading
       expect(screen.getByText("Hello")).toBeInTheDocument();
@@ -791,12 +787,12 @@ describe("ChatPanel", () => {
         <ChatPanelWithContext state={stateWithLoading} actions={mockActions} />,
       );
 
-      // Should show sending text immediately
-      expect(screen.getByText("Processing...")).toBeInTheDocument();
+      // Should show stop button when sending
+      expect(screen.getByText("Stop")).toBeInTheDocument();
 
-      // Should show spinner element
-      const spinner = document.querySelector(".loading-spinner");
-      expect(spinner).toBeInTheDocument();
+      // Should show stop icon
+      const stopIcon = document.querySelector(".stop-icon");
+      expect(stopIcon).toBeInTheDocument();
 
       expect(screen.getByText("Test message")).toBeInTheDocument();
     });

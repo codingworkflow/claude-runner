@@ -129,6 +129,7 @@ export interface MainViewState {
   }>;
   chatSessionId?: string;
   chatSending?: boolean;
+  chatStopping?: boolean;
 
   // Pause/Resume state
   isPaused: boolean;
@@ -366,6 +367,7 @@ export interface ExtensionActions {
 
   // Chat Actions
   sendChatMessage: (message: string, isFirstMessage: boolean) => void;
+  stopChatGeneration: () => void;
   clearChatSession: () => void;
 
   // Commands View Actions
@@ -560,6 +562,10 @@ export const ExtensionProvider: React.FC<{ children: ReactNode }> = ({
       sendMessage("sendChatMessage", { message, isFirstMessage });
     },
 
+    stopChatGeneration: () => {
+      sendMessage("stopChatGeneration");
+    },
+
     clearChatSession: () => {
       sendMessage("clearChatSession");
     },
@@ -747,7 +753,7 @@ export const ExtensionProvider: React.FC<{ children: ReactNode }> = ({
               updates: {
                 chatMessages: message.chatMessages,
                 chatSessionId: message.sessionId,
-                chatSending: false,
+                chatSending: message.isStreaming ?? false,
               },
             });
           }

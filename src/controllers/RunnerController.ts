@@ -35,6 +35,7 @@ export class RunnerController implements EventBus {
   readonly state$ = new BehaviorSubject<UIState>(this.getInitialState());
   private callbacks: ControllerCallbacks = {};
   private readonly commandsService: CommandsService;
+  private isChatCancelled = false;
 
   // Public method to get current state value
   public getCurrentState(): UIState {
@@ -181,6 +182,9 @@ export class RunnerController implements EventBus {
         break;
       case "sendChatMessage":
         void this.sendChatMessage(cmd.message, cmd.isFirstMessage);
+        break;
+      case "stopChatGeneration":
+        void this.stopChatGeneration();
         break;
       case "clearChatSession":
         this.clearChatSession();
@@ -475,7 +479,7 @@ export class RunnerController implements EventBus {
 
   private async cancelTask(): Promise<void> {
     try {
-      this.claudeCodeService.cancelCurrentTask();
+      await this.claudeCodeService.cancelCurrentTask();
 
       // Clear all task and pause state on cancellation
       this.updateState({
@@ -1084,6 +1088,9 @@ export class RunnerController implements EventBus {
     isFirstMessage: boolean,
   ): Promise<void> {
     try {
+      // Reset cancellation flag at start of new message
+      this.isChatCancelled = false;
+
       const currentState = this.state$.value;
 
       // Add user message to chat
@@ -1117,6 +1124,11 @@ export class RunnerController implements EventBus {
 
       // Stream message handler
       const onStreamMessage = (streamMsg: any) => {
+        // Check for cancellation
+        if (this.isChatCancelled) {
+          return; // Stop processing if cancelled
+        }
+
         // Update session ID if provided
         if (streamMsg.type === "system" && streamMsg.session_id) {
           sessionId = streamMsg.session_id;
@@ -1155,6 +1167,12 @@ export class RunnerController implements EventBus {
         }
       };
 
+      // Check for cancellation before starting execution
+      if (this.isChatCancelled) {
+        this.updateState({ chatSending: false });
+        return;
+      }
+
       // Execute streaming task
       const result = await this.claudeService.executeStreamingTask(
         message,
@@ -1167,6 +1185,12 @@ export class RunnerController implements EventBus {
         onStreamMessage,
       );
 
+      // Check for cancellation after execution
+      if (this.isChatCancelled) {
+        this.updateState({ chatSending: false });
+        return;
+      }
+
       // Final update - only set chatSending to false after process completes
       this.updateState({
         chatMessages: messagesWithAssistant,
@@ -1178,6 +1202,7 @@ export class RunnerController implements EventBus {
         command: "chatConversationUpdate",
         chatMessages: messagesWithAssistant,
         sessionId: sessionId ?? result.sessionId,
+        isStreaming: false,
       });
     } catch (error) {
       this.updateState({ chatSending: false });
@@ -1202,6 +1227,37 @@ export class RunnerController implements EventBus {
       chatMessages: [],
       sessionId: undefined,
     });
+  }
+
+  private async stopChatGeneration(): Promise<void> {
+    try {
+      // Set cancellation flag to prevent race conditions
+      this.isChatCancelled = true;
+
+      // Set chatStopping state immediately for responsive UI
+      this.updateState({ chatStopping: true });
+
+      // Cancel the actual task
+      await this.claudeCodeService.cancelCurrentTask();
+
+      // Reset chat states after cancellation completes
+      this.updateState({
+        chatSending: false,
+        chatStopping: false,
+      });
+
+      // Reset cancellation flag
+      this.isChatCancelled = false;
+    } catch (error) {
+      console.error("Error stopping chat generation:", error);
+
+      // Reset states even on error
+      this.updateState({
+        chatSending: false,
+        chatStopping: false,
+      });
+      this.isChatCancelled = false;
+    }
   }
 
   private async deleteWorkflowState(executionId: string): Promise<void> {

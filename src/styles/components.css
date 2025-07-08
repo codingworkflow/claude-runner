@@ -522,3 +522,44 @@ button {
   gap: var(--spacing-xs);
   align-items: center;
 }
+
+/* Chat send/stop button styles */
+.chat-send-button,
+.chat-stop-button {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  min-width: calc(var(--spacing-lg) * 5);
+  justify-content: center;
+}
+
+.send-icon,
+.stop-icon {
+  font-size: var(--font-size-sm);
+  font-weight: bold;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--spacing-lg);
+  height: var(--spacing-lg);
+}
+
+.send-icon {
+  color: var(--vscode-button-foreground);
+}
+
+.stop-icon {
+  color: var(--vscode-button-secondaryForeground);
+  font-size: var(--font-size-sm);
+}
+
+/* Chat stop button specific styling */
+.chat-stop-button {
+  background-color: var(--vscode-errorBackground);
+  color: var(--vscode-errorForeground);
+  border-color: var(--vscode-errorBackground);
+}
+
+.chat-stop-button:hover:not(:disabled) {
+  background-color: var(--vscode-button-secondaryHoverBackground);
+}

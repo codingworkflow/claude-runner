@@ -59,9 +59,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ disabled }) => {
     setMessages((prev) => [...prev, userMessage]);
     setInputMessage("");
 
-    // Set chatSending to true to show the spinner
-    actions.updateMainState({ chatSending: true });
-
     try {
       // Send to extension host - this will handle full conversation
       actions.sendChatMessage(
@@ -270,24 +267,35 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ disabled }) => {
                   </Button>
                 </div>
                 <div className="chat-controls-right">
-                  <Button
-                    variant="primary"
-                    onClick={handleSendMessage}
-                    disabled={
-                      (disabled ?? false) ||
-                      (main.chatSending ?? false) ||
-                      !inputMessage.trim()
-                    }
-                  >
-                    {main.chatSending ? (
-                      <>
-                        <span className="loading-spinner" />
-                        <span>Processing...</span>
-                      </>
-                    ) : (
-                      "Send"
-                    )}
-                  </Button>
+                  {(main.chatSending ?? false) ||
+                  (main.chatStopping ?? false) ? (
+                    <Button
+                      variant="secondary"
+                      onClick={() => actions.stopChatGeneration()}
+                      disabled={disabled ?? false}
+                    >
+                      {main.chatStopping ? (
+                        <>
+                          <span className="loading-spinner" />
+                          <span>Stopping...</span>
+                        </>
+                      ) : (
+                        <>
+                          <span className="stop-icon">●</span>
+                          <span>Stop</span>
+                        </>
+                      )}
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="primary"
+                      onClick={handleSendMessage}
+                      disabled={(disabled ?? false) || !inputMessage.trim()}
+                    >
+                      <span className="send-icon">▶</span>
+                      <span>Send</span>
+                    </Button>
+                  )}
                 </div>
               </div>
             </div>
