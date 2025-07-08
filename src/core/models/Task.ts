@@ -19,6 +19,7 @@ export interface TaskOptions {
   mcpConfig?: string;
   permissionPromptTool?: string;
   workingDirectory?: string;
+  onStreamMessage?: (message: any) => void;
 }
 
 export interface CommandResult {

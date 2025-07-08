@@ -508,7 +508,7 @@ export class ClaudeCodeService {
       args.push("--max-turns", options.maxTurns.toString());
     }
 
-    if (options.verbose) {
+    if (options.verbose ?? options.outputFormat === "stream-json") {
       args.push("--verbose");
     }
 

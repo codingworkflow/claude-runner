@@ -109,9 +109,10 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ disabled }) => {
         disabled={disabled}
       />
 
-      <Card title="Claude Chat">
-        <div className="chat-mode-selector">
-          <div className="button-group">
+      <Card>
+        <div className="task-header">
+          <h4>Chat</h4>
+          <div className="control-buttons">
             <Button
               variant={chatMode === "extension" ? "primary" : "secondary"}
               onClick={() => setChatMode("extension")}
@@ -138,11 +139,15 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ disabled }) => {
               </p>
             </div>
 
-            <ModelSelector
-              model={main.model}
-              onUpdateModel={actions.updateModel}
-              disabled={disabled}
-            />
+            <div className="input-group">
+              <label>Model</label>
+              <ModelSelector
+                model={main.model}
+                onUpdateModel={actions.updateModel}
+                disabled={disabled}
+                hideLabel={true}
+              />
+            </div>
 
             <Toggle
               checked={main.allowAllTools}
@@ -202,11 +207,15 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ disabled }) => {
           </div>
         ) : (
           <div className="extension-chat">
-            <ModelSelector
-              model={main.model}
-              onUpdateModel={actions.updateModel}
-              disabled={disabled || main.chatSending}
-            />
+            <div className="input-group">
+              <label>Model</label>
+              <ModelSelector
+                model={main.model}
+                onUpdateModel={actions.updateModel}
+                disabled={disabled || main.chatSending}
+                hideLabel={true}
+              />
+            </div>
 
             <div className="chat-container">
               <div className="chat-messages">

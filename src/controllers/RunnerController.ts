@@ -1103,47 +1103,81 @@ export class RunnerController implements EventBus {
         chatSending: true,
       });
 
-      // Build command and execute directly to get raw JSON output
-      const args = this.claudeCodeService.buildTaskCommand(
-        message,
-        currentState.model,
-        {
-          allowAllTools: currentState.allowAllTools,
-          outputFormat: "json",
-          resumeSessionId: isFirstMessage
-            ? undefined
-            : currentState.chatSessionId,
-        },
-      );
-
-      const commandResult = await this.claudeCodeService.executeCommand(
-        args,
-        currentState.rootPath,
-      );
-
-      if (!commandResult.success) {
-        throw new Error(commandResult.error ?? "Chat command failed");
-      }
-
-      // Parse the JSON response from raw output
-      const jsonResponse = JSON.parse(commandResult.output.trim());
+      // Create assistant message placeholder
       const assistantMessage = {
         role: "assistant" as const,
-        content: jsonResponse.result || "No response",
+        content: "",
         timestamp: new Date().toISOString(),
       };
 
+      const messagesWithAssistant = [...updatedMessages, assistantMessage];
+      let sessionId: string | undefined = isFirstMessage
+        ? undefined
+        : currentState.chatSessionId;
+
+      // Stream message handler
+      const onStreamMessage = (streamMsg: any) => {
+        // Update session ID if provided
+        if (streamMsg.type === "system" && streamMsg.session_id) {
+          sessionId = streamMsg.session_id;
+        }
+
+        // Handle process complete message
+        if (streamMsg.type === "process" && streamMsg.subtype === "complete") {
+          return; // Don't update UI yet, wait for executeStreamingTask to complete
+        }
+
+        // Handle assistant messages
+        if (streamMsg.type === "assistant" && streamMsg.message) {
+          const content = streamMsg.message.content;
+          if (Array.isArray(content)) {
+            for (const item of content) {
+              if (item.type === "text" && item.text) {
+                assistantMessage.content += item.text;
+              }
+            }
+          }
+
+          // Update UI with streaming content (but keep chatSending true)
+          this.updateState({
+            chatMessages: messagesWithAssistant,
+            chatSessionId: sessionId,
+            chatSending: true, // Keep showing as sending
+          });
+
+          // Send update to webview
+          this.callbacks.postMessage?.({
+            command: "chatConversationUpdate",
+            chatMessages: messagesWithAssistant,
+            sessionId: sessionId,
+            isStreaming: true, // Indicate we're still streaming
+          });
+        }
+      };
+
+      // Execute streaming task
+      const result = await this.claudeService.executeStreamingTask(
+        message,
+        currentState.model,
+        currentState.rootPath,
+        {
+          allowAllTools: currentState.allowAllTools,
+          resumeSessionId: sessionId,
+        },
+        onStreamMessage,
+      );
+
+      // Final update - only set chatSending to false after process completes
       this.updateState({
-        chatMessages: [...updatedMessages, assistantMessage],
-        chatSessionId: jsonResponse.session_id,
+        chatMessages: messagesWithAssistant,
+        chatSessionId: sessionId ?? result.sessionId,
         chatSending: false,
       });
 
-      // Send full conversation state back to webview
       this.callbacks.postMessage?.({
         command: "chatConversationUpdate",
-        chatMessages: [...updatedMessages, assistantMessage],
-        sessionId: jsonResponse.session_id,
+        chatMessages: messagesWithAssistant,
+        sessionId: sessionId ?? result.sessionId,
       });
     } catch (error) {
       this.updateState({ chatSending: false });

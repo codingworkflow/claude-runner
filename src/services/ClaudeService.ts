@@ -1,5 +1,10 @@
 import { ClaudeExecutor } from "../core/services/ClaudeExecutor";
-import { TaskOptions, TaskItem, TaskResult } from "../core/models/Task";
+import {
+  TaskOptions,
+  TaskItem,
+  TaskResult,
+  CommandResult,
+} from "../core/models/Task";
 import { VSCodeLogger, VSCodeConfigSource } from "../adapters/vscode";
 import { ConfigManager } from "../core/services/ConfigManager";
 import { ClaudeDetectionService } from "./ClaudeDetectionService";
@@ -275,6 +280,94 @@ export class ClaudeService {
       }
       throw error;
     }
+  }
+
+  async executeStreamingTask(
+    task: string,
+    model: string,
+    workingDirectory: string,
+    options: TaskOptions = {},
+    onStreamMessage: (message: any) => void,
+  ): Promise<TaskResult> {
+    const startTime = Date.now();
+
+    try {
+      if (model !== "auto" && !this.configManager.validateModel(model)) {
+        throw new Error(`Invalid model: ${model}`);
+      }
+
+      if (!this.configManager.validatePath(workingDirectory)) {
+        throw new Error(`Invalid working directory: ${workingDirectory}`);
+      }
+
+      const streamOptions = {
+        ...options,
+        outputFormat: "stream-json" as const,
+        verbose: true,
+      };
+      const args = this.buildTaskCommand(task, model, streamOptions);
+
+      // Use executeCommand directly to handle streaming properly
+      const result = await this.executeCommand(
+        args,
+        workingDirectory,
+        "stream-json",
+        onStreamMessage,
+      );
+
+      if (!result.success) {
+        throw new Error(result.error ?? "Command execution failed");
+      }
+
+      const executionTime = Date.now() - startTime;
+
+      return {
+        taskId: `task-${Date.now()}`,
+        success: true,
+        output: result.output,
+        sessionId: result.sessionId,
+        executionTimeMs: executionTime,
+      };
+    } catch (error) {
+      const executionTime = Date.now() - startTime;
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+
+      this.logger.error(
+        "Streaming task execution failed",
+        error instanceof Error ? error : new Error(errorMessage),
+      );
+
+      return {
+        taskId: `task-${Date.now()}`,
+        success: false,
+        output: "",
+        error: errorMessage,
+        executionTimeMs: executionTime,
+      };
+    }
+  }
+
+  private buildTaskCommand(
+    task: string,
+    model: string,
+    options: TaskOptions,
+  ): string[] {
+    return this.executor.buildTaskCommand(task, model, options);
+  }
+
+  private async executeCommand(
+    args: string[],
+    cwd: string,
+    outputFormat?: string,
+    onStreamMessage?: (message: any) => void,
+  ): Promise<CommandResult> {
+    return await (this.executor as any).executeCommand(
+      args,
+      cwd,
+      outputFormat,
+      onStreamMessage,
+    );
   }
 
   async pausePipelineExecution(): Promise<string | null> {

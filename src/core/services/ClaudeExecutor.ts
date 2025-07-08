@@ -44,6 +44,7 @@ export class ClaudeExecutor {
         args,
         workingDirectory,
         options.outputFormat,
+        options.onStreamMessage,
       );
 
       if (!result.success) {
@@ -477,6 +478,7 @@ export class ClaudeExecutor {
       args,
       workingDirectory,
       options.outputFormat,
+      options.onStreamMessage,
     );
   }
 
@@ -484,6 +486,7 @@ export class ClaudeExecutor {
     args: string[],
     cwd: string,
     outputFormat?: string,
+    onStreamMessage?: (message: any) => void,
   ): Promise<CommandResult> {
     return new Promise((resolve) => {
       const child = spawn(args[0], args.slice(1), {
@@ -497,6 +500,8 @@ export class ClaudeExecutor {
 
       let stdout = "";
       let stderr = "";
+      let buffer = "";
+      let sessionId: string | undefined;
 
       if (child.stdin) {
         child.stdin.end();
@@ -504,7 +509,29 @@ export class ClaudeExecutor {
 
       if (child.stdout) {
         child.stdout.on("data", (data: Buffer) => {
-          stdout += data.toString();
+          const chunk = data.toString();
+          stdout += chunk;
+
+          // Handle streaming JSON
+          if (outputFormat === "stream-json" && onStreamMessage) {
+            buffer += chunk;
+            const lines = buffer.split("\n");
+            buffer = lines.pop() ?? "";
+
+            for (const line of lines) {
+              if (line.trim()) {
+                try {
+                  const message = JSON.parse(line);
+                  if (message.type === "system" && message.session_id) {
+                    sessionId = message.session_id;
+                  }
+                  onStreamMessage(message);
+                } catch (e) {
+                  // Ignore invalid JSON lines
+                }
+              }
+            }
+          }
         });
       }
 
@@ -517,11 +544,37 @@ export class ClaudeExecutor {
       child.on("close", (code: number | null) => {
         this.currentProcess = null;
 
+        // Process any remaining buffer
+        if (
+          outputFormat === "stream-json" &&
+          onStreamMessage &&
+          buffer.trim()
+        ) {
+          try {
+            const message = JSON.parse(buffer);
+            if (message.type === "system" && message.session_id) {
+              sessionId = message.session_id;
+            }
+            onStreamMessage(message);
+          } catch (e) {
+            // Ignore invalid JSON
+          }
+        }
+
+        // Send process complete message for streaming
+        if (outputFormat === "stream-json" && onStreamMessage) {
+          onStreamMessage({
+            type: "process",
+            subtype: "complete",
+            exitCode: code,
+            session_id: sessionId,
+          });
+        }
+
         const exitCode = code ?? 0;
         if (exitCode === 0) {
           // Extract sessionId if output format is JSON
-          let sessionId: string | undefined;
-          if (outputFormat === "json") {
+          if (outputFormat === "json" && !sessionId) {
             const parsed = this.parseTaskResult(stdout, outputFormat);
             sessionId = parsed.sessionId;
           }
@@ -564,7 +617,7 @@ export class ClaudeExecutor {
     });
   }
 
-  private buildTaskCommand(
+  buildTaskCommand(
     task: string,
     model: string,
     options: TaskOptions,
@@ -593,7 +646,7 @@ export class ClaudeExecutor {
       args.push("--max-turns", options.maxTurns.toString());
     }
 
-    if (options.verbose) {
+    if (options.verbose ?? options.outputFormat === "stream-json") {
       args.push("--verbose");
     }
 
